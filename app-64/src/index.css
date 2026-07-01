@@ -1,0 +1,237 @@
+/* stylelint-disable */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here.
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+    
+    /* 科技蓝主题 - 浅色模式 */
+    --background: 210 20% 98%;
+    --foreground: 210 15% 15%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 210 15% 15%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 15% 15%;
+    
+    /* 主色：科技蓝 #2196F3 */
+    --primary: 207 90% 54%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 207 90% 70%;
+    
+    /* 辅色：荧光绿 #00E676 */
+    --secondary: 151 100% 45%;
+    --secondary-foreground: 0 0% 100%;
+    
+    /* 柔和背景色 */
+    --muted: 210 20% 95%;
+    --muted-foreground: 210 10% 45%;
+    
+    /* 强调色：荧光绿 */
+    --accent: 151 100% 45%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* 警示色：警示橙 #FF9800 */
+    --destructive: 36 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* 边框和输入框 */
+    --border: 210 20% 88%;
+    --input: 210 20% 88%;
+    --ring: 207 90% 54%;
+    
+    /* 深空灰 #424242 */
+    --dark-gray: 0 0% 26%;
+    
+    /* 图表颜色 */
+    --chart-1: 207 90% 54%;
+    --chart-2: 151 100% 45%;
+    --chart-3: 36 100% 50%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    
+    /* 侧边栏 */
+    --sidebar: 210 20% 98%;
+    --sidebar-foreground: 210 15% 15%;
+    --sidebar-primary: 207 90% 54%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 95%;
+    --sidebar-accent-foreground: 210 15% 15%;
+    --sidebar-border: 210 20% 88%;
+    --sidebar-ring: 207 90% 54%;
+    
+    /* 游戏特定颜色 */
+    --game-bg: 210 25% 12%;
+    --monster-normal: 207 90% 54%;
+    --monster-attacker: 0 85% 60%;
+    --monster-evasive: 280 65% 60%;
+    --monster-smart: 151 100% 45%;
+    
+    /* 动画和过渡 */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* 阴影 */
+    --shadow-elegant: 0 10px 30px -10px hsl(207 90% 54% / 0.3);
+    --shadow-glow: 0 0 40px hsl(207 90% 70% / 0.4);
+  }
+
+  .dark {
+    /* 深空灰背景 */
+    --background: 210 25% 12%;
+    --foreground: 210 20% 95%;
+    
+    --card: 210 20% 16%;
+    --card-foreground: 210 20% 95%;
+    
+    --popover: 210 20% 16%;
+    --popover-foreground: 210 20% 95%;
+    
+    /* 主色：科技蓝（暗色模式稍微调亮） */
+    --primary: 207 90% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 207 90% 75%;
+    
+    /* 辅色：荧光绿 */
+    --secondary: 151 100% 50%;
+    --secondary-foreground: 0 0% 10%;
+    
+    --muted: 210 20% 20%;
+    --muted-foreground: 210 15% 65%;
+    
+    /* 强调色：荧光绿 */
+    --accent: 151 100% 50%;
+    --accent-foreground: 0 0% 10%;
+    
+    /* 警示色：警示橙 */
+    --destructive: 36 100% 55%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 210 20% 24%;
+    --input: 210 20% 24%;
+    --ring: 207 90% 60%;
+    
+    --chart-1: 207 90% 60%;
+    --chart-2: 151 100% 50%;
+    --chart-3: 36 100% 55%;
+    --chart-4: 280 65% 65%;
+    --chart-5: 340 75% 60%;
+    
+    --sidebar: 210 25% 12%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 207 90% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 20%;
+    --sidebar-accent-foreground: 210 20% 95%;
+    --sidebar-border: 210 20% 24%;
+    --sidebar-ring: 207 90% 60%;
+    
+    --game-bg: 210 25% 8%;
+    --monster-normal: 207 90% 60%;
+    --monster-attacker: 0 85% 65%;
+    --monster-evasive: 280 65% 65%;
+    --monster-smart: 151 100% 50%;
+    
+    --shadow-elegant: 0 10px 30px -10px hsl(207 90% 60% / 0.4);
+    --shadow-glow: 0 0 40px hsl(207 90% 75% / 0.5);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  
+  .game-canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  
+  .pixel-font {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 600;
+  }
+  
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .glow-effect {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  .smooth-transition {
+    transition: var(--transition-smooth);
+  }
+
+  /* 错误反馈动画 */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+  }
+
+  .animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+
+  /* 正确反馈动画 */
+  @keyframes ping-once {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0;
+    }
+  }
+
+  .animate-ping-once {
+    animation: ping-once 0.5s ease-out;
+  }
+
+  /* 连击特效 */
+  @keyframes combo-pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .animate-combo {
+    animation: combo-pulse 0.3s ease-in-out;
+  }
+}
+
