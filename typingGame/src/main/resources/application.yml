@@ -10,9 +10,21 @@ server:
 # 数据库配置
 spring:
   datasource:
-    url: jdbc:mysql://47.114.110.103:3306/typing_word_game?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: typing_word_game
+    url: jdbc:mysql://127.0.0.1:3306/typing_word_game?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
     password: 123456
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      initial-size: 10
+      min-idle: 10
+      max-active: 50
+      max-wait: 60000
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
   
   # JPA 配置
   jpa:
@@ -23,21 +35,34 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
   
-  # Redis配置
+  # Redis配置（优化连接池和超时参数）
   data:
     redis:
-      host: 47.114.110.103
+      host: 127.0.0.1
       port: 6379
       password: 123456
       database: 0
-      jedis:
+      timeout: 10000ms
+      connect-timeout: 5000ms
+      lettuce:
         pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-          max-wait: -1ms
-      key-serializer: org.springframework.data.redis.serializer.StringRedisSerializer
-      value-serializer: org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
+          max-active: 50
+          max-idle: 20
+          min-idle: 5
+          max-wait: 10000ms
+  
+  # Redisson配置（分布式锁/缓存）
+  redisson:
+    config: |
+      singleServerConfig:
+        address: redis://${spring.data.redis.host}:${spring.data.redis.port}
+        password: ${spring.data.redis.password}
+        database: ${spring.data.redis.database}
+        connectionPoolSize: 20
+        connectionMinimumIdleSize: 5
+        idleConnectionTimeout: 10000
+        connectTimeout: 5000
+        timeout: 3000
   
   # WebSocket配置
   websocket:
@@ -81,22 +106,47 @@ jwt:
   refresh-expiration: 604800000
 
 # AI 对话（方案 A：后端统一 chat 与存储）
-# 配置后端调用第三方 LLM/工作流（例如 Coze workflow/run），不配置则返回占位文案
 ai:
   llm:
-    url: https://api.coze.cn/v1/workflow/run       # 例如 https://api.coze.cn/v1/workflow/run
-    api-key: cztei_lksF2PzdPV7SaH8aNEJByRI7njNwsMQFglF34rR5inSDZRVGg6yjwrfk6zhbKNxGU   # 可选，Bearer 鉴权，例如 Coze 提供的 token
-    workflow-id: 7593204689836998708 # 可选，第三方平台的 workflow_id（如 7593...）
-  # 默认助手机器人 ID，对应 ai_conversation.ai_robot_id
+    url: https://api.coze.cn/v1/workflow/run
+    api-key: cztei_lksF2PzdPV7SaH8aNEJByRI7njNwsMQFglF34rR5inSDZRVGg6yjwrfk6zhbKNxGU
+    workflow-id: 7593204689836998708
   default-robot-id: 1
   default-conversation-title: "默认"
 
-# 日志配置
+# Actuator监控配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,beans,mappings,env
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: typingGame
+
+# 日志配置（JSON格式化，便于ELK解析）
 logging:
   level:
     root: INFO
     com.typinggame: DEBUG
+    org.springframework.security: INFO
   file:
     name: ./logs/typing-game.log
     max-size: 10MB
     max-history: 7
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

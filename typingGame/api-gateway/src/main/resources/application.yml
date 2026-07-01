@@ -1,0 +1,58 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /typingWord
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+        file-extension: yml
+    gateway:
+      routes:
+        - id: user-service
+          uri: lb://user-svc
+          predicates:
+            - Path=/api/v1/auth/**,/api/v1/user/**,/api/v1/friends/**
+          filters:
+            - StripPrefix=0
+        - id: game-service
+          uri: lb://game-core-svc
+          predicates:
+            - Path=/api/v1/game/**,/api/v1/model/**,/api/v1/stats/**
+          filters:
+            - StripPrefix=0
+        - id: ai-service
+          uri: lb://ai-svc
+          predicates:
+            - Path=/api/v1/ai/**
+          filters:
+            - StripPrefix=0
+        - id: chat-service
+          uri: lb://chat-svc
+          predicates:
+            - Path=/api/v1/messages/**,/api/v1/leaderboard/**,/api/v1/dictionary/**
+          filters:
+            - StripPrefix=0
+      discovery:
+        locator:
+          enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web.reactive: DEBUG

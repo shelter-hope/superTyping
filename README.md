@@ -14,6 +14,7 @@
 - [技术栈](#技术栈)
 - [项目结构](#项目结构)
 - [快速启动](#快速启动)
+- [核心特性](#核心特性)
 - [模块文档](#模块文档)
 - [许可证](#许可证)
 
@@ -23,25 +24,23 @@
 
 打字进化游戏是一款以锻炼玩家打字能力为核心目的的网页游戏，通过算法分析玩家的打字习惯和盲区，让字符怪兽自适应进化，迫使玩家跳出打字舒适区，提升综合打字水平。
 
-### 核心特色
+### 核心价值
 
-- **自适应进化机制**：根据玩家打字数据实时调整游戏难度和字符怪物特性
-- **多模式游戏体验**：支持无尽适应模式、词源界定模式、限时冲刺模式
-- **完整的社交系统**：好友添加、实时聊天、消息通知等功能
-- **详细的数据分析**：记录打字行为数据，生成分析报告和训练建议
-- **自定义词库支持**：支持上传和管理自定义词库
-- **AI 助手**：集成 AI 对话功能，提供训练指导
+- **科学训练**：基于数据驱动的自适应算法，精准定位薄弱环节
+- **游戏化体验**：将枯燥的打字练习转化为有趣的游戏挑战
+- **个性化方案**：根据每位玩家的特点定制训练路径
+- **社交互动**：好友系统、实时聊天、排行榜，增强游戏粘性
 
 ---
 
 ## 架构说明
 
-项目采用前后端分离架构：
+项目采用前后端分离架构，前端负责界面渲染与用户交互，后端提供核心业务逻辑与数据服务。
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      前端 (app-64)                          │
-│  React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui    │
+│  React 18 + TypeScript + Vite 5 + Tailwind CSS + shadcn/ui  │
 │  - 游戏界面渲染                                              │
 │  - 用户交互处理                                              │
 │  - 数据可视化展示                                            │
@@ -51,12 +50,11 @@
                        ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    后端 (typingGame)                         │
-│  Spring Boot 3 + JPA + MySQL + Redis                        │
-│  - 用户认证与授权                                            │
-│  - 游戏核心逻辑                                              │
-│  - 自适应算法引擎                                            │
-│  - 数据统计与分析                                            │
-│  - AI 服务集成                                               │
+│  Spring Boot 3.3 + JPA + MySQL + Redis + RocketMQ           │
+│  - 用户认证与授权 (JWT)                                       │
+│  - 游戏核心逻辑与自适应算法                                    │
+│  - 数据统计与分析                                             │
+│  - AI 服务集成 (LLM)                                          │
 │  - 社交系统 (好友/聊天)                                       │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -65,18 +63,24 @@
 
 ## 技术栈
 
-| 层次 | 技术 |
-|------|------|
-| 前端框架 | React 18 + TypeScript |
-| 前端构建 | Vite 5 |
-| 前端样式 | Tailwind CSS + shadcn/ui |
-| 前端路由 | React Router 7 |
-| 后端框架 | Spring Boot 3.x |
-| 数据库 | MySQL 8.0+ |
-| 缓存 | Redis 6.0+ |
-| 认证 | JWT |
-| 实时通信 | WebSocket |
-| AI 集成 | LLM API |
+| 层次 | 技术 | 版本 | 说明 |
+|------|------|------|------|
+| 前端框架 | React | 18.x | 函数组件 + Hooks |
+| 前端语言 | TypeScript | 5.9.x | 严格类型检查 |
+| 前端构建 | Vite | 5.1.x | 快速开发与构建 |
+| 前端样式 | Tailwind CSS | 3.4.x | 原子化样式 |
+| UI 组件库 | shadcn/ui | - | 基于 Radix UI 的组件库 |
+| 前端路由 | React Router | 7.9.x | 前端路由管理 |
+| HTTP 客户端 | axios / ky | 1.x / 1.x | REST API 请求 |
+| 实时通信 | WebSocket | - | 好友聊天、消息推送 |
+| 后端框架 | Spring Boot | 3.3.x | Java 后端主流框架 |
+| 数据访问 | Spring Data JPA | - | ORM 框架 |
+| 数据库 | MySQL | 8.0+ | 核心数据存储 |
+| 缓存 | Redis | 6.0+ | 会话管理、热点缓存 |
+| 认证 | JWT (JJWT) | 0.12.x | 无状态身份认证 |
+| 消息队列 | RocketMQ | 2.3.x | 异步消息处理 |
+| API 文档 | SpringDoc OpenAPI | 2.5.x | Swagger UI |
+| 对象映射 | MapStruct | 1.5.x | DTO/Entity 转换 |
 
 ---
 
@@ -84,17 +88,55 @@
 
 ```
 superTyping/
-├── app-64/              # 前端项目（React + TypeScript）
-│   ├── src/             # 源代码
-│   ├── docs/            # 文档（API、PRD、SQL）
-│   └── package.json     # 前端依赖配置
+├── app-64/                          # 前端项目（React + TypeScript）
+│   ├── src/
+│   │   ├── components/              # 组件目录
+│   │   │   ├── admin/               # 管理后台组件
+│   │   │   ├── ai/                  # AI 助手组件
+│   │   │   ├── common/              # 通用组件
+│   │   │   ├── game/                # 游戏核心组件
+│   │   │   ├── profile/             # 用户资料组件
+│   │   │   ├── stats/               # 统计分析组件
+│   │   │   ├── trends/              # 趋势图表组件
+│   │   │   └── ui/                  # UI 基础组件 (shadcn/ui)
+│   │   ├── contexts/                # React Context
+│   │   ├── db/                      # API 客户端配置
+│   │   ├── game/                    # 游戏引擎与逻辑
+│   │   ├── hooks/                   # 自定义 Hooks
+│   │   ├── lib/                     # 工具库
+│   │   ├── pages/                   # 页面组件
+│   │   ├── services/                # API 服务层（按业务域拆分）
+│   │   ├── types/                   # TypeScript 类型定义
+│   │   ├── utils/                   # 工具函数
+│   │   ├── routes.tsx               # 路由配置
+│   │   └── main.tsx                 # 应用入口
+│   ├── docs/                        # 文档（API、PRD、SQL）
+│   └── package.json                 # 前端依赖配置
 │
-├── typingGame/          # 后端项目（Spring Boot）
-│   ├── src/main/        # 源代码
-│   ├── DB/              # 数据库脚本
-│   └── pom.xml          # Maven 依赖配置
+├── typingGame/                      # 后端项目（Spring Boot）
+│   ├── src/main/
+│   │   ├── java/com/typinggame/
+│   │   │   ├── controller/          # 控制器层（按功能域分组）
+│   │   │   │   ├── auth/            # 认证模块
+│   │   │   │   ├── game/            # 游戏模块
+│   │   │   │   ├── stats/           # 统计模块
+│   │   │   │   ├── user/            # 用户模块
+│   │   │   │   ├── dictionary/      # 词库模块
+│   │   │   │   ├── social/          # 社交模块
+│   │   │   │   ├── ai/              # AI 模块
+│   │   │   │   └── admin/           # 管理模块
+│   │   │   ├── service/             # 业务逻辑层
+│   │   │   ├── repository/          # 数据访问层
+│   │   │   ├── entity/              # JPA 实体类
+│   │   │   ├── dto/                 # 数据传输对象
+│   │   │   ├── config/              # 配置类
+│   │   │   ├── security/            # 安全相关
+│   │   │   └── util/                # 工具类
+│   │   └── resources/               # 资源文件
+│   ├── DB/                          # 数据库脚本
+│   └── pom.xml                      # Maven 依赖配置
 │
-└── README.md            # 项目总览（本文档）
+└── README.md                        # 项目总览（本文档）
 ```
 
 ---
@@ -103,8 +145,10 @@ superTyping/
 
 ### 环境要求
 
-- **前端**：Node.js ≥ 18，pnpm ≥ 8
-- **后端**：JDK 17+，MySQL 8.0+，Redis 6.0+，Maven 3.6+
+| 项目 | 要求 |
+|------|------|
+| 前端 | Node.js ≥ 18，pnpm ≥ 8 |
+| 后端 | JDK 22，MySQL 8.0+，Redis 6.0+，Maven 3.6+ |
 
 ### 步骤
 
@@ -112,10 +156,10 @@ superTyping/
 
    ```bash
    cd typingGame
-   # 创建数据库（执行 DB/typing_word_game.sql）
-   # 配置 src/main/resources/application.yml
+   # 1. 创建数据库（执行 DB/typing_word_game.sql）
+   # 2. 配置 src/main/resources/application.yml
    mvn clean package -DskipTests
-   java -jar target/typingGame-1.0.0.jar
+   java -jar target/typingGame-0.0.1-SNAPSHOT.jar
    ```
 
    后端服务默认运行在 `http://localhost:8080/typingWord`
@@ -133,6 +177,41 @@ superTyping/
 3. **访问应用**
 
    打开浏览器访问 `http://localhost:5173`
+
+---
+
+## 核心特性
+
+### 自适应进化机制
+
+- **遗传算法**：基于玩家表现选择优秀"父本"进行字符切片重组
+- **定向变异**：针对薄弱字符进行强化训练
+- **三维自适应**：实时调节下落速度、字符串难度、怪物类型
+
+### 多模式游戏体验
+
+| 模式 | 说明 |
+|------|------|
+| 无尽适应 | 核心模式，难度随表现动态进化 |
+| 词源界定 | 使用自定义词库进行训练 |
+| 限时冲刺 | 固定时间内挑战最高分 |
+
+### 数据统计与分析
+
+- **字符级统计**：记录每个字符的打字数据
+- **趋势分析**：打字速度、准确率变化趋势
+- **训练建议**：基于数据分析生成个性化改进方案
+
+### 社交系统
+
+- **好友管理**：添加、删除、查看好友
+- **实时聊天**：基于 WebSocket 的即时通讯
+- **排行榜**：积分排名展示
+
+### AI 助手
+
+- **智能对话**：提供训练指导和问题解答
+- **个性化建议**：基于打字数据生成改进方案
 
 ---
 

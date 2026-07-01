@@ -5,7 +5,7 @@
   <p>后端服务：提供游戏核心逻辑、自适应算法、数据统计、社交系统与 AI 集成能力。</p>
 </div>
 
-前端代码位于同级目录 **`app-64`**，技术栈为 React + Vite + TypeScript。联调时需同时启动后端与前端，前端通过配置的 API 基地址访问后端接口。
+前端代码位于同级目录 **`app-64`**，技术栈为 React + TypeScript + Vite。联调时需同时启动后端与前端，前端通过配置的 API 基地址访问后端接口。
 
 ---
 
@@ -14,13 +14,13 @@
 - [项目概述](#项目概述)
 - [技术栈](#技术栈)
 - [项目结构](#项目结构)
+- [控制器分组](#控制器分组)
 - [核心功能模块](#核心功能模块)
 - [游戏玩法说明](#游戏玩法说明)
 - [安装与运行](#安装与运行)
 - [开发规范](#开发规范)
 - [测试](#测试)
 - [部署与运维](#部署与运维)
-- [项目规划](#项目规划)
 - [许可证](#许可证)
 
 ---
@@ -41,19 +41,25 @@
 
 ## 技术栈
 
-### 后端技术
+### 核心技术
 
-| 分类 | 技术 | 说明 |
-|------|------|------|
-| 应用框架 | Spring Boot 3.x | Java 后端主流框架 |
-| 数据访问 | Spring Data JPA | ORM 框架，简化数据操作 |
-| 关系数据库 | MySQL 8.0+ | 存储用户、游戏记录、词库等核心数据 |
-| 缓存 | Redis 6.0+ | 会话管理、缓存热点数据 |
-| 认证 | JWT | 无状态身份认证 |
-| 实时通信 | WebSocket | 好友聊天、消息推送 |
-| 工具库 | Lombok | 简化 Java 代码 |
-| AI 集成 | LLM API | 智能助手对话 |
-| 测试 | JUnit 5 | 单元测试框架 |
+| 分类 | 技术 | 版本 | 说明 |
+|------|------|------|------|
+| 应用框架 | Spring Boot | 3.3.x | Java 后端主流框架 |
+| 数据访问 | Spring Data JPA | - | ORM 框架，简化数据操作 |
+| 关系数据库 | MySQL | 8.0+ | 存储用户、游戏记录、词库等核心数据 |
+| 连接池 | Druid | 1.2.x | 高性能数据库连接池 |
+| 缓存 | Redis | 6.0+ | 会话管理、缓存热点数据 |
+| 分布式锁 | Redisson | 3.26.x | Redis 分布式锁与缓存 |
+| 认证 | JWT (JJWT) | 0.12.x | 无状态身份认证 |
+| 实时通信 | WebSocket | - | 好友聊天、消息推送 |
+| 消息队列 | RocketMQ | 2.3.x | 异步消息处理 |
+| API 文档 | SpringDoc OpenAPI | 2.5.x | Swagger UI 文档 |
+| 对象映射 | MapStruct | 1.5.x | DTO/Entity 转换 |
+| 工具库 | Lombok | - | 简化 Java 代码 |
+| 数学计算 | Apache Commons Math3 | 3.6.x | 难度系数计算、统计分析 |
+| Excel 处理 | EasyPOI | 4.4.x | 数据导出 |
+| 文件解析 | Apache POI | 5.2.x | Word/PDF 文件解析 |
 
 ---
 
@@ -61,34 +67,111 @@
 
 ```
 typingGame/
-├── DB/                      # 数据库相关文件
-│   ├── typing_word_game.sql # 数据库建库脚本
-│   └── 数据库设计说明文档.md # 数据库设计文档
-├── src/                     # 源代码目录
-│   ├── main/                # 主代码
-│   │   ├── java/            # Java 源代码
-│   │   │   └── com/typinggame/
-│   │   │       ├── TypingGameApplication.java # 应用入口
-│   │   │       ├── config/                    # 配置类（JwtConfig、SecurityConfig、RedisConfig 等）
-│   │   │       ├── controller/                # 控制器层（REST API）
-│   │   │       ├── dto/                       # 数据传输对象
-│   │   │       ├── entity/                    # JPA 实体类
-│   │   │       ├── enums/                     # 枚举类
-│   │   │       ├── repository/                # 数据访问层（Repository）
-│   │   │       ├── service/                   # 业务逻辑层（接口 + 实现）
-│   │   │       ├── security/                  # 安全相关（JwtAuthenticationFilter 等）
-│   │   │       ├── util/                      # 工具类（难度计算、遗传进化等）
-│   │   │       └── vo/                        # 视图对象
-│   │   └── resources/       # 资源文件
-│   │       ├── application.yml # 应用配置
-│   │       ├── static/         # 静态资源
-│   │       └── templates/      # 模板文件
-│   └── test/                 # 测试代码
-│       └── java/             # Java 测试代码
-├── logs/                    # 日志文件
-├── pom.xml                  # Maven 依赖配置
-└── README.md                # 项目说明文档
+├── DB/                              # 数据库相关文件
+│   ├── typing_word_game.sql         # 数据库建库脚本
+│   └── 数据库设计说明文档.md         # 数据库设计文档
+├── src/                             # 源代码目录
+│   ├── main/                        # 主代码
+│   │   ├── java/com/typinggame/
+│   │   │   ├── TypingGameApplication.java  # 应用入口
+│   │   │   ├── config/                      # 配置类
+│   │   │   │   ├── JwtConfig.java           # JWT 配置
+│   │   │   │   ├── SecurityConfig.java      # 安全配置
+│   │   │   │   ├── RedisConfig.java         # Redis 配置
+│   │   │   │   ├── WebSocketConfig.java     # WebSocket 配置
+│   │   │   │   └── ...
+│   │   │   ├── controller/                  # 控制器层（按功能域分组）
+│   │   │   │   ├── auth/                    # 认证模块
+│   │   │   │   │   └── AuthController.java
+│   │   │   │   ├── game/                    # 游戏模块
+│   │   │   │   │   ├── GameController.java
+│   │   │   │   │   ├── GameRecordController.java
+│   │   │   │   │   ├── GameConfigController.java
+│   │   │   │   │   ├── UserModelParamsController.java
+│   │   │   │   │   └── UserModelAdaptLogsController.java
+│   │   │   │   ├── stats/                   # 统计模块
+│   │   │   │   │   ├── StatsController.java
+│   │   │   │   │   ├── CharacterStatsController.java
+│   │   │   │   │   └── UserDailyStatsController.java
+│   │   │   │   ├── user/                    # 用户模块
+│   │   │   │   │   └── UserController.java
+│   │   │   │   ├── dictionary/              # 词库模块
+│   │   │   │   │   └── DictionaryController.java
+│   │   │   │   ├── social/                  # 社交模块
+│   │   │   │   │   ├── FriendController.java
+│   │   │   │   │   ├── LeaderboardController.java
+│   │   │   │   │   └── MessageController.java
+│   │   │   │   ├── ai/                      # AI 模块
+│   │   │   │   │   └── AiController.java
+│   │   │   │   └── admin/                   # 管理模块
+│   │   │   │       └── AdminController.java
+│   │   │   ├── service/                     # 业务逻辑层
+│   │   │   │   ├── impl/                    # 服务实现类
+│   │   │   │   │   ├── AuthServiceImpl.java
+│   │   │   │   │   ├── GameServiceImpl.java
+│   │   │   │   │   ├── EvolutionServiceImpl.java  # 遗传进化算法
+│   │   │   │   │   └── ...
+│   │   │   │   ├── AuthService.java
+│   │   │   │   ├── GameService.java
+│   │   │   │   └── ...
+│   │   │   ├── repository/                  # 数据访问层
+│   │   │   │   ├── UserRepository.java
+│   │   │   │   ├── GameRecordRepository.java
+│   │   │   │   └── ...
+│   │   │   ├── entity/                      # JPA 实体类
+│   │   │   │   ├── User.java
+│   │   │   │   ├── GameRecord.java
+│   │   │   │   └── ...
+│   │   │   ├── dto/                         # 数据传输对象
+│   │   │   │   ├── request/                 # 请求 DTO
+│   │   │   │   └── response/                # 响应 DTO
+│   │   │   ├── enums/                       # 枚举类
+│   │   │   │   ├── GameMode.java
+│   │   │   │   ├── MonsterType.java
+│   │   │   │   └── ...
+│   │   │   ├── security/                    # 安全相关
+│   │   │   │   ├── JwtAuthenticationFilter.java
+│   │   │   │   └── UserDetailsServiceImpl.java
+│   │   │   ├── util/                        # 工具类
+│   │   │   │   ├── DifficultyUtil.java      # 难度计算
+│   │   │   │   └── ...
+│   │   │   └── vo/                          # 视图对象
+│   │   │       └── ResultMessage.java       # 统一响应封装
+│   │   └── resources/
+│   │       ├── application.yml              # 应用配置
+│   │       ├── static/                      # 静态资源
+│   │       └── templates/                   # 模板文件
+│   └── test/                               # 测试代码
+│       └── java/                           # Java 测试代码
+├── logs/                                   # 日志文件
+├── pom.xml                                 # Maven 依赖配置
+└── README.md                               # 项目说明文档
 ```
+
+---
+
+## 控制器分组
+
+控制器按功能域划分为 8 个子目录，职责清晰：
+
+| 目录 | 控制器 | API 路径前缀 | 职责 |
+|------|--------|-------------|------|
+| auth | AuthController | `/api/v1/auth` | 用户注册、登录、令牌刷新 |
+| game | GameController | `/api/v1/game` | 游戏核心逻辑、开始/结束游戏 |
+| game | GameRecordController | `/api/v1/game/records` | 游戏记录查询、统计 |
+| game | GameConfigController | `/api/v1/game/config` | 游戏配置、难度参数 |
+| game | UserModelParamsController | `/api/v1/model/params` | 用户个性化模型参数 |
+| game | UserModelAdaptLogsController | `/api/v1/model/adapt/logs` | 模型适配日志 |
+| stats | StatsController | `/api/v1/stats` | 数据统计分析 |
+| stats | CharacterStatsController | `/api/v1/stats/characters` | 字符级统计 |
+| stats | UserDailyStatsController | `/api/v1/stats/daily` | 每日汇总数据 |
+| user | UserController | `/api/v1/user` | 用户资料、设置 |
+| dictionary | DictionaryController | `/api/v1/dictionary` | 词库管理、单词查询 |
+| social | FriendController | `/api/v1/friends` | 好友管理 |
+| social | LeaderboardController | `/api/v1/leaderboard` | 排行榜 |
+| social | MessageController | `/api/v1/messages` | 消息中心 |
+| ai | AiController | `/api/v1/ai` | AI 助手对话 |
+| admin | AdminController | `/api/v1/admin` | 管理后台 |
 
 ---
 
@@ -101,6 +184,13 @@ typingGame/
 - **游戏模式**：无尽适应模式、词源界定模式、限时冲刺模式
 - **自适应机制**：实时调节下落速度、字符串难度、三维自适应
 - **积分系统**：积分计算、排行榜
+
+### 自适应进化算法
+
+- **父本选择**：根据玩家表现选择优秀的字符字符串作为父本
+- **切片重组**：将多个父本字符串切片后重新组合
+- **定向变异**：针对玩家薄弱字符进行强化训练
+- **难度系数 Dₜ**：综合评估玩家当前水平的难度指标
 
 ### 数据统计与分析模块
 
@@ -182,7 +272,7 @@ typingGame/
 
 ### 环境要求
 
-- **JDK 17+**：Java 开发环境
+- **JDK 22**：Java 开发环境
 - **MySQL 8.0+**：关系型数据库
 - **Redis 6.0+**：缓存数据库
 - **Maven 3.6+**：项目构建工具
@@ -232,12 +322,13 @@ typingGame/
 6. **运行项目**
 
    ```bash
-   java -jar target/typingGame-1.0.0.jar
+   java -jar target/typingGame-0.0.1-SNAPSHOT.jar
    ```
 
 7. **访问项目**
 
-   后端服务默认运行在 `http://localhost:8080/typingWord`
+   - 后端服务默认运行在 `http://localhost:8080/typingWord`
+   - API 文档（Swagger UI）：`http://localhost:8080/typingWord/swagger-ui.html`
 
 ---
 
@@ -249,6 +340,7 @@ typingGame/
 - 使用 Lombok 简化代码（@Data、@Slf4j 等）
 - 采用 RESTful API 设计风格
 - 分层架构：Controller → Service → Repository
+- 统一响应封装：使用 `ResultMessage` 封装所有 API 响应
 
 ### 设计模式应用
 
@@ -259,6 +351,13 @@ typingGame/
 - **观察者模式**：游戏事件通知机制
 - **模板方法模式**：定义游戏流程骨架
 - **代理模式**：权限控制和日志记录
+
+### 命名规范
+
+- 包名：全小写，使用点分隔（`com.typinggame.controller.game`）
+- 类名：首字母大写，驼峰命名（`GameController`）
+- 方法名：首字母小写，驼峰命名（`getGameRecords`）
+- 变量名：首字母小写，驼峰命名（`gameMode`）
 
 ---
 
@@ -292,25 +391,11 @@ typingGame/
 - 配置日志记录，便于问题排查
 - 定期备份数据库
 
----
+### 配置管理
 
-## 项目规划
-
-### 版本规划
-
-- **V1.0**：基础游戏功能实现
-- **V1.1**：完善社交系统
-- **V1.2**：优化数据分析功能
-- **V2.0**：添加 AI 陪练功能
-- **V2.1**：支持更多游戏模式
-- **V2.2**：优化游戏性能和用户体验
-
-### 技术 Roadmap
-
-- 微服务架构改造
-- 实时数据推送优化（WebSocket）
-- 机器学习模型优化（自适应算法）
-- 移动端适配
+- 数据库连接信息通过 `application.yml` 配置
+- Redis 连接信息通过 `application.yml` 配置
+- JWT 密钥等敏感信息建议使用环境变量或配置中心管理
 
 ---
 

@@ -48,4 +48,12 @@ public class ResultMessage<T> implements Serializable {
     public static <T> ResultMessage<T> error(String msg) {
         return error(500, msg);
     }
+
+    public static <T> ResultMessage<T> error(Integer code, String msg, T data) {
+        ResultMessage<T> r = new ResultMessage<>();
+        r.setCode(code);
+        r.setMsg(msg);
+        r.setData(data);
+        return r;
+    }
 }

@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  nacos:
+    image: nacos/nacos-server:v2.3.0
+    container_name: nacos
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    environment:
+      - PREFER_HOST_MODE=hostname
+      - MODE=standalone
+      - NACOS_AUTH_ENABLE=true
+      - NACOS_AUTH_TOKEN=SecretKey0123456789012345678901234567890123456789012345678901234567890
+    volumes:
+      - nacos-data:/home/nacos/data
+      - nacos-logs:/home/nacos/logs
+    networks:
+      - typing-game-network
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - typing-game-network
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.3.0
+    container_name: rocketmq-namesrv
+    ports:
+      - "9876:9876"
+    environment:
+      - NAMESRV_ADDR=0.0.0.0:9876
+    command: ["sh", "-c", "cd /opt/rocketmq-5.3.0 && sh bin/mqnamesrv"]
+    networks:
+      - typing-game-network
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.3.0
+    container_name: rocketmq-broker
+    ports:
+      - "10911:10911"
+      - "10909:10909"
+    environment:
+      - NAMESRV_ADDR=rocketmq-namesrv:9876
+      - BROKER_NAME=broker-a
+    command: ["sh", "-c", "cd /opt/rocketmq-5.3.0 && sh bin/mqbroker -n rocketmq-namesrv:9876"]
+    depends_on:
+      - rocketmq-namesrv
+    networks:
+      - typing-game-network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - typing-game-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=typing_word_game
+      - MYSQL_USER=typing_word_game
+      - MYSQL_PASSWORD=123456
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./DB/typing_word_game.sql:/docker-entrypoint-initdb.d/typing_word_game.sql
+    networks:
+      - typing-game-network
+
+volumes:
+  nacos-data:
+  nacos-logs:
+  redis-data:
+  mysql-data:
+
+networks:
+  typing-game-network:
+    driver: bridge
