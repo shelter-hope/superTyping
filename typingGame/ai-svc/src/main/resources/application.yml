@@ -37,6 +37,9 @@ spring:
       password: 123456
       database: 0
 
+jwt:
+  secret: H5FQLg1tDHnqxGXoNhAKDvSwQfkQLDa4W+I72dPruXE=
+
 ai:
   llm:
     url: https://api.coze.cn/v1/workflow/run

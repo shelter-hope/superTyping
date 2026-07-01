@@ -39,6 +39,9 @@ spring:
   websocket:
     enabled: true
 
+jwt:
+  secret: H5FQLg1tDHnqxGXoNhAKDvSwQfkQLDa4W+I72dPruXE=
+
 management:
   endpoints:
     web:
