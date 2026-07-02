@@ -5,7 +5,7 @@
   <p>前端应用：提供游戏界面渲染、用户交互、数据可视化与实时通信能力。</p>
 </div>
 
-后端为独立 **Java（Spring Boot）** 工程，位于同级目录 **`typingGame`**，前端通过 `VITE_BACKEND_BASE_URL` 环境变量与后端联调。
+后端为 **Spring Boot 微服务架构** 工程，位于同级目录 **`typingGame`**，前端通过 API 网关（`VITE_BACKEND_BASE_URL`）与各微服务联调。
 
 ---
 
@@ -40,6 +40,22 @@
 - 数据概览、用户管理、游戏记录、怪物配置
 - Dₜ 趋势、系统参数、系统词库、排行榜条目、字符统计总览
 
+### 架构适配
+
+前端通过 **API 网关**（`http://localhost:8080/typingWord`）统一访问后端微服务：
+
+| API 路径前缀 | 后端服务 | 职责 |
+|-------------|----------|------|
+| `/api/v1/auth/**` | user-svc | 认证 |
+| `/api/v1/user/**` | user-svc | 用户管理 |
+| `/api/v1/friends/**` | user-svc | 好友管理 |
+| `/api/v1/game/**` | game-core-svc | 游戏核心 |
+| `/api/v1/stats/**` | game-core-svc | 统计分析 |
+| `/api/v1/ai/**` | ai-svc | AI 助手 |
+| `/api/v1/messages/**` | chat-svc | 消息中心 |
+| `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
+| `/api/v1/dictionary/**` | chat-svc | 词库管理 |
+
 ---
 
 ## 技术栈
@@ -52,7 +68,7 @@
 | 样式方案 | Tailwind CSS | 3.4.x | 原子化样式 |
 | UI 组件库 | shadcn/ui | - | 基于 Radix UI 的企业级组件 |
 | 路由 | React Router | 7.9.x | 前端路由管理 |
-| HTTP 客户端 | axios / ky | 1.x / 1.x | REST API 请求 |
+| HTTP 客户端 | axios | 1.x | REST API 请求 |
 | 表单处理 | react-hook-form + zod | 7.x / 3.x | 表单验证与数据校验 |
 | 图表 | Recharts | 2.15.x | 数据可视化 |
 | 实时通信 | WebSocket | - | 好友聊天、消息推送 |
@@ -68,53 +84,18 @@ app-64/
 ├── src/
 │   ├── components/              # 业务与 UI 组件
 │   │   ├── admin/               # 管理后台组件
-│   │   │   ├── AdaptLogTrend.tsx
-│   │   │   ├── CharacterGenerationConfigEditor.tsx
-│   │   │   ├── CharacterStatsOverview.tsx
-│   │   │   ├── GameRecordManagement.tsx
-│   │   │   ├── LeaderboardManagement.tsx
-│   │   │   ├── MonsterConfigManagement.tsx
-│   │   │   ├── SystemDictionaryManagement.tsx
-│   │   │   ├── SystemParamsManagement.tsx
-│   │   │   └── UserManagement.tsx
 │   │   ├── ai/                  # AI 助手组件
-│   │   │   └── AIChatInterface.tsx
 │   │   ├── common/              # 通用组件
-│   │   │   ├── Footer.tsx
-│   │   │   ├── Header.tsx
-│   │   │   ├── PageMeta.tsx
-│   │   │   └── ProtectedRoute.tsx
 │   │   ├── game/                # 游戏核心组件
-│   │   │   ├── ErrorFeedback.tsx
-│   │   │   ├── GameCanvas.tsx
-│   │   │   ├── GameTutorial.tsx
-│   │   │   ├── GameUI.tsx
-│   │   │   └── RoundDataDisplay.tsx
 │   │   ├── profile/             # 用户资料组件
-│   │   │   ├── EditProfileDialog.tsx
-│   │   │   └── UserAvatar.tsx
 │   │   ├── stats/               # 统计分析组件
-│   │   │   ├── DataAnalysisDashboard.tsx
-│   │   │   └── ErrorDistributionChart.tsx
 │   │   ├── trends/              # 趋势图表组件
-│   │   │   ├── AccuracyChart.tsx
-│   │   │   ├── ErrorComparison.tsx
-│   │   │   └── SpeedChart.tsx
 │   │   └── ui/                  # UI 基础组件 (shadcn/ui)
-│   │       ├── accordion.tsx
-│   │       ├── alert-dialog.tsx
-│   │       ├── button.tsx
-│   │       ├── card.tsx
-│   │       ├── dialog.tsx
-│   │       ├── form.tsx
-│   │       ├── input.tsx
-│   │       ├── table.tsx
-│   │       └── ...
 │   ├── contexts/                # React Context
 │   │   ├── AuthContext.tsx      # 认证状态管理
 │   │   └── GameConfigContext.tsx # 游戏配置管理
 │   ├── db/                      # API 客户端配置
-│   │   ├── client.ts            # axios 实例配置
+│   │   ├── client.ts            # axios 实例配置（含拦截器）
 │   │   └── api.ts               # 统一 API 导出入口（过渡层）
 │   ├── game/                    # 游戏引擎与逻辑
 │   │   ├── AdaptiveSystem.ts    # 自适应系统
@@ -127,46 +108,20 @@ app-64/
 │   │   ├── SoundSystem.ts       # 音效系统
 │   │   └── types.ts             # 游戏类型定义
 │   ├── hooks/                   # 自定义 Hooks
-│   │   ├── use-debounce.ts      # 防抖 Hook
-│   │   ├── use-go-back.ts       # 返回上一页
-│   │   ├── use-mobile.ts        # 移动端检测
-│   │   └── use-toast.tsx        # Toast 提示
 │   ├── lib/                     # 工具库
-│   │   └── avatars.ts           # 头像生成工具
 │   ├── pages/                   # 页面组件
-│   │   ├── HomePage.tsx         # 首页
-│   │   ├── LoginPage.tsx        # 登录页
-│   │   ├── RegisterPage.tsx     # 注册页
-│   │   ├── PreparePage.tsx      # 游戏准备页
-│   │   ├── GamePage.tsx         # 游戏进行页
-│   │   ├── ResultPage.tsx       # 游戏结果页
-│   │   ├── ProfilePage.tsx      # 用户资料页
-│   │   ├── TrendsPage.tsx       # 趋势分析页
-│   │   ├── LeaderboardPage.tsx  # 排行榜页
-│   │   ├── DictionaryPage.tsx   # 词库管理页
-│   │   ├── AIAssistantPage.tsx  # AI 助手页
-│   │   ├── MessageCenterPage.tsx # 消息中心
-│   │   ├── FriendsPage.tsx      # 好友列表
-│   │   ├── ChatPage.tsx         # 好友聊天
-│   │   ├── SettingsPage.tsx     # 设置页
-│   │   ├── AdminPage.tsx        # 管理后台
-│   │   ├── SamplePage.tsx       # 示例页
-│   │   └── NotFoundPage.tsx     # 404 页
 │   ├── services/                # API 服务层（按业务域拆分）
-│   │   ├── auth.ts              # 认证服务
-│   │   ├── user.ts              # 用户服务
-│   │   ├── game.ts              # 游戏服务
-│   │   ├── stats.ts             # 统计服务
-│   │   ├── dictionary.ts        # 词库服务
-│   │   ├── social.ts            # 社交服务
-│   │   ├── ai.ts                # AI 服务
-│   │   └── admin.ts             # 管理服务
+│   │   ├── auth.ts              # 认证服务 → user-svc
+│   │   ├── user.ts              # 用户服务 → user-svc
+│   │   ├── game.ts              # 游戏服务 → game-core-svc
+│   │   ├── stats.ts             # 统计服务 → game-core-svc
+│   │   ├── dictionary.ts        # 词库服务 → chat-svc
+│   │   ├── social.ts            # 社交服务 → user-svc / chat-svc
+│   │   ├── ai.ts                # AI 服务 → ai-svc
+│   │   └── admin.ts             # 管理服务 → 各服务
 │   ├── types/                   # TypeScript 类型定义
-│   │   ├── database.ts          # 数据库实体类型
-│   │   ├── game.ts              # 游戏相关类型
-│   │   └── index.ts             # 类型导出入口
 │   ├── utils/                   # 工具函数
-│   │   ├── index.ts             # 通用工具函数
+│   │   ├── index.ts             # 通用工具（含统一错误处理）
 │   │   ├── trendData.ts         # 趋势数据处理
 │   │   └── trendData.test.ts    # 趋势数据测试
 │   ├── routes.tsx               # 路由配置
@@ -192,7 +147,7 @@ app-64/
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `VITE_BACKEND_BASE_URL` | Java 后端根路径 | `http://localhost:8080/typingWord` |
+| `VITE_BACKEND_BASE_URL` | API 网关地址（后端统一入口） | `http://localhost:8080/typingWord` |
 
 ---
 
@@ -205,25 +160,29 @@ app-64/
 
 ### 步骤
 
-1. **安装依赖**
+1. **启动后端服务**
+
+   后端需先启动基础设施（Nacos、MySQL、Redis）和各微服务，详见 [typingGame/README.md](../typingGame/README.md)。
+
+2. **安装依赖**
 
    ```bash
    pnpm install
    ```
 
-2. **开发模式**
+3. **开发模式**
 
    ```bash
    pnpm dev
    ```
 
-3. **构建生产版本**
+4. **构建生产版本**
 
    ```bash
    pnpm build
    ```
 
-4. **预览生产版本**
+5. **预览生产版本**
 
    ```bash
    pnpm preview
@@ -271,20 +230,28 @@ app-64/
 
 ## API 服务层
 
-API 服务按业务域拆分为独立模块，每个模块负责特定业务的接口调用：
+API 服务按业务域拆分为独立模块，每个模块负责特定业务的接口调用，统一通过 API 网关路由到对应微服务：
 
-| 模块 | 文件 | 职责 |
-|------|------|------|
-| 认证 | services/auth.ts | 登录、注册、令牌刷新 |
-| 用户 | services/user.ts | 用户资料、设置 |
-| 游戏 | services/game.ts | 游戏核心、记录、配置 |
-| 统计 | services/stats.ts | 数据统计、趋势分析 |
-| 词库 | services/dictionary.ts | 词库管理、单词查询 |
-| 社交 | services/social.ts | 好友、聊天、消息 |
-| AI | services/ai.ts | AI 助手对话 |
-| 管理 | services/admin.ts | 管理后台接口 |
+| 模块 | 文件 | 职责 | 目标服务 |
+|------|------|------|----------|
+| 认证 | services/auth.ts | 登录、注册、令牌刷新 | user-svc |
+| 用户 | services/user.ts | 用户资料、设置 | user-svc |
+| 游戏 | services/game.ts | 游戏核心、记录、配置 | game-core-svc |
+| 统计 | services/stats.ts | 数据统计、趋势分析 | game-core-svc |
+| 词库 | services/dictionary.ts | 词库管理、单词查询 | chat-svc |
+| 社交 | services/social.ts | 好友、聊天、消息 | user-svc / chat-svc |
+| AI | services/ai.ts | AI 助手对话 | ai-svc |
+| 管理 | services/admin.ts | 管理后台接口 | 各服务 |
 
-各服务模块统一从 `db/client.ts` 导入 axios 实例，确保请求配置一致。
+各服务模块统一从 `db/client.ts` 导入 axios 实例，确保请求配置一致（自动附加 JWT、统一错误处理）。
+
+### 统一错误处理
+
+前端已实现统一的错误处理机制：
+
+- `db/client.ts`：响应拦截器自动识别后端 `ResultMessage` 格式，转换为 `ApiError`
+- `utils/index.ts`：提供 `isApiError`、`getErrorMessage`、`handleApiError`、`isAuthError` 工具函数
+- `AuthContext.tsx`：自动处理 401 认证过期，清理 token 并跳转登录页
 
 ---
 
@@ -312,6 +279,7 @@ API 服务按业务域拆分为独立模块，每个模块负责特定业务的�
 - 提交前缀建议：`feat`、`fix`、`docs`、`style`、`refactor`。
 - UI 组件遵循 shadcn/ui 规范，使用 Tailwind CSS 原子化样式。
 - API 服务按业务域拆分，避免超大文件。
+- 新增服务模块时，确保 API 路径与后端路由一致（见路由表）。
 
 ---
 

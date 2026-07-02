@@ -2,10 +2,10 @@
 
 <div align="center">
   <h1>⌨️ 打字进化游戏</h1>
-  <p>后端服务：提供游戏核心逻辑、自适应算法、数据统计、社交系统与 AI 集成能力。</p>
+  <p>基于 Spring Boot 3.3 的微服务架构后端，提供游戏核心逻辑、自适应算法、数据统计、社交系统与 AI 集成能力。</p>
 </div>
 
-前端代码位于同级目录 **`app-64`**，技术栈为 React + TypeScript + Vite。联调时需同时启动后端与前端，前端通过配置的 API 基地址访问后端接口。
+前端代码位于同级目录 **`app-64`**，技术栈为 React + TypeScript + Vite。联调时需同时启动后端与前端，前端通过 API 网关访问后端接口。
 
 ---
 
@@ -13,13 +13,14 @@
 
 - [项目概述](#项目概述)
 - [技术栈](#技术栈)
+- [微服务架构](#微服务架构)
 - [项目结构](#项目结构)
-- [控制器分组](#控制器分组)
+- [服务列表](#服务列表)
+- [API 路由](#api-路由)
 - [核心功能模块](#核心功能模块)
 - [游戏玩法说明](#游戏玩法说明)
 - [安装与运行](#安装与运行)
 - [开发规范](#开发规范)
-- [测试](#测试)
 - [部署与运维](#部署与运维)
 - [许可证](#许可证)
 
@@ -27,7 +28,7 @@
 
 ## 项目概述
 
-打字进化游戏后端是一个基于 Spring Boot 的 RESTful 服务，为前端提供完整的业务支持，包括：
+打字进化游戏后端采用微服务架构，将原有单体应用拆分为多个独立服务，通过 API 网关统一对外提供服务。核心能力包括：
 
 - **用户认证与授权**：JWT 令牌机制，支持注册、登录、权限管理
 - **游戏核心逻辑**：字符怪物生成、自适应难度调节、积分计算
@@ -46,6 +47,9 @@
 | 分类 | 技术 | 版本 | 说明 |
 |------|------|------|------|
 | 应用框架 | Spring Boot | 3.3.x | Java 后端主流框架 |
+| 微服务治理 | Spring Cloud | 2023.0.x | 服务注册发现、配置管理 |
+| 服务注册 | Nacos | 2.3.x | 服务发现与配置中心 |
+| API 网关 | Spring Cloud Gateway | - | 统一入口、路由转发 |
 | 数据访问 | Spring Data JPA | - | ORM 框架，简化数据操作 |
 | 关系数据库 | MySQL | 8.0+ | 存储用户、游戏记录、词库等核心数据 |
 | 连接池 | Druid | 1.2.x | 高性能数据库连接池 |
@@ -54,12 +58,55 @@
 | 认证 | JWT (JJWT) | 0.12.x | 无状态身份认证 |
 | 实时通信 | WebSocket | - | 好友聊天、消息推送 |
 | 消息队列 | RocketMQ | 2.3.x | 异步消息处理 |
-| API 文档 | SpringDoc OpenAPI | 2.5.x | Swagger UI 文档 |
 | 对象映射 | MapStruct | 1.5.x | DTO/Entity 转换 |
 | 工具库 | Lombok | - | 简化 Java 代码 |
 | 数学计算 | Apache Commons Math3 | 3.6.x | 难度系数计算、统计分析 |
 | Excel 处理 | EasyPOI | 4.4.x | 数据导出 |
 | 文件解析 | Apache POI | 5.2.x | Word/PDF 文件解析 |
+| 链路追踪 | Zipkin | - | 分布式链路追踪 |
+
+---
+
+## 微服务架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       客户端 / 前端                          │
+└───────────────────────────────┬─────────────────────────────┘
+                                │ HTTP/WebSocket
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     API Gateway (8080)                      │
+│                    统一入口、路由转发                         │
+└───────────────────────────────┬─────────────────────────────┘
+                                │
+        ┌───────────────────────┼───────────────────────┐
+        │                       │                       │
+        ▼                       ▼                       ▼
+┌───────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   User Svc    │     │  Game-Core Svc  │     │     AI Svc      │
+│   (8081)      │     │    (8082)       │     │    (8083)       │
+│  ├─ 认证      │     │  ├─ 游戏核心    │     │  ├─ AI对话      │
+│  ├─ 用户管理  │     │  ├─ 游戏记录    │     │  ├─ 训练建议    │
+│  └─ 好友管理  │     │  └─ 自适应算法  │     │  └─ LLM集成     │
+└───────────────┘     └─────────────────┘     └─────────────────┘
+        │                       │                       │
+        ▼                       ▼                       ▼
+┌───────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Chat Svc    │     │                 │     │                 │
+│   (8084)      │     │                 │     │                 │
+│  ├─ 消息中心  │     │                 │     │                 │
+│  ├─ 排行榜    │     │                 │     │                 │
+│  └─ 词库管理  │     │                 │     │                 │
+└───────────────┘     └─────────────────┘     └─────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    基础设施层                                │
+│  Nacos(8848) | Redis(6379) | MySQL(3306) | RocketMQ        │
+│  Zipkin(9411) | Prometheus/Grafana                         │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -67,111 +114,93 @@
 
 ```
 typingGame/
-├── DB/                              # 数据库相关文件
-│   ├── typing_word_game.sql         # 数据库建库脚本
-│   └── 数据库设计说明文档.md         # 数据库设计文档
-├── src/                             # 源代码目录
-│   ├── main/                        # 主代码
-│   │   ├── java/com/typinggame/
-│   │   │   ├── TypingGameApplication.java  # 应用入口
-│   │   │   ├── config/                      # 配置类
-│   │   │   │   ├── JwtConfig.java           # JWT 配置
-│   │   │   │   ├── SecurityConfig.java      # 安全配置
-│   │   │   │   ├── RedisConfig.java         # Redis 配置
-│   │   │   │   ├── WebSocketConfig.java     # WebSocket 配置
-│   │   │   │   └── ...
-│   │   │   ├── controller/                  # 控制器层（按功能域分组）
-│   │   │   │   ├── auth/                    # 认证模块
-│   │   │   │   │   └── AuthController.java
-│   │   │   │   ├── game/                    # 游戏模块
-│   │   │   │   │   ├── GameController.java
-│   │   │   │   │   ├── GameRecordController.java
-│   │   │   │   │   ├── GameConfigController.java
-│   │   │   │   │   ├── UserModelParamsController.java
-│   │   │   │   │   └── UserModelAdaptLogsController.java
-│   │   │   │   ├── stats/                   # 统计模块
-│   │   │   │   │   ├── StatsController.java
-│   │   │   │   │   ├── CharacterStatsController.java
-│   │   │   │   │   └── UserDailyStatsController.java
-│   │   │   │   ├── user/                    # 用户模块
-│   │   │   │   │   └── UserController.java
-│   │   │   │   ├── dictionary/              # 词库模块
-│   │   │   │   │   └── DictionaryController.java
-│   │   │   │   ├── social/                  # 社交模块
-│   │   │   │   │   ├── FriendController.java
-│   │   │   │   │   ├── LeaderboardController.java
-│   │   │   │   │   └── MessageController.java
-│   │   │   │   ├── ai/                      # AI 模块
-│   │   │   │   │   └── AiController.java
-│   │   │   │   └── admin/                   # 管理模块
-│   │   │   │       └── AdminController.java
-│   │   │   ├── service/                     # 业务逻辑层
-│   │   │   │   ├── impl/                    # 服务实现类
-│   │   │   │   │   ├── AuthServiceImpl.java
-│   │   │   │   │   ├── GameServiceImpl.java
-│   │   │   │   │   ├── EvolutionServiceImpl.java  # 遗传进化算法
-│   │   │   │   │   └── ...
-│   │   │   │   ├── AuthService.java
-│   │   │   │   ├── GameService.java
-│   │   │   │   └── ...
-│   │   │   ├── repository/                  # 数据访问层
-│   │   │   │   ├── UserRepository.java
-│   │   │   │   ├── GameRecordRepository.java
-│   │   │   │   └── ...
-│   │   │   ├── entity/                      # JPA 实体类
-│   │   │   │   ├── User.java
-│   │   │   │   ├── GameRecord.java
-│   │   │   │   └── ...
-│   │   │   ├── dto/                         # 数据传输对象
-│   │   │   │   ├── request/                 # 请求 DTO
-│   │   │   │   └── response/                # 响应 DTO
-│   │   │   ├── enums/                       # 枚举类
-│   │   │   │   ├── GameMode.java
-│   │   │   │   ├── MonsterType.java
-│   │   │   │   └── ...
-│   │   │   ├── security/                    # 安全相关
-│   │   │   │   ├── JwtAuthenticationFilter.java
-│   │   │   │   └── UserDetailsServiceImpl.java
-│   │   │   ├── util/                        # 工具类
-│   │   │   │   ├── DifficultyUtil.java      # 难度计算
-│   │   │   │   └── ...
-│   │   │   └── vo/                          # 视图对象
-│   │   │       └── ResultMessage.java       # 统一响应封装
-│   │   └── resources/
-│   │       ├── application.yml              # 应用配置
-│   │       ├── static/                      # 静态资源
-│   │       └── templates/                   # 模板文件
-│   └── test/                               # 测试代码
-│       └── java/                           # Java 测试代码
-├── logs/                                   # 日志文件
-├── pom.xml                                 # Maven 依赖配置
-└── README.md                               # 项目说明文档
+├── pom.xml                          # 聚合父项目，管理依赖版本
+├── common/                          # 公共模块（共享代码）
+│   ├── src/main/java/com/typinggame/
+│   │   ├── common/                  # 公共组件
+│   │   │   ├── config/              # 安全配置基类
+│   │   │   ├── exception/           # 全局异常处理
+│   │   │   └── security/            # 统一JWT安全组件
+│   │   ├── dto/                     # 共享DTO（按功能分组）
+│   │   ├── entity/                  # 共享实体（按功能分组）
+│   │   ├── enums/                   # 共享枚举
+│   │   ├── util/                    # 共享工具类
+│   │   └── vo/                      # 共享视图对象
+│   └── pom.xml
+├── api-gateway/                     # API网关
+│   ├── src/main/java/com/typinggame/gateway/
+│   │   └── GatewayApplication.java
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+├── user-svc/                        # 用户服务
+│   ├── src/main/java/com/typinggame/user/
+│   │   ├── controller/              # 认证、用户、好友控制器
+│   │   ├── service/                 # 业务逻辑
+│   │   ├── repository/              # 数据访问
+│   │   └── config/                  # 安全配置
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+├── game-core-svc/                   # 游戏核心服务
+│   ├── src/main/java/com/typinggame/game/
+│   │   ├── controller/              # 游戏、记录控制器
+│   │   ├── service/                 # 业务逻辑
+│   │   ├── repository/              # 数据访问
+│   │   └── config/                  # 安全配置
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+├── ai-svc/                          # AI服务
+│   ├── src/main/java/com/typinggame/ai/
+│   │   ├── controller/              # AI控制器
+│   │   ├── service/                 # 业务逻辑
+│   │   ├── repository/              # 数据访问
+│   │   └── config/                  # 安全配置
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+├── chat-svc/                        # 社交聊天服务
+│   ├── src/main/java/com/typinggame/chat/
+│   │   ├── controller/              # 消息、排行榜、词库控制器
+│   │   ├── service/                 # 业务逻辑
+│   │   ├── repository/              # 数据访问
+│   │   └── config/                  # 安全配置
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+├── monolith-legacy/                 # 旧单体代码（备份）
+├── DB/                              # 数据库脚本
+│   ├── typing_word_game.sql
+│   └── 数据库设计说明文档.md
+├── docker-compose.yml               # 基础设施编排
+├── Dockerfile
+└── README.md
 ```
 
 ---
 
-## 控制器分组
+## 服务列表
 
-控制器按功能域划分为 8 个子目录，职责清晰：
+| 服务名称 | 端口 | 职责 | 状态 |
+|----------|------|------|------|
+| api-gateway | 8080 | 统一入口、路由转发 | ✅ |
+| user-svc | 8081 | 用户认证、用户管理、好友管理 | ✅ |
+| game-core-svc | 8082 | 游戏核心逻辑、游戏记录、自适应算法 | ✅ |
+| ai-svc | 8083 | AI 对话、训练建议、LLM 集成 | ✅ |
+| chat-svc | 8084 | 消息中心、排行榜、词库管理 | ✅ |
 
-| 目录 | 控制器 | API 路径前缀 | 职责 |
-|------|--------|-------------|------|
-| auth | AuthController | `/api/v1/auth` | 用户注册、登录、令牌刷新 |
-| game | GameController | `/api/v1/game` | 游戏核心逻辑、开始/结束游戏 |
-| game | GameRecordController | `/api/v1/game/records` | 游戏记录查询、统计 |
-| game | GameConfigController | `/api/v1/game/config` | 游戏配置、难度参数 |
-| game | UserModelParamsController | `/api/v1/model/params` | 用户个性化模型参数 |
-| game | UserModelAdaptLogsController | `/api/v1/model/adapt/logs` | 模型适配日志 |
-| stats | StatsController | `/api/v1/stats` | 数据统计分析 |
-| stats | CharacterStatsController | `/api/v1/stats/characters` | 字符级统计 |
-| stats | UserDailyStatsController | `/api/v1/stats/daily` | 每日汇总数据 |
-| user | UserController | `/api/v1/user` | 用户资料、设置 |
-| dictionary | DictionaryController | `/api/v1/dictionary` | 词库管理、单词查询 |
-| social | FriendController | `/api/v1/friends` | 好友管理 |
-| social | LeaderboardController | `/api/v1/leaderboard` | 排行榜 |
-| social | MessageController | `/api/v1/messages` | 消息中心 |
-| ai | AiController | `/api/v1/ai` | AI 助手对话 |
-| admin | AdminController | `/api/v1/admin` | 管理后台 |
+---
+
+## API 路由
+
+API 网关统一入口：`http://localhost:8080`
+
+| 路径前缀 | 目标服务 | 说明 |
+|----------|----------|------|
+| `/api/v1/auth/**` | user-svc | 注册、登录、令牌刷新 |
+| `/api/v1/user/**` | user-svc | 用户资料、设置 |
+| `/api/v1/friends/**` | user-svc | 好友管理 |
+| `/api/v1/game/**` | game-core-svc | 游戏核心逻辑、记录 |
+| `/api/v1/ai/**` | ai-svc | AI 助手对话 |
+| `/api/v1/messages/**` | chat-svc | 消息中心 |
+| `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
+| `/api/v1/dictionary/**` | chat-svc | 词库管理 |
 
 ---
 
@@ -240,9 +269,9 @@ typingGame/
 | 类型 | 特殊效果 | 积分 |
 |------|----------|------|
 | NORMAL | 普通型，无特殊效果，匀速前进 | 1 |
-| ATTACKER | 攻击型，生成后每 5 秒新增 1 个普通小怪，每 15 秒新增 8 个单字符普通小怪 | 3 |
+| ATTACKER | 攻击型，生成后每 5 秒新增 1 个普通小怪 | 3 |
 | EVASIVE | 回避型，30% 概率规避玩家单次输入的正确字符 | 2 |
-| SMART | 智慧型，下落过程中周围 1 个普通小怪会向其聚拢 | 3 |
+| SMART | 智慧型，下落过程中周围小怪会向其聚拢 | 3 |
 
 ### 游戏模式
 
@@ -276,59 +305,51 @@ typingGame/
 - **MySQL 8.0+**：关系型数据库
 - **Redis 6.0+**：缓存数据库
 - **Maven 3.6+**：项目构建工具
+- **Docker & Docker Compose**：容器化部署（可选）
 
-### 安装步骤
+### 快速启动（推荐）
 
-1. **克隆项目**
+使用 Docker Compose 启动基础设施：
 
-   ```bash
-   git clone <项目地址>
-   cd superTyping/typingGame
-   ```
+```bash
+cd typingGame
+docker-compose up -d
+```
 
-2. **创建数据库**
+等待 Nacos、Redis、MySQL 等服务启动完成（约 1-2 分钟）。
 
-   执行 `DB/typing_word_game.sql` 脚本创建数据库和表结构。
+### 构建与运行
 
-3. **配置数据库连接**
+1. **构建项目**
 
-   修改 `src/main/resources/application.yml` 中的数据库连接信息：
+```bash
+mvn clean package -DskipTests
+```
 
-   ```yaml
-   spring:
-     datasource:
-       url: jdbc:mysql://localhost:3306/typing_word_game?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-       username: root
-       password: 123456
-   ```
+2. **启动各服务**（按顺序启动）
 
-4. **配置 Redis 连接**
+```bash
+# 启动 API 网关
+java -jar api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar
 
-   修改 `src/main/resources/application.yml` 中的 Redis 连接信息：
+# 启动用户服务
+java -jar user-svc/target/user-svc-0.0.1-SNAPSHOT.jar
 
-   ```yaml
-   spring:
-     redis:
-       host: localhost
-       port: 6379
-   ```
+# 启动游戏核心服务
+java -jar game-core-svc/target/game-core-svc-0.0.1-SNAPSHOT.jar
 
-5. **构建项目**
+# 启动 AI 服务
+java -jar ai-svc/target/ai-svc-0.0.1-SNAPSHOT.jar
 
-   ```bash
-   mvn clean package -DskipTests
-   ```
+# 启动聊天服务
+java -jar chat-svc/target/chat-svc-0.0.1-SNAPSHOT.jar
+```
 
-6. **运行项目**
+### 访问服务
 
-   ```bash
-   java -jar target/typingGame-0.0.1-SNAPSHOT.jar
-   ```
-
-7. **访问项目**
-
-   - 后端服务默认运行在 `http://localhost:8080/typingWord`
-   - API 文档（Swagger UI）：`http://localhost:8080/typingWord/swagger-ui.html`
+- API 网关：`http://localhost:8080`
+- Nacos 控制台：`http://localhost:8848/nacos`（用户名/密码：nacos/nacos）
+- Zipkin 追踪：`http://localhost:9411`
 
 ---
 
@@ -361,41 +382,26 @@ typingGame/
 
 ---
 
-## 测试
-
-### 单元测试
-
-- 使用 JUnit 5 进行单元测试
-- 测试覆盖主要业务逻辑和核心功能
-- 测试文件位于 `src/test/java` 目录
-
-### 集成测试
-
-- 测试系统各模块之间的集成
-- 测试数据库和 Redis 连接
-- 测试 API 接口的正确性
-
----
-
 ## 部署与运维
 
 ### 部署方式
 
-- **本地部署**：直接运行 jar 包
-- **Docker 部署**：使用 Docker 容器化部署
-- **云服务部署**：部署到云服务器
+- **本地开发**：使用 Docker Compose 启动基础设施，手动启动各服务
+- **Docker 部署**：为每个服务构建 Docker 镜像，使用 Docker Compose 编排
+- **Kubernetes 部署**：生产环境推荐使用 K8s 部署，支持自动扩缩容
 
 ### 监控与日志
 
 - 使用 Spring Boot Actuator 进行系统监控
+- 使用 Zipkin 进行分布式链路追踪
 - 配置日志记录，便于问题排查
 - 定期备份数据库
 
 ### 配置管理
 
-- 数据库连接信息通过 `application.yml` 配置
-- Redis 连接信息通过 `application.yml` 配置
-- JWT 密钥等敏感信息建议使用环境变量或配置中心管理
+- 数据库连接信息通过各服务的 `application.yml` 配置
+- Redis 连接信息通过各服务的 `application.yml` 配置
+- JWT 密钥等敏感信息建议使用 Nacos 配置中心或环境变量管理
 
 ---
 

@@ -6,120 +6,170 @@
 
 | 类别 | 技术 | 版本 | 说明 |
 | :--- | :--- | :--- | :--- |
-| 语言 | Java | 21 | LTS 版本，性能稳定 |
-| 框架 | Spring Boot | 3.x | 社区成熟，生态完善 |
+| 语言 | Java | 22 | LTS 版本，性能稳定 |
+| 框架 | Spring Boot | 3.3.x | 社区成熟，生态完善 |
+| 微服务治理 | Spring Cloud | 2023.0.x | 服务注册发现、配置管理 |
+| 服务注册 | Nacos | 2.3.x | 服务发现与配置中心 |
+| API 网关 | Spring Cloud Gateway | - | 统一入口、路由转发 |
 | 数据库 | MySQL | 8.0+ | 关系型数据库，事务支持 |
-| 缓存 | Redis | 7.0+ | 缓存用户会话、排行榜数据 |
-| ORM | Spring Data JPA | 3.x | 简化数据访问层开发 |
+| 缓存 | Redis | 6.0+ | 缓存用户会话、排行榜数据 |
+| 分布式锁 | Redisson | 3.26.x | Redis 分布式锁与缓存 |
+| ORM | Spring Data JPA | - | 简化数据访问层开发 |
 | 安全 | Spring Security + JWT | - | 用户认证与授权 |
 | 实时通信 | Spring WebSocket | - | 实时聊天和游戏状态推送 |
-| API文档 | SpringDoc OpenAPI | - | 自动生成API文档 |
+| 消息队列 | RocketMQ | 2.3.x | 异步消息处理 |
+| 对象映射 | MapStruct | 1.5.x | DTO/Entity 转换 |
+| 链路追踪 | Zipkin | - | 分布式链路追踪 |
 
 ### 1.2 架构风格
 
-- **架构模式**: 集成式单体应用 (Integrated Monolith)，采用分层架构设计
+- **架构模式**: 微服务架构 (Microservices Architecture)
 - **设计原则**: 高内聚、低耦合、单一职责、依赖倒置
-- **核心特性**: 动态难度调节、遗传进化算法、多游戏模式支持
+- **核心特性**: 动态难度调节、遗传进化算法、多游戏模式支持、服务高可用
 
 ---
 
-## 二、项目结构
+## 二、微服务架构
+
+### 2.1 服务架构图
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       API Gateway (8080)                    │
+│                    context-path: /typingWord                │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+        ┌──────────────┼──────────────┐
+        │              │              │
+        ▼              ▼              ▼
+┌─────────────┐ ┌───────────────┐ ┌─────────────┐
+│  User Svc   │ │ Game-Core Svc │ │    AI Svc   │
+│   (8081)    │ │    (8082)     │ │    (8083)   │
+│ ├─ Auth     │ │ ├─ GameCore   │ │ ├─ AIChat   │
+│ ├─ User     │ │ ├─ GameRecord │ │ └─ Training │
+│ └─ Friend   │ │ └─ Stats      │ │             │
+└─────────────┘ └───────────────┘ └─────────────┘
+        │              │              │
+        ▼              ▼              ▼
+┌─────────────┐ ┌───────────────┐ ┌─────────────┐
+│  Chat Svc   │ │   Common      │ │             │
+│   (8084)    │ │   Module      │ │             │
+│ ├─ Message  │ │ ├─ Entity/DTO │ │             │
+│ ├─ Leader   │ │ ├─ Security   │ │             │
+│ └─ Dict     │ │ └─ Exception  │ │             │
+└─────────────┘ └───────────────┘ └─────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    基础设施层                                │
+│  Nacos(8848) | Redis(6379) | MySQL(3306) | RocketMQ        │
+│  Zipkin(9411)                                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 服务列表
+
+| 服务名称 | 端口 | 职责 | 状态 |
+|----------|------|------|------|
+| api-gateway | 8080 | 统一入口、路由转发 | ✅ |
+| user-svc | 8081 | 用户认证、用户管理、好友管理 | ✅ |
+| game-core-svc | 8082 | 游戏核心逻辑、游戏记录、自适应算法、统计分析 | ✅ |
+| ai-svc | 8083 | AI 对话、训练建议、LLM 集成 | ✅ |
+| chat-svc | 8084 | 消息中心、排行榜、词库管理 | ✅ |
+
+---
+
+## 三、项目结构
 
 ```
 typingGame/
-├── src/
-│   └── main/
-│       ├── java/
-│       │   └── com/example/typinggame/
-│       │       ├── controller/          # REST API控制层
-│       │       │   ├── AuthController.java
-│       │       │   ├── UserController.java
-│       │       │   ├── GameRecordController.java
-│       │       │   ├── CharacterStatsController.java
-│       │       │   ├── DictionaryController.java
-│       │       │   ├── GameConfigController.java
-│       │       │   ├── LeaderboardController.java
-│       │       │   ├── FriendController.java
-│       │       │   ├── MessageController.java
-│       │       │   └── AiChatController.java
-│       │       ├── service/             # 业务逻辑层
-│       │       │   ├── AuthService.java
-│       │       │   ├── UserService.java
-│       │       │   ├── GameRecordService.java
-│       │       │   ├── CharacterStatsService.java
-│       │       │   ├── DictionaryService.java
-│       │       │   ├── GameConfigService.java
-│       │       │   ├── EvolutionService.java
-│       │       │   ├── LeaderboardService.java
-│       │       │   ├── FriendService.java
-│       │       │   ├── MessageService.java
-│       │       │   └── AiChatService.java
-│       │       ├── repository/          # 数据访问层
-│       │       │   ├── UserRepository.java
-│       │       │   ├── GameRecordRepository.java
-│       │       │   ├── MonsterRecordRepository.java
-│       │       │   ├── CharacterStatsRepository.java
-│       │       │   ├── DictionaryRepository.java
-│       │       │   ├── AdaptiveLogRepository.java
-│       │       │   ├── FriendRepository.java
-│       │       │   ├── MessageRepository.java
-│       │       │   ├── ConversationRepository.java
-│       │       │   └── AiChatConversationRepository.java
-│       │       ├── entity/              # 数据库实体
-│       │       │   ├── User.java
-│       │       │   ├── GameRecord.java
-│       │       │   ├── MonsterRecord.java
-│       │       │   ├── CharacterStats.java
-│       │       │   ├── Dictionary.java
-│       │       │   ├── AdaptiveLog.java
-│       │       │   ├── Friend.java
-│       │       │   ├── Message.java
-│       │       │   ├── Conversation.java
-│       │       │   └── AiChatConversation.java
-│       │       ├── dto/                 # 数据传输对象
-│       │       │   ├── request/         # 请求DTO
-│       │       │   └── response/        # 响应DTO
-│       │       ├── config/              # 配置类
-│       │       │   ├── SecurityConfig.java
-│       │       │   ├── WebSocketConfig.java
-│       │       │   ├── RedisConfig.java
-│       │       │   └── OpenApiConfig.java
-│       │       ├── security/            # 安全相关
-│       │       │   ├── JwtTokenProvider.java
-│       │       │   ├── JwtAuthenticationFilter.java
-│       │       │   └── UserDetailsServiceImpl.java
-│       │       ├── util/                # 工具类
-│       │       │   ├── DifficultyCalculationUtil.java
-│       │       │   ├── GameCoreUtil.java
-│       │       │   ├── PasswordUtil.java
-│       │       │   └── JwtUtil.java
-│       │       ├── exception/           # 异常处理
-│       │       │   ├── GlobalExceptionHandler.java
-│       │       │   └── BusinessException.java
-│       │       ├── websocket/           # WebSocket相关
-│       │       │   ├── ChatWebSocketHandler.java
-│       │       │   └── GameStatusWebSocketHandler.java
-│       │       ├── enums/               # 枚举类
-│       │       │   ├── GameMode.java
-│       │       │   ├── MonsterType.java
-│       │       │   ├── DifficultyLevel.java
-│       │       │   └── FriendStatus.java
-│       │       └── TypingGameApplication.java  # 启动类
-│       └── resources/
-│           ├── application.yml          # 应用配置
-│           └── schema.sql               # 数据库初始化脚本
-└── pom.xml                              # Maven配置
+├── pom.xml                          # 聚合父项目，管理依赖版本
+├── common/                          # 公共模块（共享代码）
+│   ├── src/main/java/com/typinggame/
+│   │   ├── common/                  # 公共组件
+│   │   │   ├── config/              # 安全配置基类
+│   │   │   ├── exception/           # 全局异常处理
+│   │   │   │   ├── BusinessException.java
+│   │   │   │   └── GlobalExceptionHandler.java
+│   │   │   └── security/            # 统一JWT安全组件
+│   │   │       ├── JwtTokenProvider.java
+│   │   │       └── JwtAuthenticationFilter.java
+│   │   ├── dto/                     # 共享DTO（按功能分组）
+│   │   ├── entity/                  # 共享实体（按功能分组）
+│   │   ├── enums/                   # 共享枚举
+│   │   ├── util/                    # 共享工具类
+│   │   └── vo/                      # 共享视图对象
+│   └── pom.xml
+├── api-gateway/                     # API网关
+│   ├── src/main/java/com/typinggame/gateway/
+│   │   └── GatewayApplication.java
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+├── user-svc/                        # 用户服务
+│   ├── src/main/java/com/typinggame/user/
+│   │   ├── controller/              # 认证、用户、好友控制器
+│   │   ├── service/                 # 业务逻辑
+│   │   ├── repository/              # 数据访问
+│   │   └── config/                  # 安全配置
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+├── game-core-svc/                   # 游戏核心服务
+│   ├── src/main/java/com/typinggame/game/
+│   │   ├── controller/              # 游戏、记录、统计控制器
+│   │   ├── service/                 # 业务逻辑
+│   │   ├── repository/              # 数据访问
+│   │   └── config/                  # 安全配置
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+├── ai-svc/                          # AI服务
+│   ├── src/main/java/com/typinggame/ai/
+│   │   ├── controller/              # AI控制器
+│   │   ├── service/                 # 业务逻辑
+│   │   ├── repository/              # 数据访问
+│   │   └── config/                  # 安全配置
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+├── chat-svc/                        # 社交聊天服务
+│   ├── src/main/java/com/typinggame/chat/
+│   │   ├── controller/              # 消息、排行榜、词库控制器
+│   │   ├── service/                 # 业务逻辑
+│   │   ├── repository/              # 数据访问
+│   │   └── config/                  # 安全配置
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+├── monolith-legacy/                 # 旧单体代码（备份）
+├── DB/                              # 数据库脚本
+├── docker-compose.yml               # 基础设施编排
+└── pom.xml                          # 父项目Maven配置
 ```
 
 ---
 
-## 三、核心实体设计
+## 四、API 路由
 
-### 3.1 用户实体 (User)
+API 网关统一入口：`http://localhost:8080/typingWord`
+
+| 路径前缀 | 目标服务 | 说明 |
+|----------|----------|------|
+| `/api/v1/auth/**` | user-svc | 注册、登录、令牌刷新 |
+| `/api/v1/user/**` | user-svc | 用户资料、设置 |
+| `/api/v1/friends/**` | user-svc | 好友管理 |
+| `/api/v1/game/**` | game-core-svc | 游戏核心逻辑、记录 |
+| `/api/v1/stats/**` | game-core-svc | 统计分析 |
+| `/api/v1/ai/**` | ai-svc | AI 助手对话 |
+| `/api/v1/messages/**` | chat-svc | 消息中心 |
+| `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
+| `/api/v1/dictionary/**` | chat-svc | 词库管理 |
+
+---
+
+## 五、核心实体设计
+
+### 5.1 用户实体 (UserInfo)
 
 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| userId | Long | 主键，用户ID |
+| userId | Integer | 主键，用户ID |
 | username | String | 用户名，唯一 |
 | password | String | 密码（加密存储） |
 | nickname | String | 昵称 |
@@ -137,12 +187,12 @@ typingGame/
 | createTime | LocalDateTime | 创建时间 |
 | updateTime | LocalDateTime | 更新时间 |
 
-### 3.2 游戏记录实体 (GameRecord)
+### 5.2 游戏记录实体 (GameRecord)
 
 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| recordId | Long | 主键，记录ID |
-| userId | Long | 用户ID，外键 |
+| recordId | Integer | 主键，记录ID |
+| userId | Integer | 用户ID，外键 |
 | gameMode | String | 游戏模式 (endless/dictionary/limit) |
 | selectedChars | String | 选择的字符类型 |
 | roundNum | Integer | 回合数 |
@@ -156,12 +206,12 @@ typingGame/
 | gameDuration | Integer | 游戏时长 (秒) |
 | createTime | LocalDateTime | 创建时间 |
 
-### 3.3 怪物记录实体 (MonsterRecord)
+### 5.3 怪物记录实体 (MonsterRecord)
 
 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| monsterId | Long | 主键，怪物ID |
-| recordId | Long | 游戏记录ID，外键 |
+| monsterId | Integer | 主键，怪物ID |
+| recordId | Integer | 游戏记录ID，外键 |
 | monsterType | String | 怪物类型 (NORMAL/ATTACKER/EVASIVE/SMART) |
 | targetStr | String | 目标字符串 |
 | speed | Double | 移动速度 |
@@ -175,12 +225,12 @@ typingGame/
 | isParent | Boolean | 是否为父本 |
 | difficultyLevel | Integer | 难度等级 |
 
-### 3.4 字符统计实体 (CharacterStats)
+### 5.4 字符统计实体 (CharacterStats)
 
 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| statId | Long | 主键 |
-| userId | Long | 用户ID，外键 |
+| statId | Integer | 主键 |
+| userId | Integer | 用户ID，外键 |
 | charValue | String | 字符 |
 | totalInput | Integer | 总输入次数 |
 | errorCount | Integer | 错误次数 |
@@ -190,25 +240,25 @@ typingGame/
 | createTime | LocalDateTime | 创建时间 |
 | updateTime | LocalDateTime | 更新时间 |
 
-### 3.5 词库实体 (Dictionary)
+### 5.5 词库实体 (Dictionary)
 
 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| dictId | Long | 主键 |
+| dictId | Integer | 主键 |
 | dictName | String | 词库名称 |
 | description | String | 描述 |
 | wordCount | Integer | 单词数量 |
 | dictType | String | 类型 (system/custom) |
-| userId | Long | 用户ID（自定义词库） |
+| userId | Integer | 用户ID（自定义词库） |
 | isPublic | Boolean | 是否公开 |
 | createTime | LocalDateTime | 创建时间 |
 | updateTime | LocalDateTime | 更新时间 |
 
 ---
 
-## 四、服务层设计
+## 六、服务层设计
 
-### 4.1 认证服务 (AuthService)
+### 6.1 认证服务 (AuthService) - user-svc
 
 | 方法名 | 功能说明 | 参数 | 返回值 |
 | :--- | :--- | :--- | :--- |
@@ -217,316 +267,207 @@ typingGame/
 | refreshToken | 刷新令牌 | String refreshToken | TokenResponseDTO |
 | changePassword | 修改密码 | ChangePasswordDTO | void |
 
-### 4.2 用户服务 (UserService)
+### 6.2 用户服务 (UserService) - user-svc
 
 | 方法名 | 功能说明 | 参数 | 返回值 |
 | :--- | :--- | :--- | :--- |
-| getUserById | 根据ID获取用户 | Long userId | UserResponseDTO |
+| getUserById | 根据ID获取用户 | Integer userId | UserResponseDTO |
 | getUserByUsername | 根据用户名获取用户 | String username | UserResponseDTO |
-| updateUser | 更新用户信息 | Long userId, UserUpdateDTO | UserResponseDTO |
-| updateAvatar | 更新头像 | Long userId, String avatarUrl | UserResponseDTO |
-| getUserStats | 获取用户统计 | Long userId | UserStatsDTO |
-| deleteUser | 删除用户 | Long userId | void |
+| updateUser | 更新用户信息 | Integer userId, UserUpdateDTO | UserResponseDTO |
+| updateAvatar | 更新头像 | Integer userId, String avatarUrl | UserResponseDTO |
+| getUserStats | 获取用户统计 | Integer userId | UserStatsDTO |
 
-### 4.3 游戏记录服务 (GameRecordService)
+### 6.3 好友服务 (FriendService) - user-svc
+
+| 方法名 | 功能说明 | 参数 | 返回值 |
+| :--- | :--- | :--- | :--- |
+| sendFriendRequest | 发送好友请求 | Integer userId, Integer targetUserId | void |
+| acceptFriendRequest | 接受好友请求 | Integer userId, Integer requestUserId | void |
+| rejectFriendRequest | 拒绝好友请求 | Integer userId, Integer requestUserId | void |
+| getFriends | 获取好友列表 | Integer userId | List<FriendDTO> |
+| getFriendRequests | 获取好友请求 | Integer userId | List<FriendRequestDTO> |
+| deleteFriend | 删除好友 | Integer userId, Integer friendId | void |
+
+### 6.4 游戏记录服务 (GameRecordService) - game-core-svc
 
 | 方法名 | 功能说明 | 参数 | 返回值 |
 | :--- | :--- | :--- | :--- |
 | createGameRecord | 创建游戏记录 | GameRecordRequestDTO | GameRecordResponseDTO |
-| getGameRecordById | 根据ID获取记录 | Long recordId | GameRecordResponseDTO |
-| getGameRecordsByUser | 获取用户游戏记录 | Long userId, Pageable | Page<GameRecordResponseDTO> |
-| deleteGameRecord | 删除游戏记录 | Long recordId | void |
+| getGameRecordById | 根据ID获取记录 | Integer recordId | GameRecordResponseDTO |
+| getGameRecordsByUser | 获取用户游戏记录 | Integer userId, Pageable | Page<GameRecordResponseDTO> |
 
-### 4.4 字符统计服务 (CharacterStatsService)
-
-| 方法名 | 功能说明 | 参数 | 返回值 |
-| :--- | :--- | :--- | :--- |
-| updateStats | 更新字符统计 | Long userId, List<CharacterInputDTO> | void |
-| getCharacterStats | 获取字符统计 | Long userId | List<CharacterStatsDTO> |
-| getErrorCharacters | 获取易错字符 | Long userId | List<CharacterStatsDTO> |
-
-### 4.5 词库服务 (DictionaryService)
+### 6.5 统计服务 (StatsService) - game-core-svc
 
 | 方法名 | 功能说明 | 参数 | 返回值 |
 | :--- | :--- | :--- | :--- |
-| getSystemDictionaries | 获取系统词库 | - | List<DictionaryDTO> |
-| getCustomDictionaries | 获取用户自定义词库 | Long userId | List<DictionaryDTO> |
-| createCustomDictionary | 创建自定义词库 | Long userId, DictionaryCreateDTO | DictionaryDTO |
-| updateDictionary | 更新词库 | Long dictId, DictionaryUpdateDTO | DictionaryDTO |
-| deleteDictionary | 删除词库 | Long dictId | void |
+| updateStats | 更新字符统计 | Integer userId, List<CharacterInputDTO> | void |
+| getCharacterStats | 获取字符统计 | Integer userId | List<CharacterStatsDTO> |
+| getErrorCharacters | 获取易错字符 | Integer userId | List<CharacterStatsDTO> |
 
-### 4.6 游戏配置服务 (GameConfigService)
+### 6.6 游戏核心服务 (GameCoreService) - game-core-svc
 
 | 方法名 | 功能说明 | 参数 | 返回值 |
 | :--- | :--- | :--- | :--- |
-| getNextRoundConfig | 获取下一轮配置 | Long userId, Integer roundNum, String gameMode | NextRoundResponseDTO |
+| getNextRoundConfig | 获取下一轮配置 | Integer userId, Integer roundNum, String gameMode | NextRoundResponseDTO |
 | getCharTypes | 获取字符类型列表 | - | List<String> |
 
-### 4.7 遗传进化服务 (EvolutionService)
+### 6.7 遗传进化服务 (EvolutionService) - game-core-svc
 
 | 方法名 | 功能说明 | 参数 | 返回值 |
 | :--- | :--- | :--- | :--- |
-| selectParents | 选择父本怪物 | Long recordId | List<MonsterRecord> |
+| selectParents | 选择父本怪物 | Integer recordId | List<MonsterRecord> |
 | recombineAndMutate | 基因重组与变异 | List<MonsterRecord> parents, AdjustParam param | List<String> |
-| generateNextRoundMonsters | 生成下一轮怪物 | Long userId, AdjustParam param, String gameMode | List<MonsterDTO> |
+| generateNextRoundMonsters | 生成下一轮怪物 | Integer userId, AdjustParam param, String gameMode | List<MonsterDTO> |
 
-### 4.8 排行榜服务 (LeaderboardService)
+### 6.8 AI 聊天服务 (AiChatService) - ai-svc
+
+| 方法名 | 功能说明 | 参数 | 返回值 |
+| :--- | :--- | :--- | :--- |
+| chat | AI 对话 | Integer userId, String message | AiChatResponseDTO |
+| getConversation | 获取对话记录 | Integer userId, Integer conversationId | List<AiChatMessageDTO> |
+
+### 6.9 消息服务 (MessageService) - chat-svc
+
+| 方法名 | 功能说明 | 参数 | 返回值 |
+| :--- | :--- | :--- | :--- |
+| sendMessage | 发送消息 | Integer userId, Integer conversationId, String content | MessageDTO |
+| getConversationMessages | 获取会话消息 | Integer userId, Integer conversationId, Pageable | Page<MessageDTO> |
+| createConversation | 创建会话 | Integer userId, Integer targetUserId | ConversationDTO |
+
+### 6.10 排行榜服务 (LeaderboardService) - chat-svc
 
 | 方法名 | 功能说明 | 参数 | 返回值 |
 | :--- | :--- | :--- | :--- |
 | getLeaderboard | 获取排行榜 | String gameMode, Integer limit | List<LeaderboardDTO> |
 
-### 4.9 好友服务 (FriendService)
+### 6.11 词库服务 (DictionaryService) - chat-svc
 
 | 方法名 | 功能说明 | 参数 | 返回值 |
 | :--- | :--- | :--- | :--- |
-| sendFriendRequest | 发送好友请求 | Long userId, Long targetUserId | void |
-| acceptFriendRequest | 接受好友请求 | Long userId, Long requestUserId | void |
-| rejectFriendRequest | 拒绝好友请求 | Long userId, Long requestUserId | void |
-| getFriends | 获取好友列表 | Long userId | List<FriendDTO> |
-| getFriendRequests | 获取好友请求 | Long userId | List<FriendRequestDTO> |
-| deleteFriend | 删除好友 | Long userId, Long friendId | void |
-
-### 4.10 消息服务 (MessageService)
-
-| 方法名 | 功能说明 | 参数 | 返回值 |
-| :--- | :--- | :--- | :--- |
-| sendMessage | 发送消息 | Long userId, Long conversationId, String content | MessageDTO |
-| getConversationMessages | 获取会话消息 | Long userId, Long conversationId, Pageable | Page<MessageDTO> |
-| createConversation | 创建会话 | Long userId, Long targetUserId | ConversationDTO |
+| getSystemDictionaries | 获取系统词库 | - | List<DictionaryDTO> |
+| getCustomDictionaries | 获取用户自定义词库 | Integer userId | List<DictionaryDTO> |
+| createCustomDictionary | 创建自定义词库 | Integer userId, DictionaryCreateDTO | DictionaryDTO |
+| updateDictionary | 更新词库 | Integer dictId, DictionaryUpdateDTO | DictionaryDTO |
+| deleteDictionary | 删除词库 | Integer dictId | void |
 
 ---
 
-## 五、控制层设计
+## 七、控制层设计
 
-### 5.1 认证控制器 (AuthController)
-
-| HTTP方法 | 路径 | 功能 | 需要认证 |
-| :--- | :--- | :--- | :--- |
-| POST | /api/auth/register | 用户注册 | 否 |
-| POST | /api/auth/login | 用户登录 | 否 |
-| POST | /api/auth/refresh | 刷新令牌 | 否 |
-| POST | /api/auth/change-password | 修改密码 | 是 |
-
-### 5.2 用户控制器 (UserController)
+### 7.1 认证控制器 (AuthController) - user-svc
 
 | HTTP方法 | 路径 | 功能 | 需要认证 |
 | :--- | :--- | :--- | :--- |
-| GET | /api/users/{userId} | 获取用户信息 | 是 |
-| PUT | /api/users/{userId} | 更新用户信息 | 是 |
-| PUT | /api/users/{userId}/avatar | 更新头像 | 是 |
-| GET | /api/users/{userId}/stats | 获取用户统计 | 是 |
-| DELETE | /api/users/{userId} | 删除用户 | 管理员 |
+| POST | /api/v1/auth/login | 用户登录 | 否 |
+| POST | /api/v1/auth/signup | 用户注册 | 否 |
+| POST | /api/v1/auth/refresh | 刷新令牌 | 否 |
 
-### 5.3 游戏记录控制器 (GameRecordController)
+### 7.2 用户控制器 (UserController) - user-svc
 
 | HTTP方法 | 路径 | 功能 | 需要认证 |
 | :--- | :--- | :--- | :--- |
-| POST | /api/game/records | 创建游戏记录 | 是 |
-| GET | /api/game/records/{recordId} | 获取游戏记录 | 是 |
-| GET | /api/game/records/user/{userId} | 获取用户游戏记录列表 | 是 |
-| DELETE | /api/game/records/{recordId} | 删除游戏记录 | 是 |
+| GET | /api/v1/user/profile | 获取当前用户信息 | 是 |
+| PUT | /api/v1/user/profile | 更新用户信息 | 是 |
+| PUT | /api/v1/user/avatar | 更新头像 | 是 |
 
-### 5.4 字符统计控制器 (CharacterStatsController)
-
-| HTTP方法 | 路径 | 功能 | 需要认证 |
-| :--- | :--- | :--- | :--- |
-| GET | /api/stats/character/user/{userId} | 获取用户字符统计 | 是 |
-| POST | /api/stats/character | 更新字符统计 | 是 |
-
-### 5.5 词库控制器 (DictionaryController)
+### 7.3 好友控制器 (FriendController) - user-svc
 
 | HTTP方法 | 路径 | 功能 | 需要认证 |
 | :--- | :--- | :--- | :--- |
-| GET | /api/dictionary/system | 获取系统词库 | 否 |
-| GET | /api/dictionary/custom/user/{userId} | 获取用户自定义词库 | 是 |
-| POST | /api/dictionary/custom | 创建自定义词库 | 是 |
-| PUT | /api/dictionary/{dictId} | 更新词库 | 是 |
-| DELETE | /api/dictionary/{dictId} | 删除词库 | 是 |
+| POST | /api/v1/friends/request | 发送好友请求 | 是 |
+| PUT | /api/v1/friends/request/{requestId}/accept | 接受好友请求 | 是 |
+| PUT | /api/v1/friends/request/{requestId}/reject | 拒绝好友请求 | 是 |
+| GET | /api/v1/friends | 获取好友列表 | 是 |
+| GET | /api/v1/friends/requests | 获取好友请求 | 是 |
+| DELETE | /api/v1/friends/{friendId} | 删除好友 | 是 |
 
-### 5.6 游戏配置控制器 (GameConfigController)
-
-| HTTP方法 | 路径 | 功能 | 需要认证 |
-| :--- | :--- | :--- | :--- |
-| POST | /api/game/config/next-round | 获取下一轮配置 | 是 |
-| GET | /api/game/config/char-types | 获取字符类型 | 否 |
-
-### 5.7 排行榜控制器 (LeaderboardController)
+### 7.4 游戏记录控制器 (GameRecordController) - game-core-svc
 
 | HTTP方法 | 路径 | 功能 | 需要认证 |
 | :--- | :--- | :--- | :--- |
-| GET | /api/leaderboard/{gameMode} | 获取排行榜 | 否 |
+| POST | /api/v1/game/records | 创建游戏记录 | 是 |
+| GET | /api/v1/game/records/{recordId} | 获取游戏记录 | 是 |
+| GET | /api/v1/game/records/user/{userId} | 获取用户游戏记录列表 | 是 |
 
-### 5.8 好友控制器 (FriendController)
-
-| HTTP方法 | 路径 | 功能 | 需要认证 |
-| :--- | :--- | :--- | :--- |
-| POST | /api/friends/request | 发送好友请求 | 是 |
-| PUT | /api/friends/request/{requestId}/accept | 接受好友请求 | 是 |
-| PUT | /api/friends/request/{requestId}/reject | 拒绝好友请求 | 是 |
-| GET | /api/friends | 获取好友列表 | 是 |
-| GET | /api/friends/requests | 获取好友请求 | 是 |
-| DELETE | /api/friends/{friendId} | 删除好友 | 是 |
-
-### 5.9 消息控制器 (MessageController)
+### 7.5 统计控制器 (StatsController) - game-core-svc
 
 | HTTP方法 | 路径 | 功能 | 需要认证 |
 | :--- | :--- | :--- | :--- |
-| GET | /api/messages/conversations | 获取会话列表 | 是 |
-| POST | /api/messages/conversations | 创建会话 | 是 |
-| GET | /api/messages/conversations/{conversationId} | 获取会话消息 | 是 |
-| POST | /api/messages/send | 发送消息 | 是 |
+| GET | /api/v1/stats/character/user/{userId} | 获取用户字符统计 | 是 |
+| POST | /api/v1/stats/character | 更新字符统计 | 是 |
 
-### 5.10 AI对话控制器 (AiChatController)
+### 7.6 游戏配置控制器 (GameConfigController) - game-core-svc
 
 | HTTP方法 | 路径 | 功能 | 需要认证 |
 | :--- | :--- | :--- | :--- |
-| GET | /api/ai-chat/conversations | 获取对话列表 | 是 |
-| POST | /api/ai-chat/conversations | 创建对话 | 是 |
-| POST | /api/ai-chat/conversation/{conversationId}/send | 发送消息 | 是 |
+| POST | /api/v1/game/config/next-round | 获取下一轮配置 | 是 |
+| GET | /api/v1/game/config/char-types | 获取字符类型 | 否 |
+
+### 7.7 AI聊天控制器 (AiController) - ai-svc
+
+| HTTP方法 | 路径 | 功能 | 需要认证 |
+| :--- | :--- | :--- | :--- |
+| POST | /api/v1/ai/chat | AI对话 | 是 |
+| POST | /api/v1/ai/training-summary | 训练摘要 | 是 |
+
+### 7.8 消息控制器 (MessageController) - chat-svc
+
+| HTTP方法 | 路径 | 功能 | 需要认证 |
+| :--- | :--- | :--- | :--- |
+| GET | /api/v1/messages/conversations | 获取会话列表 | 是 |
+| POST | /api/v1/messages/conversations | 创建会话 | 是 |
+| GET | /api/v1/messages/conversations/{conversationId} | 获取会话消息 | 是 |
+| POST | /api/v1/messages/send | 发送消息 | 是 |
+
+### 7.9 排行榜控制器 (LeaderboardController) - chat-svc
+
+| HTTP方法 | 路径 | 功能 | 需要认证 |
+| :--- | :--- | :--- | :--- |
+| GET | /api/v1/leaderboard/{gameMode} | 获取排行榜 | 否 |
+
+### 7.10 词库控制器 (DictionaryController) - chat-svc
+
+| HTTP方法 | 路径 | 功能 | 需要认证 |
+| :--- | :--- | :--- | :--- |
+| GET | /api/v1/dictionary/system | 获取系统词库 | 否 |
+| GET | /api/v1/dictionary/custom/user/{userId} | 获取用户自定义词库 | 是 |
+| POST | /api/v1/dictionary/custom | 创建自定义词库 | 是 |
+| PUT | /api/v1/dictionary/{dictId} | 更新词库 | 是 |
+| DELETE | /api/v1/dictionary/{dictId} | 删除词库 | 是 |
 
 ---
 
-## 六、DTO定义
+## 八、安全设计
 
-### 6.1 请求DTO
+### 8.1 公共安全组件 (common 模块)
 
-#### 6.1.1 认证请求
+| 组件 | 文件 | 职责 |
+| :--- | :--- | :--- |
+| JwtTokenProvider | common/security/JwtTokenProvider.java | 令牌生成、验证、解析 |
+| JwtAuthenticationFilter | common/security/JwtAuthenticationFilter.java | 请求拦截与认证 |
+| GlobalExceptionHandler | common/exception/GlobalExceptionHandler.java | 全局异常处理 |
+| BusinessException | common/exception/BusinessException.java | 业务异常封装 |
 
-```java
-// UserRegisterDTO.java
-public class UserRegisterDTO {
-    private String username;
-    private String password;
-    private String nickname;
-}
-
-// UserLoginDTO.java
-public class UserLoginDTO {
-    private String username;
-    private String password;
-}
-
-// ChangePasswordDTO.java
-public class ChangePasswordDTO {
-    private String oldPassword;
-    private String newPassword;
-}
-```
-
-#### 6.1.2 游戏请求
-
-```java
-// GameRecordRequestDTO.java
-public class GameRecordRequestDTO {
-    private String gameMode;
-    private String selectedChars;
-    private Integer roundNum;
-    private Integer totalScore;
-    private Integer totalChars;
-    private Integer correctChars;
-    private Double avgSpeed;
-    private Double peakSpeed;
-    private Double avgAccuracy;
-    private Double peakAccuracy;
-    private Integer gameDuration;
-    private List<MonsterRecordDTO> monsters;
-}
-
-// NextRoundRequestDTO.java
-public class NextRoundRequestDTO {
-    private Integer roundNum;
-    private String gameMode;
-    private List<Long> customDictIds;
-    private List<Long> systemDictIds;
-    private Double currentDifficulty;
-}
-```
-
-### 6.2 响应DTO
-
-#### 6.2.1 认证响应
-
-```java
-// TokenResponseDTO.java
-public class TokenResponseDTO {
-    private String accessToken;
-    private String refreshToken;
-    private Long expiresIn;
-    private UserResponseDTO user;
-}
-```
-
-#### 6.2.2 用户响应
-
-```java
-// UserResponseDTO.java
-public class UserResponseDTO {
-    private Long userId;
-    private String username;
-    private String nickname;
-    private String signature;
-    private String avatar;
-    private Integer bestScore;
-    private Integer bestRound;
-    private Double bestSpeed;
-    private Double bestAccuracy;
-    private Double avgSpeed;
-    private Double avgAccuracy;
-    private Double peakAccuracy;
-    private Integer gameNum;
-    private String role;
-    private LocalDateTime createTime;
-    private LocalDateTime updateTime;
-}
-```
-
-#### 6.2.3 游戏响应
-
-```java
-// NextRoundResponseDTO.java
-public class NextRoundResponseDTO {
-    private AdjustParam adjustParam;
-    private List<MonsterDTO> monsters;
-}
-
-// AdjustParam.java
-public class AdjustParam {
-    private Double currentDifficulty;
-    private Double monsterSpeed;
-    private Integer monsterCount;
-    private Double avgStringLength;
-    private Double normalRatio;
-    private Double attackRatio;
-    private Double evasiveRatio;
-    private Double smartRatio;
-}
-```
-
----
-
-## 七、安全设计
-
-### 7.1 JWT认证流程
+### 8.2 JWT认证流程
 
 ```
-1. 用户登录请求 → POST /api/auth/login
-2. 后端验证用户名密码 → 生成accessToken和refreshToken
+1. 用户登录请求 → POST /api/v1/auth/login
+2. user-svc 验证用户名密码 → 生成accessToken和refreshToken
 3. 前端存储token到localStorage
 4. 后续请求在Header中携带Authorization: Bearer {token}
-5. 后端过滤器验证token有效性
-6. token过期前45分钟自动刷新
-7. 验证失败返回401，前端跳转登录页
+5. API网关转发请求到对应服务
+6. 各服务JwtAuthenticationFilter验证token有效性
+7. token过期返回401，前端自动清理token并跳转登录页
 ```
 
-### 7.2 权限控制
+### 8.3 权限控制
 
 | 角色 | 权限范围 |
 | :--- | :--- |
 | user | 访问自己的数据，游戏功能，好友系统 |
 | admin | 访问所有数据，管理用户，管理词库 |
 
-### 7.3 安全配置要点
+### 8.4 安全配置要点
 
 - 密码使用BCrypt加密存储
 - JWT令牌设置合理过期时间
@@ -537,25 +478,25 @@ public class AdjustParam {
 
 ---
 
-## 八、WebSocket设计
+## 九、WebSocket设计
 
-### 8.1 实时消息
+### 9.1 实时消息
 
-- **端点**: `/ws/messages`
+- **端点**: `/typingWord/ws`
 - **订阅主题**: `/topic/messages/{conversationId}`
 - **功能**: 实时接收好友消息
 
-### 8.2 游戏状态推送
+### 9.2 游戏状态推送
 
-- **端点**: `/ws/game-status`
+- **端点**: `/typingWord/ws`
 - **订阅主题**: `/topic/game/{gameId}`
 - **功能**: 推送游戏实时状态
 
 ---
 
-## 九、缓存策略
+## 十、缓存策略
 
-### 9.1 Redis缓存应用
+### 10.1 Redis缓存应用
 
 | 缓存内容 | Key格式 | 过期时间 | 说明 |
 | :--- | :--- | :--- | :--- |
@@ -566,9 +507,9 @@ public class AdjustParam {
 
 ---
 
-## 十、事务管理
+## 十一、事务管理
 
-### 10.1 事务策略
+### 11.1 事务策略
 
 | 场景 | 事务隔离级别 | 说明 |
 | :--- | :--- | :--- |
@@ -577,7 +518,7 @@ public class AdjustParam {
 | 好友操作 | DEFAULT | 好友关系变更需双方同步 |
 | 消息发送 | DEFAULT | 创建消息和更新会话需同时完成 |
 
-### 10.2 事务边界
+### 11.2 事务边界
 
 - 服务层方法使用`@Transactional`注解
 - 跨服务调用使用分布式事务（如需）
@@ -585,50 +526,119 @@ public class AdjustParam {
 
 ---
 
-## 十一、部署配置
+## 十二、部署配置
 
-### 11.1 application.yml关键配置
+### 12.1 各服务 application.yml 关键配置
+
+#### API Gateway
 
 ```yaml
 server:
   port: 8080
 
 spring:
+  application:
+    name: api-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+    gateway:
+      routes:
+        - id: user-svc
+          uri: lb://user-svc
+          predicates:
+            - Path=/api/v1/auth/**,/api/v1/user/**,/api/v1/friends/**
+        - id: game-core-svc
+          uri: lb://game-core-svc
+          predicates:
+            - Path=/api/v1/game/**,/api/v1/stats/**
+        - id: ai-svc
+          uri: lb://ai-svc
+          predicates:
+            - Path=/api/v1/ai/**
+        - id: chat-svc
+          uri: lb://chat-svc
+          predicates:
+            - Path=/api/v1/messages/**,/api/v1/leaderboard/**,/api/v1/dictionary/**
+```
+
+#### 用户服务 (user-svc)
+
+```yaml
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-svc
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
   datasource:
-    url: jdbc:mysql://localhost:3306/typing_game?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    url: jdbc:mysql://localhost:3306/typing_game?useSSL=false&serverTimezone=Asia/Shanghai
     username: admin
     password: password
     driver-class-name: com.mysql.cj.jdbc.Driver
-  
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
-  
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      timeout: 10000ms
 
 jwt:
-  secret: typing-game-jwt-secret-key-2024
-  access-token-expire-minutes: 60
-  refresh-token-expire-days: 7
+  secret: H5FQLg1tDHnqxGXoNhAKDvSwQfkQLDa4W+I72dPruXE=
+```
+
+#### 游戏核心服务 (game-core-svc)
+
+```yaml
+server:
+  port: 8082
+
+spring:
+  application:
+    name: game-core-svc
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+```
+
+#### AI服务 (ai-svc)
+
+```yaml
+server:
+  port: 8083
+
+spring:
+  application:
+    name: ai-svc
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+```
+
+#### 聊天服务 (chat-svc)
+
+```yaml
+server:
+  port: 8084
+
+spring:
+  application:
+    name: chat-svc
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
 ```
 
 ---
 
-## 十二、扩展规划
+## 十三、扩展规划
 
 | 扩展方向 | 说明 |
 | :--- | :--- |
-| 微服务拆分 | 将认证、游戏、统计等模块拆分为独立服务 |
-| 分布式缓存 | 使用Redis Cluster提升缓存性能 |
-| 消息队列 | 使用RabbitMQ异步处理游戏结算 |
-| 多数据库 | 读写分离，主从复制 |
-| 容器化部署 | 使用Docker和Kubernetes |
+| 服务监控 | 集成 Prometheus + Grafana |
+| 分布式追踪 | 完善 Zipkin 链路追踪 |
+| 服务熔断 | 集成 Hystrix 或 Resilience4j |
+| 容器化部署 | 使用 Docker 和 Kubernetes |
+| 灰度发布 | 实现服务灰度发布机制 |

@@ -5,6 +5,38 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export interface ApiError {
+  code?: number;
+  message: string;
+  data?: any;
+}
+
+export function isApiError(error: unknown): error is ApiError {
+  return typeof error === 'object' && error !== null && 'message' in error;
+}
+
+export function getErrorMessage(error: unknown): string {
+  if (isApiError(error)) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return '未知错误';
+}
+
+export function handleApiError(error: unknown, defaultMessage?: string): string {
+  const message = getErrorMessage(error);
+  return message || defaultMessage || '操作失败';
+}
+
+export function isAuthError(error: unknown): boolean {
+  if (isApiError(error)) {
+    return error.code === 401;
+  }
+  return false;
+}
+
 export type Params = Partial<
   Record<keyof URLSearchParams, string | number | null | undefined>
 >;
