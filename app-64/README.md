@@ -32,13 +32,14 @@
 - **自适应进化**：怪物与难度随表现变化，针对薄弱字符加强训练
 - **数据驱动**：记录对局与字符级统计，支持趋势、对比与训练建议
 - **游戏化**：无尽适应、词库、限时等模式，配合教程与实时反馈
-- **社交**：消息中心、好友列表、私聊（依赖后端 WebSocket）
-- **AI 助手**：对话走后端 `/api/v1/ai/chat` 接口（需 Java 侧配置 LLM）
+- **社交**：消息中心、好友列表、私聊（当前 REST 可用，WebSocket 推送为后续增强）
+- **AI 助手**：对话走后端 `/api/v1/ai/chat` 接口，训练摘要会读取真实对局与字符统计数据
 
 ### 管理后台（管理员）
 
 - 数据概览、用户管理、游戏记录、怪物配置
 - Dₜ 趋势、系统参数、系统词库、排行榜条目、字符统计总览
+- 当前 `/admin/**` 由后端独立 `admin-svc` 聚合提供，并通过各领域服务 `/internal/admin/**` 内部接口获取数据
 
 ### 架构适配
 
@@ -47,14 +48,15 @@
 | API 路径前缀 | 后端服务 | 职责 |
 |-------------|----------|------|
 | `/api/v1/auth/**` | user-svc | 认证 |
-| `/api/v1/user/**` | user-svc | 用户管理 |
+| `/api/v1/user/**`、`/api/v1/profiles/**` | user-svc | 用户管理 |
 | `/api/v1/friends/**` | user-svc | 好友管理 |
 | `/api/v1/game/**` | game-core-svc | 游戏核心 |
 | `/api/v1/stats/**` | game-core-svc | 统计分析 |
+| `/api/v1/admin/**` | admin-svc | 管理后台聚合接口 |
 | `/api/v1/ai/**` | ai-svc | AI 助手 |
 | `/api/v1/messages/**` | chat-svc | 消息中心 |
 | `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
-| `/api/v1/dictionary/**` | chat-svc | 词库管理 |
+| `/api/v1/dictionary/**`、`/api/v1/dictionaries/**` | chat-svc | 词库管理 |
 
 ---
 
@@ -236,12 +238,12 @@ API 服务按业务域拆分为独立模块，每个模块负责特定业务的�
 |------|------|------|----------|
 | 认证 | services/auth.ts | 登录、注册、令牌刷新 | user-svc |
 | 用户 | services/user.ts | 用户资料、设置 | user-svc |
-| 游戏 | services/game.ts | 游戏核心、记录、配置 | game-core-svc |
+| 游戏 | services/game.ts | 游戏核心、记录、配置、排行榜封装 | game-core-svc / chat-svc |
 | 统计 | services/stats.ts | 数据统计、趋势分析 | game-core-svc |
 | 词库 | services/dictionary.ts | 词库管理、单词查询 | chat-svc |
 | 社交 | services/social.ts | 好友、聊天、消息 | user-svc / chat-svc |
 | AI | services/ai.ts | AI 助手对话 | ai-svc |
-| 管理 | services/admin.ts | 管理后台接口 | 各服务 |
+| 管理 | services/admin.ts | 管理后台接口 | admin-svc（代理各领域服务内部管理接口） |
 
 各服务模块统一从 `db/client.ts` 导入 axios 实例，确保请求配置一致（自动附加 JWT、统一错误处理）。
 
@@ -280,6 +282,7 @@ API 服务按业务域拆分为独立模块，每个模块负责特定业务的�
 - UI 组件遵循 shadcn/ui 规范，使用 Tailwind CSS 原子化样式。
 - API 服务按业务域拆分，避免超大文件。
 - 新增服务模块时，确保 API 路径与后端路由一致（见路由表）。
+- 管理后台已独立为 `admin-svc`，并转发到各领域服务内部管理接口；新增管理能力时优先在领域服务补内部接口，再由 `admin-svc` 代理。
 
 ---
 

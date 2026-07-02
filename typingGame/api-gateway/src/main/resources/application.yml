@@ -18,13 +18,19 @@ spring:
         - id: user-service
           uri: lb://user-svc
           predicates:
-            - Path=/api/v1/auth/**,/api/v1/user/**,/api/v1/friends/**
+            - Path=/api/v1/auth/**,/api/v1/user/**,/api/v1/profiles/**,/api/v1/friends/**
           filters:
             - StripPrefix=0
         - id: game-service
           uri: lb://game-core-svc
           predicates:
             - Path=/api/v1/game/**,/api/v1/model/**,/api/v1/stats/**
+          filters:
+            - StripPrefix=0
+        - id: admin-service
+          uri: lb://admin-svc
+          predicates:
+            - Path=/api/v1/admin/**
           filters:
             - StripPrefix=0
         - id: ai-service
@@ -36,7 +42,7 @@ spring:
         - id: chat-service
           uri: lb://chat-svc
           predicates:
-            - Path=/api/v1/messages/**,/api/v1/leaderboard/**,/api/v1/dictionary/**
+            - Path=/api/v1/messages/**,/api/v1/leaderboard/**,/api/v1/dictionary/**,/api/v1/dictionaries/**
           filters:
             - StripPrefix=0
       discovery:

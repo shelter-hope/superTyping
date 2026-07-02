@@ -8,7 +8,7 @@ export interface ResultMessage<T> {
 }
 
 /** 后端服务根路径（API 网关地址）。生产环境设置 VITE_BACKEND_BASE_URL 为实际网关地址 */
-export const backendBaseUrl = import.meta.env.VITE_BACKEND_BASE_URL ?? 'http://localhost:8080';
+export const backendBaseUrl = import.meta.env.VITE_BACKEND_BASE_URL ?? 'http://localhost:8080/typingWord';
 
 /** 将后端返回的相对路径（如 /uploads/xxx 或 文件名）转为可访问的完整 URL */
 export function resolveBackendAssetUrl(path: string | undefined): string {

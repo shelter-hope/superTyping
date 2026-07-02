@@ -5,8 +5,12 @@ import com.typinggame.dto.game.GameRecordUploadResultDTO;
 import com.typinggame.dto.game.MonsterDataDTO;
 import com.typinggame.entity.game.GameRecord;
 import com.typinggame.entity.game.MonsterData;
+import com.typinggame.entity.leaderboard.LeaderboardEntry;
+import com.typinggame.entity.user.UserInfo;
 import com.typinggame.enums.GameMode;
+import com.typinggame.game.repository.GameLeaderboardEntryRepository;
 import com.typinggame.game.repository.GameRecordRepository;
+import com.typinggame.game.repository.GameUserInfoRepository;
 import com.typinggame.game.repository.MonsterDataRepository;
 import com.typinggame.game.service.GameRecordService;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +36,8 @@ public class GameRecordServiceImpl implements GameRecordService {
 
     private final GameRecordRepository gameRecordRepository;
     private final MonsterDataRepository monsterDataRepository;
+    private final GameLeaderboardEntryRepository leaderboardEntryRepository;
+    private final GameUserInfoRepository userInfoRepository;
 
     @Override
     @Transactional
@@ -82,7 +88,50 @@ public class GameRecordServiceImpl implements GameRecordService {
             monsterDataRepository.saveAll(monsters);
         }
 
+        syncLeaderboardAndUserSummary(record);
+
         return result;
+    }
+
+    private void syncLeaderboardAndUserSummary(GameRecord record) {
+        UserInfo user = userInfoRepository.findById(record.getUserId()).orElse(null);
+        if (user == null) {
+            return;
+        }
+        Integer score = record.getTotalScore() == null ? 0 : record.getTotalScore();
+        LeaderboardEntry entry = leaderboardEntryRepository.findByUserIdAndGameMode(record.getUserId(), record.getGameMode())
+                .orElseGet(LeaderboardEntry::new);
+        boolean shouldUpdateEntry = entry.getEntryId() == null || entry.getTotalScore() == null || score >= entry.getTotalScore();
+        if (shouldUpdateEntry) {
+            entry.setRecordId(record.getRecordId());
+            entry.setUserId(record.getUserId());
+            entry.setUsername(user.getUsername());
+            entry.setNickname(user.getNickname());
+            entry.setAvatar(user.getAvatar());
+            entry.setGameMode(record.getGameMode());
+            entry.setTotalScore(score);
+            entry.setRoundNum(record.getRoundNum());
+            entry.setAvgSpeed(record.getAvgSpeed());
+            entry.setPeakSpeed(record.getPeakSpeed());
+            entry.setAvgAccuracy(record.getAvgAccuracy());
+            entry.setPeakAccuracy(record.getPeakAccuracy());
+            entry.setGameDuration(record.getGameDuration());
+            entry.setCreateTime(record.getCreateTime());
+            leaderboardEntryRepository.save(entry);
+        }
+
+        if (user.getBestScore() == null || score > user.getBestScore()) {
+            user.setBestScore(score);
+            user.setBestRound(record.getRoundNum());
+            user.setBestSpeed(record.getPeakSpeed());
+            user.setBestAccuracy(record.getPeakAccuracy());
+        }
+        user.setGameNum((user.getGameNum() == null ? 0 : user.getGameNum()) + 1);
+        user.setAvgSpeed(record.getAvgSpeed());
+        user.setAvgAccuracy(record.getAvgAccuracy());
+        user.setPeakAccuracy(record.getPeakAccuracy());
+        user.setUpdateTime(new Date());
+        userInfoRepository.save(user);
     }
 
     @Override

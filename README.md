@@ -62,7 +62,7 @@
 │   (8081)    │ │    (8082)     │ │    (8083)   │
 │ ├─ 认证     │ │ ├─ 游戏核心   │ │ ├─ AI对话   │
 │ ├─ 用户管理 │ │ ├─ 游戏记录   │ │ ├─ 训练建议 │
-│ └─ 好友管理 │ │ └─ 自适应算法 │ │ └─ LLM集成  │
+│ └─ 好友管理 │ │ ├─ 自适应算法 │ │ └─ LLM集成  │
 └─────────────┘ └───────────────┘ └─────────────┘
         │              │              │
         ▼              ▼              ▼
@@ -154,7 +154,8 @@ superTyping/
 │   ├── game-core-svc/               # 游戏核心服务（游戏、记录、统计）
 │   ├── ai-svc/                      # AI服务（AI对话、训练建议）
 │   ├── chat-svc/                    # 社交聊天服务（消息、排行榜、词库）
-│   ├── monolith-legacy/             # 旧单体代码（备份）
+│   ├── admin-svc/                   # 管理后台聚合服务
+│   ├── monolith-legacy/             # 旧单体代码（迁移参考，不参与构建）
 │   ├── DB/                          # 数据库脚本
 │   ├── docker-compose.yml           # 基础设施编排
 │   └── README.md                    # 后端文档
@@ -197,8 +198,9 @@ superTyping/
    java -jar api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar
    java -jar user-svc/target/user-svc-0.0.1-SNAPSHOT.jar
    java -jar game-core-svc/target/game-core-svc-0.0.1-SNAPSHOT.jar
-   java -jar ai-svc/target/ai-svc-0.0.1-SNAPSHOT.jar
-   java -jar chat-svc/target/chat-svc-0.0.1-SNAPSHOT.jar
+    java -jar ai-svc/target/ai-svc-0.0.1-SNAPSHOT.jar
+    java -jar chat-svc/target/chat-svc-0.0.1-SNAPSHOT.jar
+    java -jar admin-svc/target/admin-svc-0.0.1-SNAPSHOT.jar
    ```
 
 3. **启动前端服务**
@@ -212,6 +214,8 @@ superTyping/
 4. **访问应用**
 
    打开浏览器访问 `http://localhost:5173`
+
+   前端默认通过 `http://localhost:8080/typingWord/api/v1` 访问后端 API 网关。
 
 ---
 
@@ -242,11 +246,28 @@ superTyping/
 - **好友管理**：添加、删除、查看好友
 - **实时聊天**：基于 WebSocket 的即时通讯
 - **排行榜**：积分排名展示
+- **当前状态**：好友与消息 REST 接口已可用，WebSocket 实时推送为后续增强项
 
 ### AI 助手
 
 - **智能对话**：提供训练指导和问题解答
 - **个性化建议**：基于打字数据生成改进方案
+
+### 管理后台
+
+- **聚合管理接口**：当前 `/api/v1/admin/**` 由独立 `admin-svc` 提供，覆盖用户、记录、词库、排行榜、统计、模型参数和日志趋势。
+- **边界实现**：`admin-svc` 作为代理聚合层，按路径调用 `user-svc`、`game-core-svc`、`chat-svc`、`ai-svc` 的 `/api/v1/internal/admin/**` 内部接口。
+
+---
+
+## 当前边界说明
+
+- `user-svc`：认证、用户资料、好友关系。
+- `game-core-svc`：游戏记录、统计、自适应配置。
+- `chat-svc`：消息中心、排行榜、词库管理。
+- `ai-svc`：AI 对话、训练摘要聚合。
+- `admin-svc`：管理后台聚合接口，不直接承载领域规则，负责转发到各领域服务内部管理接口；领域服务内部接口按 Controller → InternalAdminService 分层，内部管理 Service 使用 Repository-backed 实现。
+- `monolith-legacy`：旧单体代码迁移参考，不参与父工程构建。
 
 ---
 

@@ -1,8 +1,8 @@
 # API 接口文档（与前端实现对齐）
 
-本文档依据当前仓库中的 **`src/db/client.ts`**、**`src/db/api.ts`** 及 **`src/contexts/AuthContext.tsx`** 整理，描述前端实际调用的接口。业务后端为 **Java（Spring Boot）REST**，路径前缀为 **`{VITE_BACKEND_BASE_URL}/api/v1`**。
+本文档依据当前仓库中的 **`src/db/client.ts`**、**`src/db/api.ts`** 及各服务文件整理，描述前端实际调用的接口。业务后端为 **Java（Spring Boot）REST**，路径前缀为 **`{VITE_BACKEND_BASE_URL}/api/v1`**。
 
-更完整的后端契约可参考 **`docs/BACKEND_API.md`**、**`docs/迁移说明.md`**。
+后端采用微服务架构，前端通过 **API Gateway** 统一访问各微服务。
 
 ---
 
@@ -33,19 +33,36 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 
 - 登录/注册成功后，前端将 token 存入 `localStorage` 键 **`auth_token`**。
 - 后续请求由 `apiClient` 自动附加：`Authorization: Bearer <token>`。
-- 登出目前仅清除本地 token（`AuthContext.signOut`），可选调用后端 `/auth/logout` 已注释。
+- 登出目前仅清除本地 token（`AuthContext.signOut`）。
+
+### 1.4 API 服务层文件结构
+
+前端 API 服务已按业务域拆分为多个文件：
+
+| 文件 | 职责 | 目标微服务 |
+|------|------|-----------|
+| `src/services/auth.ts` | 认证相关 | user-svc |
+| `src/services/user.ts` | 用户资料、配置 | user-svc |
+| `src/services/game.ts` | 游戏记录、排行榜、游戏配置 | game-core-svc / chat-svc |
+| `src/services/stats.ts` | 字符统计、行为分析、趋势 | game-core-svc |
+| `src/services/dictionary.ts` | 词库管理 | chat-svc |
+| `src/services/social.ts` | 好友、消息 | chat-svc |
+| `src/services/ai.ts` | AI 助手、训练建议 | ai-svc |
+| `src/services/admin.ts` | 管理后台 | admin-svc |
+
+`src/db/api.ts` 作为统一出口，聚合导出所有服务。
 
 ---
 
-## 2. 认证 `AuthContext` + `/auth/*`
+## 2. 认证 `/auth/*`
 
-| 方法 | 路径 | 说明 | 请求体 / 备注 |
-|------|------|------|----------------|
-| POST | `/auth/login` | 登录 | `{ username, password }` → `data`: `{ accessToken, user }` |
-| POST | `/auth/signup` | 注册 | `{ username, password, nickname? }`（用户名规则：字母数字下划线） |
-| GET | `/auth/me` | 当前用户 | 需 Bearer；用于会话恢复 |
+| 方法 | 路径 | 前端函数 | 请求体 / 备注 |
+|------|------|----------|----------------|
+| POST | `/auth/login` | （`AuthContext`） | `{ username, password }` → `data`: `{ accessToken, user }` |
+| POST | `/auth/signup` | （`AuthContext`） | `{ username, password, nickname? }` |
+| GET | `/auth/me` | `getCurrentUser` | 需 Bearer；用于会话恢复 |
 
-封装位置：`AuthContext.tsx`（未在 `api.ts` 中导出）。
+封装位置：登录/注册逻辑在 `AuthContext.tsx`，`getCurrentUser` 导出在 `auth.ts`。
 
 ---
 
@@ -59,11 +76,21 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 | POST | `/profiles/{userId}/avatar` | `uploadAvatar` | `multipart/form-data`，字段 `file` |
 | GET | `/profiles` | `getAllProfiles` | 列表（注释提示可能需管理员权限） |
 | GET | `/profiles/{userId}/stats` | `getUserStats` | — |
-| GET | `/auth/me` | `getCurrentUser` | 同认证节（在 `api.ts` 中封装） |
 
 ---
 
-## 4. 游戏记录与对局 `/game/*`
+## 4. 用户配置与帮助
+
+| 方法 | 路径 | 前端函数 | Body |
+|------|------|----------|------|
+| POST | `/user/config` | `saveUserConfig` | 任意配置对象 |
+| GET | `/user/config` | `getUserConfig` | — |
+| PATCH | `/user/sound-settings` | `updateSoundSettings` | `{ enabled: boolean }` |
+| GET | `/help` | `getHelpContent` | — |
+
+---
+
+## 5. 游戏记录与对局 `/game/*`
 
 | 方法 | 路径 | 前端函数 | 说明 |
 |------|------|----------|------|
@@ -71,7 +98,7 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 | GET | `/game/records` | `getUserGameRecords` / `getUserGameRecordsByDateRange` / `getAllGameRecords` | Query：`userId?`、`limit`、`startDate?`、`endDate?` |
 | GET | `/game/best` | `getUserBestRecord` | Query：`userId`、`mode`（游戏模式） |
 
-### 4.1 游戏配置与回合
+### 5.1 游戏配置与回合
 
 | 方法 | 路径 | 前端函数 | Query / Body |
 |------|------|----------|--------------|
@@ -84,28 +111,6 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 | POST | `/game/params` | `adjustGameParams` | Body：任意 |
 | POST | `/game/round-data` | `recordRoundData` | Body：轮次数据 |
 | GET | `/game/export/{recordId}` | `exportGameData` | Query：`format`: `excel` \| `json` |
-
----
-
-## 5. 字符统计 `/stats/character*`
-
-| 方法 | 路径 | 前端函数 | 说明 |
-|------|------|----------|------|
-| POST | `/stats/character/batch` | `updateCharacterStat` / `updateCharacterStatsBatch` | Body：`{ updates: { charValue, isCorrect }[] }` |
-| GET | `/stats/character` | `getUserCharacterStats` | Query：`userId` |
-| GET | `/stats/character/weak` | `getWeakCharacters` / `getMostErrorCharacters` | Query：`userId`、`limit`（注释：后端 weak 与错误次数排序可能共用） |
-
-### 5.1 其他统计与分析
-
-| 方法 | 路径 | 前端函数 | Query / 路径参数 |
-|------|------|----------|------------------|
-| GET | `/stats/typing-behavior/{userId}` | `analyzeTypingBehavior` | — |
-| GET | `/stats/progress-trend` | `getProgressTrend` | `userId`、`period`: `week` \| `month` \| `year` |
-| GET | `/stats/training-suggestions/{userId}` | `getTrainingSuggestions` | — |
-| GET | `/stats/trend` | `getTrendData` | `userId`、`timeRange`: `all` \| `year` \| `month` \| `week` \| `3days`（趋势页将 `three-days` 映射为 `3days`） |
-| GET | `/stats/speed-trend` | `getSpeedTrend` | 同上 |
-| GET | `/stats/accuracy-trend` | `getAccuracyTrend` | 同上 |
-| GET | `/stats/error-comparison` | `getErrorComparison` | `userId` |
 
 ---
 
@@ -123,7 +128,29 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 
 ---
 
-## 7. 词库 `/dictionaries/*`
+## 7. 字符统计 `/stats/character*`
+
+| 方法 | 路径 | 前端函数 | 说明 |
+|------|------|----------|------|
+| POST | `/stats/character/batch` | `updateCharacterStat` / `updateCharacterStatsBatch` | Body：`{ updates: { charValue, isCorrect }[] }` |
+| GET | `/stats/character` | `getUserCharacterStats` | Query：`userId` |
+| GET | `/stats/character/weak` | `getWeakCharacters` / `getMostErrorCharacters` | Query：`userId`、`limit`（注释：后端 weak 与错误次数排序可能共用） |
+
+### 7.1 其他统计与分析
+
+| 方法 | 路径 | 前端函数 | Query / 路径参数 |
+|------|------|----------|------------------|
+| GET | `/stats/typing-behavior/{userId}` | `analyzeTypingBehavior` | — |
+| GET | `/stats/progress-trend` | `getProgressTrend` | `userId`、`period`: `week` \| `month` \| `year` |
+| GET | `/stats/training-suggestions/{userId}` | `getTrainingSuggestions` | — |
+| GET | `/stats/trend` | `getTrendData` | `userId`、`timeRange`: `all` \| `year` \| `month` \| `week` \| `3days`（趋势页将 `three-days` 映射为 `3days`） |
+| GET | `/stats/speed-trend` | `getSpeedTrend` | 同上 |
+| GET | `/stats/accuracy-trend` | `getAccuracyTrend` | 同上 |
+| GET | `/stats/error-comparison` | `getErrorComparison` | `userId` |
+
+---
+
+## 8. 词库 `/dictionaries/*`
 
 | 方法 | 路径 | 前端函数 | 说明 |
 |------|------|----------|------|
@@ -134,7 +161,7 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 
 ---
 
-## 8. 好友 `/friends/*`
+## 9. 好友 `/friends/*`
 
 | 方法 | 路径 | 前端函数 | Query / Body |
 |------|------|----------|--------------|
@@ -147,7 +174,7 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 
 ---
 
-## 9. 消息 `/messages/*`
+## 10. 消息 `/messages/*`
 
 | 方法 | 路径 | 前端函数 | Query / Body |
 |------|------|----------|--------------|
@@ -162,7 +189,7 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 
 ---
 
-## 10. AI `/ai/*`
+## 11. AI `/ai/*`
 
 | 方法 | 路径 | 前端函数 | Body |
 |------|------|----------|------|
@@ -173,22 +200,11 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 
 ---
 
-## 11. 用户配置与帮助
-
-| 方法 | 路径 | 前端函数 |
-|------|------|----------|
-| POST | `/user/config` | `saveUserConfig` |
-| GET | `/user/config` | `getUserConfig` |
-| PATCH | `/user/sound-settings` | `updateSoundSettings` |
-| GET | `/help` | `getHelpContent` |
-
----
-
 ## 12. 管理后台 `/admin/*`
 
-以下均需 **管理员** 身份及有效 Bearer。列表类接口普遍返回 `{ items, total }`（`AdminPageResult<T>`），具体字段以后端为准。
+以下均需 **管理员** 身份及有效 Bearer。当前后端由独立 `admin-svc` 提供聚合型 `/admin/**` 接口；`admin-svc` 不直接承载领域查询逻辑，而是按路径代理到各领域服务的 `/api/v1/internal/admin/**` 内部接口。列表类接口普遍返回 `{ items, total }`（`AdminPageResult<T>`），用户与游戏记录等兼容前端旧结构返回 `{ users, total }`、`{ records, total }`。
 
-### 12.1 用户与游戏记录（`api.ts` 中带 TODO 注释，仍被管理页调用）
+### 12.1 用户与游戏记录
 
 | 方法 | 路径 | 前端函数 |
 |------|------|----------|
@@ -214,6 +230,13 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 | GET | `/admin/character-stats` | `adminGetCharacterStats` |
 | GET | `/admin/user-daily-stats` | `adminGetUserDailyStats` |
 | GET | `/admin/user-info-snapshots` | `adminGetUserInfoSnapshots` |
+| GET | `/admin/model-constants` | 管理模型常量 |
+| PATCH | `/admin/model-constants/{id}` | 更新模型常量 |
+| GET | `/admin/model-init-params` | 管理模型初始参数 |
+| GET | `/admin/model-init-params/mode/{gameMode}` | 按模式查询模型初始参数 |
+| PATCH | `/admin/model-init-params/{id}` | 更新模型初始参数 |
+| GET | `/admin/game-mode-configs` | 管理游戏模式配置 |
+| PATCH | `/admin/game-mode-configs/{id}` | 更新游戏模式配置 |
 
 ### 12.3 社交与通知（只读列表）
 
@@ -270,19 +293,45 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 | GET | `/admin/config-templates` | `getConfigTemplates` |
 | GET | `/admin/config-templates/{templateId}` | `loadConfigTemplate` |
 
-分页参数在各函数中多为 `page`、`pageSize`，部分接口另有筛选字段（与 `api.ts` 中 `params` 类型一致）。
+分页参数在各函数中多为 `page`、`pageSize`，部分接口另有筛选字段（与各服务文件中 `params` 类型一致）。
 
 ---
 
-## 13. 前端封装索引（`src/db/api.ts`）
+## 13. 微服务路由映射
 
-所有上述 REST 调用均通过 **`apiClient`** 发起；新增接口时请同步修改 **`api.ts`** 与本文件。
+前端所有请求通过 API Gateway（`http://localhost:8080/typingWord`）统一入口，按路径前缀路由到对应微服务：
+
+| 路径前缀 | 目标微服务 | 端口 |
+|----------|-----------|------|
+| `/api/v1/auth/*` | user-svc | 8081 |
+| `/api/v1/user/*` | user-svc | 8081 |
+| `/api/v1/profiles/*` | user-svc | 8081 |
+| `/api/v1/friends/*` | user-svc | 8081 |
+| `/api/v1/messages/*` | chat-svc | 8084 |
+| `/api/v1/leaderboard/*` | chat-svc | 8084 |
+| `/api/v1/game/*` | game-core-svc | 8082 |
+| `/api/v1/stats/*` | game-core-svc | 8082 |
+| `/api/v1/dictionary/*` | chat-svc | 8084（兼容历史路径） |
+| `/api/v1/dictionaries/*` | chat-svc | 8084 |
+| `/api/v1/ai/*` | ai-svc | 8083 |
+| `/api/v1/admin/*` | admin-svc | 8085（代理到各服务 `/internal/admin/*`） |
 
 ---
 
-## 14. 修订说明
+## 14. 前端封装索引
+
+所有上述 REST 调用均通过 **`apiClient`** 发起；新增接口时请同步修改对应服务文件与本文件。
+
+服务文件入口：`src/db/api.ts`（聚合导出所有服务）
+
+---
+
+## 15. 修订说明
 
 - 前端数据面已统一为 **Java `/api/v1`**，不再使用 Supabase 客户端。
-- 若后端路径或字段与表内不符，以运行中的 Java API 及 **`docs/BACKEND_API.md`** 为准，并建议同时更正 `api.ts` 与本文件。
+- API 服务层已按业务域拆分为多个文件，替代原单一 `api.ts`。
+- 后端已迁移至微服务架构，前端通过 API Gateway 统一访问各微服务。
+- `/admin/**` 已独立到 `admin-svc`，并通过内部 API 调用领域服务；各领域服务内部管理接口已按 Controller → InternalAdminService 分层，内部管理 Service 已去除直接 `EntityManager` 查询，改为 Repository-backed 实现。
+- 若后端路径或字段与表内不符，以运行中的 Java API 为准，并建议同时更正对应服务文件与本文件。
 
-**文档更新**：2026-03-24
+**文档更新**：2026-07-02

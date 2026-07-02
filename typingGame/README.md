@@ -33,10 +33,10 @@
 - **用户认证与授权**：JWT 令牌机制，支持注册、登录、权限管理
 - **游戏核心逻辑**：字符怪物生成、自适应难度调节、积分计算
 - **数据统计与分析**：打字行为记录、趋势分析、训练建议生成
-- **社交系统**：好友管理、实时聊天（WebSocket）、消息通知
+- **社交系统**：好友管理、消息中心、好友私聊（当前 REST 可用，WebSocket 推送为后续增强）
 - **词库管理**：系统词库、自定义词库上传与管理
 - **AI 服务**：LLM 对话集成，提供智能训练指导
-- **管理后台**：用户管理、游戏配置、数据监控
+- **管理后台**：用户管理、游戏配置、数据监控。当前 `/admin/**` 由独立 `admin-svc` 聚合提供，并代理调用各领域服务的 `/internal/admin/**` 内部接口。
 
 ---
 
@@ -88,7 +88,7 @@
 │   (8081)      │     │    (8082)       │     │    (8083)       │
 │  ├─ 认证      │     │  ├─ 游戏核心    │     │  ├─ AI对话      │
 │  ├─ 用户管理  │     │  ├─ 游戏记录    │     │  ├─ 训练建议    │
-│  └─ 好友管理  │     │  └─ 自适应算法  │     │  └─ LLM集成     │
+│  └─ 好友管理  │     │  ├─ 自适应算法  │     │  └─ LLM集成     │
 └───────────────┘     └─────────────────┘     └─────────────────┘
         │                       │                       │
         ▼                       ▼                       ▼
@@ -164,7 +164,13 @@ typingGame/
 │   │   └── config/                  # 安全配置
 │   ├── src/main/resources/application.yml
 │   └── pom.xml
-├── monolith-legacy/                 # 旧单体代码（备份）
+├── admin-svc/                       # 管理后台聚合服务
+│   ├── src/main/java/com/typinggame/admin/
+│   │   ├── controller/              # 管理后台聚合接口
+│   │   └── config/                  # 安全配置
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+├── monolith-legacy/                 # 旧单体代码（迁移参考，不参与父工程构建）
 ├── DB/                              # 数据库脚本
 │   ├── typing_word_game.sql
 │   └── 数据库设计说明文档.md
@@ -181,26 +187,35 @@ typingGame/
 |----------|------|------|------|
 | api-gateway | 8080 | 统一入口、路由转发 | ✅ |
 | user-svc | 8081 | 用户认证、用户管理、好友管理 | ✅ |
-| game-core-svc | 8082 | 游戏核心逻辑、游戏记录、自适应算法 | ✅ |
+| game-core-svc | 8082 | 游戏核心逻辑、游戏记录、统计分析、自适应算法 | ✅ |
 | ai-svc | 8083 | AI 对话、训练建议、LLM 集成 | ✅ |
 | chat-svc | 8084 | 消息中心、排行榜、词库管理 | ✅ |
+| admin-svc | 8085 | 管理后台聚合接口，代理调用各领域服务内部管理接口 | ✅ |
 
 ---
 
 ## API 路由
 
-API 网关统一入口：`http://localhost:8080`
+API 网关统一入口：`http://localhost:8080/typingWord`
 
 | 路径前缀 | 目标服务 | 说明 |
 |----------|----------|------|
 | `/api/v1/auth/**` | user-svc | 注册、登录、令牌刷新 |
-| `/api/v1/user/**` | user-svc | 用户资料、设置 |
+| `/api/v1/user/**` | user-svc | 用户设置等兼容路径 |
+| `/api/v1/profiles/**` | user-svc | 用户资料、头像、用户统计 |
 | `/api/v1/friends/**` | user-svc | 好友管理 |
 | `/api/v1/game/**` | game-core-svc | 游戏核心逻辑、记录 |
+| `/api/v1/stats/**` | game-core-svc | 字符统计、趋势分析、训练建议 |
+| `/api/v1/admin/**` | admin-svc | 管理后台聚合接口，转发到各服务 `/api/v1/internal/admin/**` |
 | `/api/v1/ai/**` | ai-svc | AI 助手对话 |
 | `/api/v1/messages/**` | chat-svc | 消息中心 |
 | `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
-| `/api/v1/dictionary/**` | chat-svc | 词库管理 |
+| `/api/v1/dictionary/**` | chat-svc | 词库管理兼容路径 |
+| `/api/v1/dictionaries/**` | chat-svc | 词库管理 |
+
+### monolith-legacy 说明
+
+`monolith-legacy` 保存旧单体后端代码，仅作为迁移参考和功能对照，不在父工程 `<modules>` 中参与构建。当前微服务仍有部分功能来源于该目录的迁移经验，确认所有接口、测试和文档完全收敛前不建议删除。
 
 ---
 
@@ -236,7 +251,7 @@ API 网关统一入口：`http://localhost:8080`
 ### 社交系统
 
 - **好友管理**：添加、删除、查看好友
-- **实时聊天**：好友间实时文字聊天（WebSocket）
+- **好友聊天**：当前提供 REST 拉取、发送、已读、未读计数接口；WebSocket 推送为后续增强
 - **消息中心**：系统消息、好友消息统一管理
 
 ### AI 服务模块
@@ -343,11 +358,14 @@ java -jar ai-svc/target/ai-svc-0.0.1-SNAPSHOT.jar
 
 # 启动聊天服务
 java -jar chat-svc/target/chat-svc-0.0.1-SNAPSHOT.jar
+
+# 启动管理后台聚合服务
+java -jar admin-svc/target/admin-svc-0.0.1-SNAPSHOT.jar
 ```
 
 ### 访问服务
 
-- API 网关：`http://localhost:8080`
+- API 网关：`http://localhost:8080/typingWord`
 - Nacos 控制台：`http://localhost:8848/nacos`（用户名/密码：nacos/nacos）
 - Zipkin 追踪：`http://localhost:9411`
 
@@ -362,6 +380,7 @@ java -jar chat-svc/target/chat-svc-0.0.1-SNAPSHOT.jar
 - 采用 RESTful API 设计风格
 - 分层架构：Controller → Service → Repository
 - 统一响应封装：使用 `ResultMessage` 封装所有 API 响应
+- 当前 `/admin/**` 已独立为 `admin-svc`，并通过内部 API 调用领域服务；各领域服务内部接口已按 Controller → InternalAdminService 分层，内部管理 Service 已去除直接 `EntityManager` 查询，改为 Repository-backed 实现。新功能开发时应优先在所属领域服务补 `/internal/admin/**` 能力，避免管理聚合层承载领域规则。
 
 ### 设计模式应用
 

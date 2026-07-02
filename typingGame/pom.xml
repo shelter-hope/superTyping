@@ -17,6 +17,7 @@
         <module>game-core-svc</module>
         <module>ai-svc</module>
         <module>chat-svc</module>
+        <module>admin-svc</module>
     </modules>
     
     <properties>

@@ -34,6 +34,28 @@ public class LeaderboardController {
         return ResponseEntity.ok(ResultMessage.success(myRank));
     }
 
+    @GetMapping("/period")
+    public ResponseEntity<ResultMessage<List<LeaderboardDTO>>> getLeaderboardByPeriod(
+            @RequestParam(name = "mode", defaultValue = "endless") String mode,
+            @RequestParam(name = "period", defaultValue = "total") String period,
+            @RequestParam(name = "limit", defaultValue = "50") int limit) {
+        return ResponseEntity.ok(ResultMessage.success(leaderboardService.getLeaderboardByPeriod(mode, period, limit)));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ResultMessage<List<LeaderboardDTO>>> searchLeaderboard(
+            @RequestParam(name = "keyword") String keyword,
+            @RequestParam(name = "mode", defaultValue = "endless") String mode) {
+        return ResponseEntity.ok(ResultMessage.success(leaderboardService.searchLeaderboard(keyword, mode)));
+    }
+
+    @GetMapping("/details")
+    public ResponseEntity<ResultMessage<LeaderboardDTO>> getDetails(
+            @RequestParam(name = "userId") Integer userId,
+            @RequestParam(name = "mode", defaultValue = "endless") String mode) {
+        return ResponseEntity.ok(ResultMessage.success(leaderboardService.getUserDetails(userId, mode)));
+    }
+
     private Integer getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return Integer.parseInt(authentication.getName());
