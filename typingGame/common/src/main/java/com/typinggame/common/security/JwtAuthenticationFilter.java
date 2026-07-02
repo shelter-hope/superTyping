@@ -1,4 +1,4 @@
-package com.typinggame.chat.security;
+package com.typinggame.common.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

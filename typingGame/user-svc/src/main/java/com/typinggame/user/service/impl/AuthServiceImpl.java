@@ -7,7 +7,7 @@ import com.typinggame.dto.auth.UserRegisterDTO;
 import com.typinggame.dto.user.UserDTO;
 import com.typinggame.entity.user.UserInfo;
 import com.typinggame.user.repository.UserInfoRepository;
-import com.typinggame.user.security.JwtTokenProvider;
+import com.typinggame.common.security.JwtTokenProvider;
 import com.typinggame.user.service.AuthService;
 import com.typinggame.user.service.UserRegistrationInitService;
 import lombok.RequiredArgsConstructor;

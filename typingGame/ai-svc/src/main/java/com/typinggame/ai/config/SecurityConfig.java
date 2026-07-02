@@ -1,6 +1,6 @@
 package com.typinggame.ai.config;
 
-import com.typinggame.ai.security.JwtAuthenticationFilter;
+import com.typinggame.common.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;

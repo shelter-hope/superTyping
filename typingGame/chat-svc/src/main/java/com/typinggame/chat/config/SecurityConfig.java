@@ -1,6 +1,6 @@
 package com.typinggame.chat.config;
 
-import com.typinggame.chat.security.JwtAuthenticationFilter;
+import com.typinggame.common.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
