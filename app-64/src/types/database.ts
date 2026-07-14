@@ -8,9 +8,10 @@
 export interface Profile {
   userId: number;
   username: string;
-  nickname: string;
+  nickname: string | null;
   avatar: string;
   role: UserRole;
+  createTime?: string;
 }
 
 export type UserRole = 'user' | 'admin';
@@ -45,6 +46,8 @@ export interface CharacterStatsUpdateDTO {
 /** 上传游戏记录时的请求体，对应后端 GameRecordUploadDTO；可含怪物列表与字符统计 */
 export type GameRecordUpload = Omit<GameRecord, 'recordId' | 'createTime' | 'userId'> & {
   monsters?: unknown[];
+  customDictIds?: number[];
+  systemDictIds?: number[];
   /** 本局每个字符的输入结果，用于更新 character_stats，个人页「字符统计（错误最多）」展示 */
   characterStatsUpdates?: CharacterStatsUpdateDTO[];
 };
@@ -63,6 +66,32 @@ export interface CharacterStat {
   averageAccuracy: number | null;
   recentAccuracy: number | null;
   updateTime?: string;
+}
+
+export interface RoundStats {
+  roundNumber: number;
+  score: number;
+  accuracy: number;
+  speed: number;
+  monsterCount: number;
+  monstersDestroyed: number;
+  avgStringLength: number;
+  difficultyCoefficient: number;
+  charErrors: Record<string, number>;
+}
+
+export interface DifficultyParams {
+  difficultyCoefficient: number;
+  baseSpeed: number;
+  monsterCount: number;
+  avgStringLength: number;
+  monsterTypeRatios: {
+    normal: number;
+    attacker: number;
+    evasive: number;
+    smart: number;
+  };
+  errorCharBoost: number;
 }
 
 // ==================== 词库 ====================
@@ -256,6 +285,28 @@ export interface UserGameModeConfigSummary {
   createTime?: string;
   updateTime?: string;
 }
+
+export type CharSourceType = 'fixed_set' | 'dynamic' | 'dictionary' | 'mixed';
+export type FrequencyMode = 'random' | 'weighted' | 'sequential' | 'adaptive';
+
+export interface CharacterGenerationConfig {
+  id?: number;
+  name: string;
+  description?: string;
+  source_type: CharSourceType;
+  fixed_characters?: string;
+  min_length: number;
+  max_length: number;
+  char_types: string[];
+  frequency_mode: FrequencyMode;
+  randomness_level?: number;
+  is_active?: boolean;
+  is_default?: boolean;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export type Friend = FriendResponseDTO;
 
 /** 用户怪物配置，对应 UserMonsterConfig */
 export interface UserMonsterConfig {

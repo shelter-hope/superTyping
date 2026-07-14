@@ -47,7 +47,7 @@ export default function DictionaryPage() {
 
     setLoading(true);
     try {
-      const data = await getUserDictionaries(user.userId);
+      const data = await getUserDictionaries();
       setDictionaries(data);
     } catch (error) {
       toast({
@@ -114,13 +114,10 @@ export default function DictionaryPage() {
 
     setUploading(true);
     try {
-      // 3. 创建词库记录 (Includes file upload)
       await createCustomDictionary(
-        user.userId,
         uploadForm.name,
-        [], // Words array ignored by backend if file provided
         uploadForm.file,
-        false // isPublic default false
+        false
       );
 
       toast({
@@ -250,7 +247,7 @@ export default function DictionaryPage() {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                           <span>词语数量: {dict.wordCount}</span>
                           {dict.fileName && <span>文件: {dict.fileName}</span>}
-                          <span>创建时间: {new Date(dict.createTime).toLocaleDateString()}</span>
+                          <span>创建时间: {dict.createTime ? new Date(dict.createTime).toLocaleDateString() : '-'}</span>
                         </div>
                       </div>
                     </div>

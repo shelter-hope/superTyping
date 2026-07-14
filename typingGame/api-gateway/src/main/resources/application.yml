@@ -1,7 +1,5 @@
 server:
   port: 8080
-  servlet:
-    context-path: /typingWord
 
 spring:
   application:
@@ -10,15 +8,12 @@ spring:
     nacos:
       discovery:
         server-addr: localhost:8848
-      config:
-        server-addr: localhost:8848
-        file-extension: yml
     gateway:
       routes:
         - id: user-service
           uri: lb://user-svc
           predicates:
-            - Path=/api/v1/auth/**,/api/v1/user/**,/api/v1/profiles/**,/api/v1/friends/**
+            - Path=/api/v1/auth/**,/api/v1/user/**,/api/v1/profiles/**,/api/v1/friends/**,/uploads/**
           filters:
             - StripPrefix=0
         - id: game-service

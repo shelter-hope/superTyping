@@ -29,6 +29,7 @@
         <spring-cloud-alibaba.version>2023.0.1.0</spring-cloud-alibaba.version>
         <jjwt.version>0.12.5</jjwt.version>
         <redisson.version>3.26.0</redisson.version>
+        <druid.version>1.2.23</druid.version>
         <commons-math3.version>3.6.1</commons-math3.version>
         <fastjson2.version>2.0.54</fastjson2.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
@@ -76,6 +77,11 @@
                 <groupId>org.redisson</groupId>
                 <artifactId>redisson-spring-boot-starter</artifactId>
                 <version>${redisson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid-spring-boot-3-starter</artifactId>
+                <version>${druid.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>

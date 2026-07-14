@@ -1,6 +1,8 @@
 package com.typinggame.entity.user;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -20,6 +22,7 @@ import java.util.Date;
 @AllArgsConstructor
 public class UserDailyStats {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id; // 主键ID
     private Integer userId; // 关联用户ID
     private Date statDate; // 统计日期（yyyy-MM-dd）

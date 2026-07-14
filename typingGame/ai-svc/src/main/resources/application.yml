@@ -10,9 +10,6 @@ spring:
     nacos:
       discovery:
         server-addr: localhost:8848
-      config:
-        server-addr: localhost:8848
-        file-extension: yml
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/typing_word_game?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root

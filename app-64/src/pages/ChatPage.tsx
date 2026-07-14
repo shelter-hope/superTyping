@@ -83,7 +83,7 @@ export default function ChatPage() {
   async function loadFriend() {
     if (!friendId) return;
     try {
-      const data = await getProfile(friendId);
+      const data = await getProfile(Number(friendId));
       setFriend(data);
     } catch (error) {
       console.error('Failed to load friend', error);

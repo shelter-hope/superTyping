@@ -252,8 +252,8 @@ export async function adminDeleteUserGameData(userId: number): Promise<void> {
   await apiClient.delete(`/admin/users/${userId}/game-data`);
 }
 
-export async function adminGetGameRecords(page = 1, pageSize = 20, userId?: number): Promise<{ records: GameRecord[], total: number }> {
-  const response = await apiClient.get('/admin/game-records', { params: { page, pageSize, userId } });
+export async function adminGetGameRecords(page = 1, pageSize = 20, userId?: number, gameMode?: string): Promise<{ records: GameRecord[], total: number }> {
+  const response = await apiClient.get('/admin/game-records', { params: { page, pageSize, userId, gameMode } });
   return response.data.data || { records: [], total: 0 };
 }
 

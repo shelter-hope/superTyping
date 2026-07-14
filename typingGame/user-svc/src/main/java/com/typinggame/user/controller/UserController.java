@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
@@ -60,6 +61,9 @@ public class UserController {
 
     @PostMapping("/{userId}/avatar")
     public ResponseEntity<ResultMessage<String>> uploadAvatar(@PathVariable("userId") Integer userId, @RequestParam("file") MultipartFile file) {
+        if (!getCurrentUserId().equals(userId)) {
+            throw new AccessDeniedException("只能上传自己的头像");
+        }
         String avatarUrl = userService.uploadAvatar(userId, file);
         return ResponseEntity.ok(ResultMessage.success(avatarUrl));
     }

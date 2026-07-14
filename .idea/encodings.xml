@@ -1,7 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/typingGame/admin-svc/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/admin-svc/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/ai-svc/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/ai-svc/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/api-gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/api-gateway/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/chat-svc/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/chat-svc/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/common/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/common/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/game-core-svc/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/game-core-svc/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/typingGame/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/typingGame/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/user-svc/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/typingGame/user-svc/src/main/resources" charset="UTF-8" />
   </component>
 </project>

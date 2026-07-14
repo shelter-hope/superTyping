@@ -47,7 +47,7 @@ export async function getUserStats(userId: number): Promise<UserStats> {
   return response.data.data;
 }
 
-export async function saveUserConfig(config: any): Promise<boolean> {
+export async function saveUserConfig(config: any): Promise<any> {
   const response = await apiClient.post('/user/config', config);
   return response.data.data;
 }

@@ -56,15 +56,21 @@ export default function GameCanvas({
       ref={canvasRef}
       width={width}
       height={height}
-      className="border-2 border-primary rounded-lg bg-background/95"
+      className="game-canvas border-2 border-border bg-[hsl(var(--game-bg))] shadow-[inset_0_0_36px_hsl(0_0%_0%/0.65),0_0_26px_hsl(var(--primary)/0.14)]"
     />
   );
 }
 
 // 绘制背景
 function drawBackground(ctx: CanvasRenderingContext2D, width: number, height: number) {
-  // 绘制网格
-  ctx.strokeStyle = 'rgba(33, 150, 243, 0.1)';
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, '#0c1016');
+  gradient.addColorStop(0.55, '#090d12');
+  gradient.addColorStop(1, '#05070a');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = 'rgba(130, 160, 178, 0.09)';
   ctx.lineWidth = 1;
 
   // 垂直线
@@ -82,6 +88,15 @@ function drawBackground(ctx: CanvasRenderingContext2D, width: number, height: nu
     ctx.lineTo(width, y);
     ctx.stroke();
   }
+
+  ctx.strokeStyle = 'rgba(154, 184, 202, 0.16)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(18, 18, width - 36, height - 36);
+
+  ctx.fillStyle = 'rgba(140, 165, 178, 0.045)';
+  for (let y = 0; y < height; y += 8) {
+    ctx.fillRect(0, y, width, 1);
+  }
 }
 
 // 绘制怪兽
@@ -96,27 +111,31 @@ function drawMonster(
 
   // 怪兽颜色
   const colors = {
-    NORMAL: '#2196F3',
-    ATTACKER: '#F44336',
-    EVASIVE: '#FF9800',
-    SMART: '#9C27B0',
+    NORMAL: '#6f91a4',
+    ATTACKER: '#865456',
+    EVASIVE: '#6c6f95',
+    SMART: '#5f8b8d',
   };
 
   const color = colors[monster.type];
 
-  // 绘制怪兽主体（圆形）
+  ctx.shadowColor = isLocked ? 'rgba(156, 204, 224, 0.42)' : 'rgba(0, 0, 0, 0.45)';
+  ctx.shadowBlur = isLocked ? 18 : 8;
+
+  // 绘制怪兽主体（机械核心）
   ctx.beginPath();
   ctx.arc(x, y, 20 * size, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
+  ctx.shadowBlur = 0;
 
   // 如果被锁定，绘制高亮边框
   if (isLocked) {
-    ctx.strokeStyle = '#00E676';
+    ctx.strokeStyle = '#9ccce0';
     ctx.lineWidth = 3;
     ctx.stroke();
   } else {
-    ctx.strokeStyle = '#424242';
+    ctx.strokeStyle = '#252d35';
     ctx.lineWidth = 1;
     ctx.stroke();
   }
@@ -128,7 +147,7 @@ function drawMonster(
   const typedText = monster.getTypedText();
   const remainingText = monster.getRemainingText();
 
-  ctx.font = `bold ${18 * size}px monospace`;
+  ctx.font = `bold ${18 * size}px Bahnschrift, monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
 
@@ -140,8 +159,17 @@ function drawMonster(
   const textWidth = ctx.measureText(fullText).width;
   const padding = 8;
   
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillStyle = 'rgba(4, 7, 10, 0.86)';
   ctx.fillRect(
+    x - textWidth / 2 - padding,
+    textY - 20 * size,
+    textWidth + padding * 2,
+    24 * size
+  );
+
+  ctx.strokeStyle = 'rgba(156, 204, 224, 0.34)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(
     x - textWidth / 2 - padding,
     textY - 20 * size,
     textWidth + padding * 2,
@@ -150,7 +178,7 @@ function drawMonster(
 
   // 已输入的字符（绿色）
   if (typedText) {
-    ctx.fillStyle = '#00E676';
+    ctx.fillStyle = '#9ccce0';
     const typedWidth = ctx.measureText(typedText).width;
     const remainingWidth = ctx.measureText(remainingText).width;
     const startX = x - (typedWidth + remainingWidth) / 2;
@@ -159,7 +187,7 @@ function drawMonster(
 
   // 剩余字符（白色）
   if (remainingText) {
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = '#c1c7ca';
     const typedWidth = ctx.measureText(typedText).width;
     const remainingWidth = ctx.measureText(remainingText).width;
     const startX = x - (typedWidth + remainingWidth) / 2;
@@ -179,16 +207,16 @@ function drawTypeIndicator(
   size: number
 ) {
   const icons = {
-    NORMAL: '●',
-    ATTACKER: '⚔',
-    EVASIVE: '⚡',
-    SMART: '🧠',
+    NORMAL: 'N',
+    ATTACKER: 'A',
+    EVASIVE: 'E',
+    SMART: 'S',
   };
 
-  ctx.font = `${14 * size}px Arial`;
+  ctx.font = `bold ${13 * size}px Bahnschrift, Arial`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#FFFFFF';
+  ctx.fillStyle = '#d0d5d8';
   ctx.fillText(icons[type as keyof typeof icons] || '●', x, y);
 }
 
@@ -208,15 +236,15 @@ function drawHealthBar(
   const progress = monster.currentIndex / monster.text.length;
 
   // 背景
-  ctx.fillStyle = 'rgba(66, 66, 66, 0.8)';
+  ctx.fillStyle = 'rgba(19, 24, 29, 0.92)';
   ctx.fillRect(barX, barY, barWidth, barHeight);
 
   // 进度
-  ctx.fillStyle = '#00E676';
+  ctx.fillStyle = '#9ccce0';
   ctx.fillRect(barX, barY, barWidth * progress, barHeight);
 
   // 边框
-  ctx.strokeStyle = '#424242';
+  ctx.strokeStyle = '#36424b';
   ctx.lineWidth = 1;
   ctx.strokeRect(barX, barY, barWidth, barHeight);
 }
@@ -233,7 +261,7 @@ function drawDirectionLine(
   ctx.beginPath();
   ctx.moveTo(monster.x, monster.y);
   ctx.lineTo(player.x, player.y);
-  ctx.strokeStyle = 'rgba(0, 230, 118, 0.3)';
+  ctx.strokeStyle = 'rgba(156, 204, 224, 0.32)';
   ctx.lineWidth = 2;
   ctx.setLineDash([5, 5]);
   ctx.stroke();
@@ -253,20 +281,20 @@ function drawPlayer(ctx: CanvasRenderingContext2D, player: PlayerState) {
   ctx.closePath();
 
   if (player.isAlive) {
-    ctx.fillStyle = '#00E676';
+    ctx.fillStyle = '#9ccce0';
   } else {
-    ctx.fillStyle = '#F44336';
+    ctx.fillStyle = '#865456';
   }
   ctx.fill();
 
-  ctx.strokeStyle = '#424242';
+  ctx.strokeStyle = '#2c3640';
   ctx.lineWidth = 2;
   ctx.stroke();
 
   // 绘制玩家碰撞范围（调试用，半透明圆圈）
   ctx.beginPath();
   ctx.arc(x, y, 30, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(0, 230, 118, 0.3)';
+  ctx.strokeStyle = 'rgba(156, 204, 224, 0.28)';
   ctx.lineWidth = 2;
   ctx.stroke();
 }
@@ -283,18 +311,18 @@ function drawInputModeIndicator(
   const y = height - 60;
 
   // 绘制背景
-  ctx.fillStyle = 'rgba(33, 150, 243, 0.9)';
+  ctx.fillStyle = 'rgba(11, 17, 23, 0.92)';
   ctx.fillRect(x, y, 200, 40);
 
   // 绘制边框
-  ctx.strokeStyle = '#2196F3';
+  ctx.strokeStyle = '#6f91a4';
   ctx.lineWidth = 2;
   ctx.strokeRect(x, y, 200, 40);
 
   // 绘制模式文本
-  ctx.font = 'bold 14px Arial';
+  ctx.font = 'bold 14px Bahnschrift, Arial';
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#FFFFFF';
+  ctx.fillStyle = '#c1c7ca';
   ctx.fillText(
     inputMode === 'ENGLISH' ? '英文模式' : '中文模式',
     x + 10,
@@ -303,15 +331,15 @@ function drawInputModeIndicator(
 
   // 如果是中文模式，显示缓冲区
   if (inputMode === 'CHINESE' && chineseBuffer) {
-    ctx.font = '16px monospace';
+    ctx.font = '16px Bahnschrift, monospace';
     ctx.fillText(`输入: ${chineseBuffer}`, x + 10, y + 32);
   } else if (inputMode === 'ENGLISH') {
-    ctx.font = '12px Arial';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = '12px Bahnschrift, Arial';
+    ctx.fillStyle = 'rgba(193, 199, 202, 0.68)';
     ctx.fillText('按Shift切换中文', x + 10, y + 32);
   } else {
-    ctx.font = '12px Arial';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = '12px Bahnschrift, Arial';
+    ctx.fillStyle = 'rgba(193, 199, 202, 0.68)';
     ctx.fillText('按空格或Ctrl发射', x + 10, y + 32);
   }
 }

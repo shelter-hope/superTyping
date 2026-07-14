@@ -83,9 +83,9 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 
 | 方法 | 路径 | 前端函数 | Body |
 |------|------|----------|------|
-| POST | `/user/config` | `saveUserConfig` | 任意配置对象 |
-| GET | `/user/config` | `getUserConfig` | — |
-| PATCH | `/user/sound-settings` | `updateSoundSettings` | `{ enabled: boolean }` |
+| POST | `/user/config` | `saveUserConfig` | 任意配置对象；返回保存后的 `UserAppConfig` |
+| GET | `/user/config` | `getUserConfig` | 返回当前登录用户 `UserAppConfig`，不存在时后端自动创建默认配置 |
+| PATCH | `/user/sound-settings` | `updateSoundSettings` | `{ enabled: boolean }`，同步更新 `isMusic` 与 `isSoundEffect` |
 | GET | `/help` | `getHelpContent` | — |
 
 ---
@@ -111,6 +111,14 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 | POST | `/game/params` | `adjustGameParams` | Body：任意 |
 | POST | `/game/round-data` | `recordRoundData` | Body：轮次数据 |
 | GET | `/game/export/{recordId}` | `exportGameData` | Query：`format`: `excel` \| `json` |
+
+说明：
+
+- `/game/config/char-types` 已持久化到 `game_char_type_configs`，按当前登录用户和游戏模式读取/更新。
+- `/game/config/next-round` 已按游戏模式选择词源策略：无尽/限时模式基于易错字符与字符类型生成；词库模式会按 `customDictIds`、`systemDictIds` 从 `dictionary_words`、`system_dictionary_words` 抽词。
+- 自定义词库抽词会校验词库归属，只允许当前登录用户使用自己的自定义词库。
+- 难度参数读取 `model_init_params`、`model_constants`、`system_monster_commo_configs`，缺失配置时使用安全兜底值。
+- `/game/records` 结算保存会同步维护 `user_daily_stats`、`user_model_params`、`user_model_adapt_logs`、`string_parents`，并在词库模式下按 `customDictIds` 回写 `dictionary_words` 练习指标。
 
 ---
 
@@ -154,8 +162,8 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 
 | 方法 | 路径 | 前端函数 | 说明 |
 |------|------|----------|------|
-| POST | `/dictionaries/custom` | `createCustomDictionary` | `multipart`：`name`、`isPublic`、`file`（当前封装在无文件时会抛错） |
-| GET | `/dictionaries/custom` | `getUserDictionaries` | 当前用户词库列表 |
+| POST | `/dictionaries/custom` | `createCustomDictionary` | `multipart`：`name`、`isPublic`、`file`；用户身份由 Bearer token 解析，不传 `userId` |
+| GET | `/dictionaries/custom` | `getUserDictionaries` | 当前登录用户词库列表；用户身份由 Bearer token 解析，不传 `userId` |
 | DELETE | `/dictionaries/custom/{dictionaryId}` | `deleteDictionary` | — |
 | GET | `/dictionaries/system` | `getSystemDictionaries` | 系统词库（用户侧） |
 

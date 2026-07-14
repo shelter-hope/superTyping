@@ -12,14 +12,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 @Slf4j
 @Service
 public class UserServiceImpl implements UserService {
+
+    private static final long MAX_AVATAR_SIZE = 2 * 1024 * 1024;
+    private static final Path AVATAR_DIR = Paths.get("uploads", "avatars");
+    private static final Set<String> ALLOWED_AVATAR_TYPES = Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
 
     @Autowired
     private UserInfoRepository userInfoRepository;
@@ -66,8 +79,45 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String uploadAvatar(Integer userId, org.springframework.web.multipart.MultipartFile file) {
-        throw new UnsupportedOperationException("文件上传功能暂未迁移，请使用原单体服务");
+    public String uploadAvatar(Integer userId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("头像文件不能为空");
+        }
+        if (file.getSize() > MAX_AVATAR_SIZE) {
+            throw new IllegalArgumentException("头像文件不能超过2MB");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_AVATAR_TYPES.contains(contentType.toLowerCase())) {
+            throw new IllegalArgumentException("仅支持 jpg、png、webp、gif 头像文件");
+        }
+
+        UserInfo userInfo = userInfoRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
+        String fileName = UUID.randomUUID() + extensionOf(contentType);
+        Path target = AVATAR_DIR.resolve(fileName).normalize();
+        try {
+            Files.createDirectories(AVATAR_DIR);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log.error("保存头像文件失败, userId={}", userId, e);
+            throw new IllegalStateException("头像文件保存失败");
+        }
+
+        String avatarUrl = "/uploads/avatars/" + fileName;
+        userInfo.setAvatar(avatarUrl);
+        userInfo.setUpdateTime(new Date());
+        userInfoRepository.save(userInfo);
+        return avatarUrl;
+    }
+
+    private String extensionOf(String contentType) {
+        return switch (contentType.toLowerCase()) {
+            case "image/jpeg" -> ".jpg";
+            case "image/png" -> ".png";
+            case "image/webp" -> ".webp";
+            case "image/gif" -> ".gif";
+            default -> "";
+        };
     }
 
     @Override

@@ -58,10 +58,11 @@ export default function GameRecordManagement() {
   async function loadRecords() {
     setLoading(true);
     try {
+      const userId = searchTerm.trim() ? Number(searchTerm.trim()) : undefined;
       const result = await adminGetGameRecords(
         page,
         pageSize,
-        searchTerm || undefined,
+        Number.isFinite(userId) ? userId : undefined,
         gameMode === 'all' ? undefined : gameMode
       );
       setRecords(result.records);
@@ -205,7 +206,7 @@ export default function GameRecordManagement() {
                       <TableCell>{record.roundNum}</TableCell>
                       <TableCell>{record.avgSpeed.toFixed(1)}</TableCell>
                       <TableCell>{record.avgAccuracy.toFixed(1)}%</TableCell>
-                      <TableCell>{new Date(record.createTime).toLocaleString()}</TableCell>
+                      <TableCell>{record.createTime ? new Date(record.createTime).toLocaleString() : '-'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button

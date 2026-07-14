@@ -7,6 +7,13 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="chat-svc" />
+        <module name="user-svc" />
+        <module name="game-core-svc" />
+        <module name="common" />
+        <module name="ai-svc" />
+        <module name="api-gateway" />
+        <module name="admin-svc" />
       </profile>
     </annotationProcessing>
   </component>

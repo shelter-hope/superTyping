@@ -41,12 +41,13 @@ export default function Header() {
   const visibleRoutes = routes.filter(route => route.visible && (!route.requireAuth || user));
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-[linear-gradient(180deg,hsl(216_21%_6%/0.98),hsl(216_18%_9%/0.92))] shadow-[0_18px_34px_hsl(216_35%_2%/0.42)] backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="container relative flex h-16 items-center justify-between before:absolute before:bottom-0 before:left-8 before:h-px before:w-40 before:bg-primary/50 before:shadow-[0_0_12px_hsl(var(--primary)/0.35)]">
         <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-2">
-          <img src="../../../public/favicon.png" alt="Logo" className="w-8 h-8" />
-            <span className="text-2xl font-bold gradient-text"> 打字进化</span>
+          <Link to="/" className="flex items-center gap-3">
+            <span className="status-light" />
+            <img src="../../../public/favicon.png" alt="Logo" className="h-8 w-8 border border-border bg-muted/50 p-1" />
+            <span className="industrial-heading text-2xl gradient-text">打字进化</span>
           </Link>
           
           <nav className="hidden md:flex items-center gap-2">

@@ -155,7 +155,6 @@ superTyping/
 │   ├── ai-svc/                      # AI服务（AI对话、训练建议）
 │   ├── chat-svc/                    # 社交聊天服务（消息、排行榜、词库）
 │   ├── admin-svc/                   # 管理后台聚合服务
-│   ├── monolith-legacy/             # 旧单体代码（迁移参考，不参与构建）
 │   ├── DB/                          # 数据库脚本
 │   ├── docker-compose.yml           # 基础设施编排
 │   └── README.md                    # 后端文档
@@ -267,7 +266,6 @@ superTyping/
 - `chat-svc`：消息中心、排行榜、词库管理。
 - `ai-svc`：AI 对话、训练摘要聚合。
 - `admin-svc`：管理后台聚合接口，不直接承载领域规则，负责转发到各领域服务内部管理接口；领域服务内部接口按 Controller → InternalAdminService 分层，内部管理 Service 使用 Repository-backed 实现。
-- `monolith-legacy`：旧单体代码迁移参考，不参与父工程构建。
 
 ---
 

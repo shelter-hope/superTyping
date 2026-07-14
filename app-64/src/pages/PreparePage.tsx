@@ -106,7 +106,7 @@ export default function PreparePage() {
     if (!userId) return;
 
     try {
-      const data = await getUserDictionaries(userId);
+      const data = await getUserDictionaries();
       setDictionaries(data);
     } catch (error) {
       console.error('加载词库失败:', error);

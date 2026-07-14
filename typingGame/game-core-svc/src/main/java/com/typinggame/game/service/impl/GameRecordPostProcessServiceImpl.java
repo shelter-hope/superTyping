@@ -1,0 +1,303 @@
+package com.typinggame.game.service.impl;
+
+import com.typinggame.dto.game.GameRecordUploadDTO;
+import com.typinggame.entity.dictionaries.DictionaryWord;
+import com.typinggame.entity.game.GameRecord;
+import com.typinggame.entity.game.MonsterData;
+import com.typinggame.entity.game.StringParent;
+import com.typinggame.entity.model.ModelInitParams;
+import com.typinggame.entity.model.UserModelAdaptLog;
+import com.typinggame.entity.model.UserModelParams;
+import com.typinggame.entity.user.UserDailyStats;
+import com.typinggame.entity.user.UserInfo;
+import com.typinggame.enums.GameMode;
+import com.typinggame.game.repository.GameDictionaryWordRepository;
+import com.typinggame.game.repository.GameUserDailyStatsRepository;
+import com.typinggame.game.repository.ModelInitParamsRepository;
+import com.typinggame.game.repository.MonsterDataRepository;
+import com.typinggame.game.repository.StringParentRepository;
+import com.typinggame.game.repository.UserModelAdaptLogRepository;
+import com.typinggame.game.repository.UserModelParamsRepository;
+import com.typinggame.game.service.GameRecordPostProcessService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessService {
+
+    private static final int MAX_PARENT_COUNT = 8;
+
+    private final GameUserDailyStatsRepository dailyStatsRepository;
+    private final UserModelParamsRepository userModelParamsRepository;
+    private final ModelInitParamsRepository modelInitParamsRepository;
+    private final UserModelAdaptLogRepository adaptLogRepository;
+    private final StringParentRepository stringParentRepository;
+    private final MonsterDataRepository monsterDataRepository;
+    private final GameDictionaryWordRepository dictionaryWordRepository;
+
+    public GameRecordPostProcessServiceImpl(GameUserDailyStatsRepository dailyStatsRepository,
+                                             UserModelParamsRepository userModelParamsRepository,
+                                             ModelInitParamsRepository modelInitParamsRepository,
+                                             UserModelAdaptLogRepository adaptLogRepository,
+                                             StringParentRepository stringParentRepository,
+                                             MonsterDataRepository monsterDataRepository,
+                                             GameDictionaryWordRepository dictionaryWordRepository) {
+        this.dailyStatsRepository = dailyStatsRepository;
+        this.userModelParamsRepository = userModelParamsRepository;
+        this.modelInitParamsRepository = modelInitParamsRepository;
+        this.adaptLogRepository = adaptLogRepository;
+        this.stringParentRepository = stringParentRepository;
+        this.monsterDataRepository = monsterDataRepository;
+        this.dictionaryWordRepository = dictionaryWordRepository;
+    }
+
+    @Override
+    @Transactional
+    public BigDecimal process(Integer userId, GameRecord record, GameRecordUploadDTO uploadDTO, List<MonsterData> monsters) {
+        upsertDailyStats(userId, record);
+        BigDecimal currentDifficulty = updateUserModelAndLog(userId, record);
+        updateStringParents(userId, monsters);
+        updateDictionaryWordStats(uploadDTO, monsters);
+        return currentDifficulty;
+    }
+
+    private void upsertDailyStats(Integer userId, GameRecord record) {
+        Date statDate = atStartOfDay(record.getCreateTime() == null ? new Date() : record.getCreateTime());
+        UserDailyStats stats = dailyStatsRepository.findByUserIdAndStatDate(userId, statDate).orElseGet(() -> {
+            UserDailyStats created = new UserDailyStats();
+            created.setUserId(userId);
+            created.setStatDate(statDate);
+            created.setGameCount(0);
+            created.setTotalScore(0);
+            created.setTotalChars(0);
+            created.setCorrectChars(0);
+            created.setAvgSpeed(BigDecimal.ZERO);
+            created.setAvgAccuracy(BigDecimal.ZERO);
+            created.setPeakSpeed(BigDecimal.ZERO);
+            created.setPeakAccuracy(BigDecimal.ZERO);
+            created.setCreateTime(new Date());
+            return created;
+        });
+        int oldCount = safeInt(stats.getGameCount());
+        int newCount = oldCount + 1;
+        stats.setGameCount(newCount);
+        stats.setTotalScore(safeInt(stats.getTotalScore()) + safeInt(record.getTotalScore()));
+        stats.setTotalChars(safeInt(stats.getTotalChars()) + safeInt(record.getTotalChars()));
+        stats.setCorrectChars(safeInt(stats.getCorrectChars()) + safeInt(record.getCorrectChars()));
+        stats.setAvgSpeed(weightedAverage(stats.getAvgSpeed(), oldCount, record.getAvgSpeed(), newCount));
+        stats.setAvgAccuracy(weightedAverage(stats.getAvgAccuracy(), oldCount, record.getAvgAccuracy(), newCount));
+        stats.setPeakSpeed(max(stats.getPeakSpeed(), record.getPeakSpeed()));
+        stats.setPeakAccuracy(max(stats.getPeakAccuracy(), record.getPeakAccuracy()));
+        stats.setGameMode(record.getGameMode());
+        stats.setUpdateTime(new Date());
+        dailyStatsRepository.save(stats);
+    }
+
+    private BigDecimal updateUserModelAndLog(Integer userId, GameRecord record) {
+        UserModelParams params = resolveUserModelParams(userId, record.getGameMode());
+        BigDecimal before = params.getLastDifficulty();
+        BigDecimal after = calculatePostGameDifficulty(before, record);
+        params.setLatestRound(record.getRoundNum());
+        params.setLastDifficulty(after);
+        params.setConsecutiveMismatchRound(resolveMismatchRound(params, before, after));
+        params.setLastAdjustTime(new Date());
+        params.setUpdateTime(new Date());
+        userModelParamsRepository.save(params);
+        writeAdaptLog(userId, record, before, after, params);
+        return after;
+    }
+
+    private UserModelParams resolveUserModelParams(Integer userId, String gameMode) {
+        return userModelParamsRepository.findByUserIdAndGameMode(userId, gameMode)
+                .orElseGet(() -> createUserModelParams(userId, gameMode));
+    }
+
+    private UserModelParams createUserModelParams(Integer userId, String gameMode) {
+        ModelInitParams init = modelInitParamsRepository.findByGameMode(gameMode).stream().findFirst().orElseGet(ModelInitParams::new);
+        Date now = new Date();
+        UserModelParams params = new UserModelParams();
+        params.setUserId(userId);
+        params.setGameMode(gameMode);
+        params.setLatestRound(0);
+        params.setLastDifficulty(defaultDecimal(init.getInitDifficulty(), "0.30"));
+        params.setWeightRealAccuracy(defaultDecimal(init.getWeightRealAccuracy(), "0.35"));
+        params.setWeightRealSpeed(defaultDecimal(init.getWeightRealSpeed(), "0.25"));
+        params.setWeightCharErrorRate(defaultDecimal(init.getWeightCharErrorRate(), "0.20"));
+        params.setWeightHistoryAccuracy(defaultDecimal(init.getWeightHistoryAccuracy(), "0.10"));
+        params.setWeightHistoryPeakSpeed(defaultDecimal(init.getWeightHistoryPeakSpeed(), "0.05"));
+        params.setWeightErrorCharRatio(defaultDecimal(init.getWeightErrorCharRatio(), "0.05"));
+        params.setWeightCurrentRound(defaultDecimal(init.getWeightCurrentRound(), "0.10"));
+        params.setFatigueBufferFlag(Boolean.FALSE);
+        params.setProgressSpeedFlag(Boolean.FALSE);
+        params.setRollbackFlag(Boolean.FALSE);
+        params.setMaxAdjustRatio(defaultDecimal(init.getMaxAdjustRatio(), "0.30"));
+        params.setSmoothAdjustCoeff(defaultDecimal(init.getSmoothAdjustCoeff(), "0.80"));
+        params.setCrossoverRate(BigDecimal.valueOf(0.80));
+        params.setMutationRate(BigDecimal.valueOf(0.10));
+        params.setSpeedAdjustCoeff(BigDecimal.ONE);
+        params.setLengthAdjustCoeff(BigDecimal.ONE);
+        params.setConsecutiveMismatchRound(0);
+        params.setCreateTime(now);
+        params.setUpdateTime(now);
+        return userModelParamsRepository.save(params);
+    }
+
+    private BigDecimal calculatePostGameDifficulty(BigDecimal before, GameRecord record) {
+        BigDecimal base = before == null ? BigDecimal.valueOf(0.30) : before;
+        double accuracy = record.getAvgAccuracy() == null ? 0 : record.getAvgAccuracy().doubleValue();
+        double delta = accuracy >= 85 ? 0.03 : accuracy <= 50 ? -0.05 : 0.0;
+        double scorePressure = Math.min(0.03, safeInt(record.getRoundNum()) * 0.003);
+        return BigDecimal.valueOf(clamp(base.doubleValue() + delta + scorePressure, 0.15, 0.95)).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private int resolveMismatchRound(UserModelParams params, BigDecimal before, BigDecimal after) {
+        if (before == null || after == null || before.compareTo(after) == 0) {
+            return 0;
+        }
+        return safeInt(params.getConsecutiveMismatchRound()) + 1;
+    }
+
+    private void writeAdaptLog(Integer userId, GameRecord record, BigDecimal before, BigDecimal after, UserModelParams params) {
+        UserInfo user = new UserInfo();
+        user.setUserId(userId);
+        GameRecord recordRef = new GameRecord();
+        recordRef.setRecordId(record.getRecordId());
+        UserModelAdaptLog log = new UserModelAdaptLog();
+        log.setUser(user);
+        log.setGameRecord(recordRef);
+        log.setRoundNum(record.getRoundNum());
+        log.setBeforeDifficulty(before);
+        log.setAfterDifficulty(after);
+        log.setTriggerRule(resolveTriggerRule(record));
+        log.setAdjustParams("{\"avgAccuracy\":" + decimal(record.getAvgAccuracy())
+                + ",\"avgSpeed\":" + decimal(record.getAvgSpeed())
+                + ",\"consecutiveMismatchRound\":" + safeInt(params.getConsecutiveMismatchRound()) + "}");
+        log.setLogTime(LocalDateTime.now());
+        adaptLogRepository.save(log);
+    }
+
+    private String resolveTriggerRule(GameRecord record) {
+        BigDecimal accuracy = record.getAvgAccuracy();
+        if (accuracy != null && accuracy.doubleValue() >= 85) return "HIGH_ACCURACY_ADVANCE";
+        if (accuracy != null && accuracy.doubleValue() <= 50) return "LOW_ACCURACY_ROLLBACK";
+        return "SMOOTH_ROUND_PROGRESS";
+    }
+
+    private void updateStringParents(Integer userId, List<MonsterData> monsters) {
+        if (monsters == null || monsters.isEmpty()) return;
+        List<MonsterData> parents = monsters.stream()
+                .filter(m -> m.getMonsterId() != null && m.getTargetStr() != null && !m.getTargetStr().isBlank())
+                .sorted(Comparator.comparing((MonsterData m) -> safeInt(m.getScore())).reversed()
+                        .thenComparing(Comparator.comparing((MonsterData m) -> safeInt(m.getSurvivalTime())).reversed())
+                        .thenComparing(MonsterData::getMonsterId))
+                .limit(MAX_PARENT_COUNT)
+                .collect(Collectors.toList());
+        if (parents.isEmpty()) return;
+        parents.forEach(m -> m.setIsParent(true));
+        monsterDataRepository.saveAll(parents);
+        String ids = parents.stream().map(MonsterData::getMonsterId).map(String::valueOf).collect(Collectors.joining(","));
+        StringParent parent = stringParentRepository.findByUserId(userId).orElseGet(() -> {
+            StringParent created = new StringParent();
+            created.setUserId(userId);
+            created.setCreateTime(LocalDateTime.now());
+            return created;
+        });
+        parent.setStrParents(ids);
+        parent.setUpdateTime(LocalDateTime.now());
+        stringParentRepository.save(parent);
+    }
+
+    private void updateDictionaryWordStats(GameRecordUploadDTO uploadDTO, List<MonsterData> monsters) {
+        if (uploadDTO == null || uploadDTO.getCustomDictIds() == null || uploadDTO.getCustomDictIds().isEmpty() || monsters == null || monsters.isEmpty()) {
+            return;
+        }
+        Set<String> targetWords = monsters.stream()
+                .map(MonsterData::getTargetStr)
+                .filter(s -> s != null && !s.isBlank())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (targetWords.isEmpty()) return;
+        Map<String, List<MonsterData>> monstersByWord = monsters.stream()
+                .filter(m -> m.getTargetStr() != null && !m.getTargetStr().isBlank())
+                .collect(Collectors.groupingBy(MonsterData::getTargetStr));
+        List<DictionaryWord> words = dictionaryWordRepository.findByDictIdInAndWordIn(uploadDTO.getCustomDictIds(), targetWords);
+        for (DictionaryWord word : words) {
+            List<MonsterData> matchedMonsters = monstersByWord.get(word.getWord());
+            if (matchedMonsters == null || matchedMonsters.isEmpty()) continue;
+            int practiceCount = matchedMonsters.size();
+            int currentErrors = matchedMonsters.stream().mapToInt(m -> safeInt(m.getInputErrorCount())).sum();
+            int total = safeInt(word.getTotalPracticeCount()) + practiceCount;
+            int errors = safeInt(word.getErrorPracticeCount()) + currentErrors;
+            word.setTotalPracticeCount(total);
+            word.setErrorPracticeCount(errors);
+            word.setUserErrorRate(BigDecimal.valueOf(errors * 100.0 / Math.max(1, total)).setScale(2, RoundingMode.HALF_UP));
+            word.setUserContinuousCorrect(currentErrors == 0 ? safeInt(word.getUserContinuousCorrect()) + practiceCount : 0);
+            word.setProficiencyLevel(resolveProficiency(word));
+            word.setDifficultyLevel(resolveDifficulty(word));
+            word.setLastPracticeTime(new Date());
+        }
+        dictionaryWordRepository.saveAll(words);
+    }
+
+    private Integer resolveProficiency(DictionaryWord word) {
+        int streak = safeInt(word.getUserContinuousCorrect());
+        double errorRate = word.getUserErrorRate() == null ? 0 : word.getUserErrorRate().doubleValue();
+        if (streak >= 10 && errorRate <= 5) return 5;
+        if (streak >= 6 && errorRate <= 10) return 4;
+        if (streak >= 3 && errorRate <= 20) return 3;
+        return errorRate >= 40 ? 1 : 2;
+    }
+
+    private Integer resolveDifficulty(DictionaryWord word) {
+        double errorRate = word.getUserErrorRate() == null ? 0 : word.getUserErrorRate().doubleValue();
+        if (errorRate >= 60) return 5;
+        if (errorRate >= 40) return 4;
+        if (errorRate >= 20) return 3;
+        return 2;
+    }
+
+    private Date atStartOfDay(Date date) {
+        return Date.from(date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant());
+    }
+
+    private BigDecimal weightedAverage(BigDecimal oldValue, int oldCount, BigDecimal newValue, int newCount) {
+        BigDecimal safeOld = oldValue == null ? BigDecimal.ZERO : oldValue;
+        BigDecimal safeNew = newValue == null ? BigDecimal.ZERO : newValue;
+        return safeOld.multiply(BigDecimal.valueOf(oldCount)).add(safeNew)
+                .divide(BigDecimal.valueOf(Math.max(1, newCount)), 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal max(BigDecimal left, BigDecimal right) {
+        if (left == null) return right == null ? BigDecimal.ZERO : right;
+        if (right == null) return left;
+        return left.max(right);
+    }
+
+    private BigDecimal defaultDecimal(BigDecimal value, String fallback) {
+        return value == null ? new BigDecimal(fallback) : value;
+    }
+
+    private String decimal(BigDecimal value) {
+        return value == null ? "0" : value.toPlainString();
+    }
+
+    private int safeInt(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+}

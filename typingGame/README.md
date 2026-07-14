@@ -170,7 +170,6 @@ typingGame/
 │   │   └── config/                  # 安全配置
 │   ├── src/main/resources/application.yml
 │   └── pom.xml
-├── monolith-legacy/                 # 旧单体代码（迁移参考，不参与父工程构建）
 ├── DB/                              # 数据库脚本
 │   ├── typing_word_game.sql
 │   └── 数据库设计说明文档.md
@@ -212,12 +211,6 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 | `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
 | `/api/v1/dictionary/**` | chat-svc | 词库管理兼容路径 |
 | `/api/v1/dictionaries/**` | chat-svc | 词库管理 |
-
-### monolith-legacy 说明
-
-`monolith-legacy` 保存旧单体后端代码，仅作为迁移参考和功能对照，不在父工程 `<modules>` 中参与构建。当前微服务仍有部分功能来源于该目录的迁移经验，确认所有接口、测试和文档完全收敛前不建议删除。
-
----
 
 ## 核心功能模块
 

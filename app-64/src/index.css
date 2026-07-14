@@ -3,235 +3,273 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here.
-All colors MUST be HSL.
-*/
-
 @layer base {
-  :root {
-    --radius: 0.5rem;
-    
-    /* 科技蓝主题 - 浅色模式 */
-    --background: 210 20% 98%;
-    --foreground: 210 15% 15%;
-    
-    --card: 0 0% 100%;
-    --card-foreground: 210 15% 15%;
-    
-    --popover: 0 0% 100%;
-    --popover-foreground: 210 15% 15%;
-    
-    /* 主色：科技蓝 #2196F3 */
-    --primary: 207 90% 54%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 207 90% 70%;
-    
-    /* 辅色：荧光绿 #00E676 */
-    --secondary: 151 100% 45%;
-    --secondary-foreground: 0 0% 100%;
-    
-    /* 柔和背景色 */
-    --muted: 210 20% 95%;
-    --muted-foreground: 210 10% 45%;
-    
-    /* 强调色：荧光绿 */
-    --accent: 151 100% 45%;
-    --accent-foreground: 0 0% 100%;
-    
-    /* 警示色：警示橙 #FF9800 */
-    --destructive: 36 100% 50%;
-    --destructive-foreground: 0 0% 100%;
-    
-    /* 边框和输入框 */
-    --border: 210 20% 88%;
-    --input: 210 20% 88%;
-    --ring: 207 90% 54%;
-    
-    /* 深空灰 #424242 */
-    --dark-gray: 0 0% 26%;
-    
-    /* 图表颜色 */
-    --chart-1: 207 90% 54%;
-    --chart-2: 151 100% 45%;
-    --chart-3: 36 100% 50%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    
-    /* 侧边栏 */
-    --sidebar: 210 20% 98%;
-    --sidebar-foreground: 210 15% 15%;
-    --sidebar-primary: 207 90% 54%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 20% 95%;
-    --sidebar-accent-foreground: 210 15% 15%;
-    --sidebar-border: 210 20% 88%;
-    --sidebar-ring: 207 90% 54%;
-    
-    /* 游戏特定颜色 */
-    --game-bg: 210 25% 12%;
-    --monster-normal: 207 90% 54%;
-    --monster-attacker: 0 85% 60%;
-    --monster-evasive: 280 65% 60%;
-    --monster-smart: 151 100% 45%;
-    
-    /* 动画和过渡 */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    /* 阴影 */
-    --shadow-elegant: 0 10px 30px -10px hsl(207 90% 54% / 0.3);
-    --shadow-glow: 0 0 40px hsl(207 90% 70% / 0.4);
-  }
-
+  :root,
   .dark {
-    /* 深空灰背景 */
-    --background: 210 25% 12%;
-    --foreground: 210 20% 95%;
-    
-    --card: 210 20% 16%;
-    --card-foreground: 210 20% 95%;
-    
-    --popover: 210 20% 16%;
-    --popover-foreground: 210 20% 95%;
-    
-    /* 主色：科技蓝（暗色模式稍微调亮） */
-    --primary: 207 90% 60%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 207 90% 75%;
-    
-    /* 辅色：荧光绿 */
-    --secondary: 151 100% 50%;
-    --secondary-foreground: 0 0% 10%;
-    
-    --muted: 210 20% 20%;
-    --muted-foreground: 210 15% 65%;
-    
-    /* 强调色：荧光绿 */
-    --accent: 151 100% 50%;
-    --accent-foreground: 0 0% 10%;
-    
-    /* 警示色：警示橙 */
-    --destructive: 36 100% 55%;
-    --destructive-foreground: 0 0% 100%;
-    
-    --border: 210 20% 24%;
-    --input: 210 20% 24%;
-    --ring: 207 90% 60%;
-    
-    --chart-1: 207 90% 60%;
-    --chart-2: 151 100% 50%;
-    --chart-3: 36 100% 55%;
-    --chart-4: 280 65% 65%;
-    --chart-5: 340 75% 60%;
-    
-    --sidebar: 210 25% 12%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 207 90% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 20% 20%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 210 20% 24%;
-    --sidebar-ring: 207 90% 60%;
-    
-    --game-bg: 210 25% 8%;
-    --monster-normal: 207 90% 60%;
-    --monster-attacker: 0 85% 65%;
-    --monster-evasive: 280 65% 65%;
-    --monster-smart: 151 100% 50%;
-    
-    --shadow-elegant: 0 10px 30px -10px hsl(207 90% 60% / 0.4);
-    --shadow-glow: 0 0 40px hsl(207 90% 75% / 0.5);
-  }
-}
+    --radius: 0.125rem;
 
-@layer base {
+    --background: 216 18% 7%;
+    --foreground: 214 18% 78%;
+
+    --card: 216 15% 12%;
+    --card-foreground: 214 18% 82%;
+
+    --popover: 216 16% 10%;
+    --popover-foreground: 214 18% 82%;
+
+    --primary: 198 42% 62%;
+    --primary-foreground: 214 25% 8%;
+    --primary-glow: 194 55% 72%;
+
+    --secondary: 221 15% 24%;
+    --secondary-foreground: 211 19% 78%;
+
+    --muted: 216 13% 17%;
+    --muted-foreground: 214 9% 56%;
+
+    --accent: 190 38% 46%;
+    --accent-foreground: 210 22% 88%;
+
+    --destructive: 3 34% 45%;
+    --destructive-foreground: 214 18% 86%;
+
+    --border: 210 14% 26%;
+    --input: 214 13% 18%;
+    --ring: 195 48% 62%;
+
+    --chart-1: 198 42% 62%;
+    --chart-2: 191 32% 44%;
+    --chart-3: 228 22% 55%;
+    --chart-4: 214 13% 58%;
+    --chart-5: 5 28% 44%;
+
+    --sidebar: 216 18% 8%;
+    --sidebar-foreground: 214 18% 78%;
+    --sidebar-primary: 198 42% 62%;
+    --sidebar-primary-foreground: 214 25% 8%;
+    --sidebar-accent: 216 13% 16%;
+    --sidebar-accent-foreground: 214 18% 78%;
+    --sidebar-border: 210 14% 25%;
+    --sidebar-ring: 195 48% 62%;
+
+    --game-bg: 216 22% 6%;
+    --monster-normal: 201 36% 58%;
+    --monster-attacker: 4 27% 42%;
+    --monster-evasive: 232 24% 53%;
+    --monster-smart: 190 33% 47%;
+
+    --steel-900: 216 21% 5%;
+    --steel-800: 219 18% 9%;
+    --steel-700: 216 15% 13%;
+    --steel-600: 215 12% 20%;
+    --steel-500: 214 10% 34%;
+    --steel-300: 214 13% 68%;
+    --cold-light: 194 55% 72%;
+    --violet-cold: 232 24% 56%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(198 42% 62% / 0.9), hsl(190 38% 46% / 0.75));
+    --gradient-card: linear-gradient(145deg, hsl(216 15% 14% / 0.96), hsl(216 20% 7% / 0.98));
+    --gradient-background:
+      radial-gradient(circle at 18% 10%, hsl(202 34% 24% / 0.22), transparent 34rem),
+      radial-gradient(circle at 82% 4%, hsl(232 24% 26% / 0.18), transparent 28rem),
+      linear-gradient(180deg, hsl(216 21% 6%), hsl(220 20% 4%));
+
+    --shadow-card: 0 18px 42px hsl(216 35% 2% / 0.56), inset 0 1px 0 hsl(210 18% 70% / 0.08);
+    --shadow-hover: 0 0 0 1px hsl(194 55% 72% / 0.28), 0 18px 46px hsl(198 42% 30% / 0.16);
+    --shadow-glow: 0 0 26px hsl(194 55% 72% / 0.22);
+    --transition-smooth: all 160ms cubic-bezier(0.2, 0, 0.1, 1);
+  }
+
   * {
     @apply border-border;
   }
 
+  html {
+    color-scheme: dark;
+    background: hsl(var(--background));
+  }
+
   body {
     @apply bg-background text-foreground;
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-family: "Rajdhani", "Barlow Condensed", "Bahnschrift", "DIN Condensed", "Microsoft YaHei UI", sans-serif;
+    letter-spacing: 0.015em;
+    background: var(--gradient-background);
+  }
+
+  body::before {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483640;
+    pointer-events: none;
+    content: "";
+    background:
+      linear-gradient(hsl(0 0% 100% / 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(0 0% 100% / 0.018) 1px, transparent 1px),
+      repeating-linear-gradient(180deg, transparent 0 3px, hsl(194 55% 72% / 0.025) 4px 5px);
+    background-size: 56px 56px, 56px 56px, 100% 7px;
+    mix-blend-mode: screen;
+  }
+
+  body::after {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483639;
+    pointer-events: none;
+    content: "";
+    opacity: 0.19;
+    background-image:
+      radial-gradient(circle at 12% 30%, hsl(0 0% 100% / 0.12) 0 1px, transparent 1px),
+      radial-gradient(circle at 70% 20%, hsl(0 0% 100% / 0.08) 0 1px, transparent 1px),
+      radial-gradient(circle at 40% 80%, hsl(0 0% 100% / 0.08) 0 1px, transparent 1px);
+    background-size: 83px 71px, 109px 97px, 151px 131px;
+  }
+
+  ::selection {
+    color: hsl(var(--primary-foreground));
+    background: hsl(var(--primary) / 0.82);
+  }
+}
+
+@layer components {
+  .industrial-panel {
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    background:
+      linear-gradient(135deg, hsl(210 12% 27% / 0.18), transparent 28%),
+      linear-gradient(180deg, hsl(var(--card) / 0.98), hsl(216 20% 7% / 0.98));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-card);
+  }
+
+  .industrial-panel::before {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    background:
+      linear-gradient(90deg, transparent 0 14px, hsl(var(--primary) / 0.16) 14px 15px, transparent 15px),
+      linear-gradient(180deg, hsl(0 0% 100% / 0.05), transparent 18%, transparent 82%, hsl(0 0% 0% / 0.2)),
+      repeating-linear-gradient(135deg, transparent 0 18px, hsl(0 0% 100% / 0.025) 19px 20px);
+  }
+
+  .industrial-panel::after {
+    position: absolute;
+    top: 0;
+    left: -35%;
+    width: 28%;
+    height: 100%;
+    pointer-events: none;
+    content: "";
+    background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.14), transparent);
+    transform: skewX(-18deg);
+    transition: left 260ms linear;
+  }
+
+  .industrial-panel:hover::after {
+    left: 110%;
+  }
+
+  .industrial-heading {
+    color: hsl(var(--foreground));
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-shadow: 0 0 18px hsl(var(--primary) / 0.18);
+  }
+
+  .status-light {
+    width: 0.45rem;
+    height: 0.45rem;
+    border: 1px solid hsl(var(--primary) / 0.75);
+    background: hsl(var(--primary) / 0.72);
+    box-shadow: 0 0 12px hsl(var(--primary) / 0.42);
   }
 }
 
 @layer utilities {
   .gradient-text {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
+    color: hsl(var(--primary));
+    text-shadow: 0 0 18px hsl(var(--primary) / 0.32);
   }
-  
+
   .game-canvas {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
   }
-  
+
   .pixel-font {
-    font-family: 'Courier New', Courier, monospace;
-    font-weight: 600;
+    font-family: "Rajdhani", "Bahnschrift", "Courier New", monospace;
+    font-weight: 700;
   }
-  
+
   .glass-effect {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: hsl(var(--card) / 0.78);
+    border: 1px solid hsl(var(--border));
+    backdrop-filter: blur(8px);
   }
-  
+
   .glow-effect {
     box-shadow: var(--shadow-glow);
   }
-  
+
   .smooth-transition {
     transition: var(--transition-smooth);
   }
 
-  /* 错误反馈动画 */
+  @keyframes scan-line {
+    0% { transform: translateY(-100%); opacity: 0; }
+    18% { opacity: 0.65; }
+    100% { transform: translateY(220%); opacity: 0; }
+  }
+
+  @keyframes armor-slide-in {
+    0% { opacity: 0; transform: translateY(10px) scaleX(0.985); clip-path: inset(0 55% 0 0); }
+    100% { opacity: 1; transform: translateY(0) scaleX(1); clip-path: inset(0); }
+  }
+
+  @keyframes data-flicker {
+    0%, 100% { opacity: 1; }
+    42% { opacity: 0.72; }
+    45% { opacity: 0.92; }
+    48% { opacity: 0.6; }
+  }
+
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
-    20%, 40%, 60%, 80% { transform: translateX(10px); }
+    20%, 60% { transform: translateX(-7px); }
+    40%, 80% { transform: translateX(7px); }
   }
 
   .animate-shake {
-    animation: shake 0.5s ease-in-out;
+    animation: shake 0.32s steps(2, end);
   }
 
-  /* 正确反馈动画 */
   @keyframes ping-once {
-    0% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.2);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 0;
-    }
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.18); opacity: 0; }
   }
 
   .animate-ping-once {
-    animation: ping-once 0.5s ease-out;
+    animation: ping-once 0.42s linear;
   }
 
-  /* 连击特效 */
   @keyframes combo-pulse {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.1);
-    }
-    100% {
-      transform: scale(1);
-    }
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.04); filter: brightness(1.25); }
   }
 
   .animate-combo {
-    animation: combo-pulse 0.3s ease-in-out;
+    animation: combo-pulse 0.26s steps(2, end);
+  }
+
+  .animate-armor-slide-in {
+    animation: armor-slide-in 240ms cubic-bezier(0.2, 0, 0.1, 1);
+  }
+
+  .animate-data-flicker {
+    animation: data-flicker 2.8s steps(1, end) infinite;
   }
 }
-

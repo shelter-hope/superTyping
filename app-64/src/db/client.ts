@@ -60,7 +60,7 @@ apiClient.interceptors.response.use((response) => {
     const res = error.response.data as ResultMessage<any>;
     
     apiError.code = res?.code || status;
-    apiError.message = res?.msg || res?.message || getDefaultErrorMessage(status);
+    apiError.message = res?.msg || getDefaultErrorMessage(status);
     apiError.data = res?.data;
     
     if (status === 401) {

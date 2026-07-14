@@ -1,5 +1,5 @@
 // 路由配置
-import { lazy } from 'react';
+import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 
 // 懒加载页面组件
 const HomePage = lazy(() => import('@/pages/HomePage'));
@@ -23,7 +23,7 @@ const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 export interface RouteConfig {
   name: string;
   path: string;
-  element: React.LazyExoticComponent<() => React.JSX.Element>;
+  element: LazyExoticComponent<ComponentType>;
   requireAuth?: boolean;
   requireAdmin?: boolean;
   visible?: boolean;

@@ -137,7 +137,6 @@ typingGame/
 │   │   └── config/                  # 安全配置
 │   ├── src/main/resources/application.yml
 │   └── pom.xml
-├── monolith-legacy/                 # 旧单体代码（备份）
 ├── DB/                              # 数据库脚本
 ├── docker-compose.yml               # 基础设施编排
 └── pom.xml                          # 父项目Maven配置
@@ -159,7 +158,8 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 | `/api/v1/ai/**` | ai-svc | AI 助手对话 |
 | `/api/v1/messages/**` | chat-svc | 消息中心 |
 | `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
-| `/api/v1/dictionary/**` | chat-svc | 词库管理 |
+| `/api/v1/dictionaries/**` | chat-svc | 词库管理 |
+| `/api/v1/dictionary/**` | chat-svc | 词库管理历史兼容路径 |
 
 ---
 
@@ -429,11 +429,10 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 
 | HTTP方法 | 路径 | 功能 | 需要认证 |
 | :--- | :--- | :--- | :--- |
-| GET | /api/v1/dictionary/system | 获取系统词库 | 否 |
-| GET | /api/v1/dictionary/custom/user/{userId} | 获取用户自定义词库 | 是 |
-| POST | /api/v1/dictionary/custom | 创建自定义词库 | 是 |
-| PUT | /api/v1/dictionary/{dictId} | 更新词库 | 是 |
-| DELETE | /api/v1/dictionary/{dictId} | 删除词库 | 是 |
+| GET | /api/v1/dictionaries/system | 获取系统词库 | 否 |
+| GET | /api/v1/dictionaries/custom | 获取当前登录用户自定义词库 | 是 |
+| POST | /api/v1/dictionaries/custom | 上传文件并创建自定义词库 | 是 |
+| DELETE | /api/v1/dictionaries/custom/{id} | 删除当前登录用户自定义词库 | 是 |
 
 ---
 
@@ -560,7 +559,7 @@ spring:
         - id: chat-svc
           uri: lb://chat-svc
           predicates:
-            - Path=/api/v1/messages/**,/api/v1/leaderboard/**,/api/v1/dictionary/**
+            - Path=/api/v1/messages/**,/api/v1/leaderboard/**,/api/v1/dictionary/**,/api/v1/dictionaries/**
 ```
 
 #### 用户服务 (user-svc)

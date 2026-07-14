@@ -3,6 +3,7 @@ package com.typinggame.game.service.impl;
 import com.typinggame.dto.game.GameRecordUploadDTO;
 import com.typinggame.dto.game.GameRecordUploadResultDTO;
 import com.typinggame.dto.game.MonsterDataDTO;
+import com.typinggame.dto.stats.CharacterStatsBatchUpdateDTO;
 import com.typinggame.entity.game.GameRecord;
 import com.typinggame.entity.game.MonsterData;
 import com.typinggame.entity.leaderboard.LeaderboardEntry;
@@ -12,6 +13,8 @@ import com.typinggame.game.repository.GameLeaderboardEntryRepository;
 import com.typinggame.game.repository.GameRecordRepository;
 import com.typinggame.game.repository.GameUserInfoRepository;
 import com.typinggame.game.repository.MonsterDataRepository;
+import com.typinggame.game.service.CharacterStatsService;
+import com.typinggame.game.service.GameRecordPostProcessService;
 import com.typinggame.game.service.GameRecordService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -38,6 +41,8 @@ public class GameRecordServiceImpl implements GameRecordService {
     private final MonsterDataRepository monsterDataRepository;
     private final GameLeaderboardEntryRepository leaderboardEntryRepository;
     private final GameUserInfoRepository userInfoRepository;
+    private final GameRecordPostProcessService postProcessService;
+    private final CharacterStatsService characterStatsService;
 
     @Override
     @Transactional
@@ -66,31 +71,43 @@ public class GameRecordServiceImpl implements GameRecordService {
         Integer recordId = record.getRecordId();
         result.setRecordId(recordId);
 
-        if (recordDTO.getMonsters() != null && !recordDTO.getMonsters().isEmpty()) {
-            List<MonsterData> monsters = new ArrayList<>();
-            for (MonsterDataDTO mdDTO : recordDTO.getMonsters()) {
-                MonsterData md = new MonsterData();
-                md.setRecordId(recordId);
-                md.setMonsterType(mdDTO.getMonsterType());
-                md.setTargetStr(mdDTO.getTargetStr());
-                md.setSpeed(mdDTO.getSpeed());
-                md.setSurvivalTime(mdDTO.getSurvivalTime());
-                md.setDestroyCostTime(mdDTO.getDestroyCostTime());
-                md.setTotalCount(mdDTO.getTotalCount());
-                md.setInputErrorCount(mdDTO.getInputErrorCount());
-                md.setIsTrueMean(mdDTO.getIsTrueMean());
-                md.setScore(mdDTO.getScore());
-                md.setDifficultyLevel(mdDTO.getDifficultyLevel());
-                md.setSpawnWave(mdDTO.getSpawnWave());
-                md.setIsParent(mdDTO.getIsParent());
-                monsters.add(md);
-            }
-            monsterDataRepository.saveAll(monsters);
+        List<MonsterData> monsters = saveMonsters(recordId, recordDTO.getMonsters());
+
+        if (recordDTO.getCharacterStatsUpdates() != null && !recordDTO.getCharacterStatsUpdates().isEmpty()) {
+            CharacterStatsBatchUpdateDTO batch = new CharacterStatsBatchUpdateDTO();
+            batch.setUpdates(recordDTO.getCharacterStatsUpdates());
+            characterStatsService.batchUpdate(userId, batch);
         }
 
         syncLeaderboardAndUserSummary(record);
+        result.setCurrentDifficulty(postProcessService.process(userId, record, recordDTO, monsters));
 
         return result;
+    }
+
+    private List<MonsterData> saveMonsters(Integer recordId, List<MonsterDataDTO> monsterDTOs) {
+        if (monsterDTOs == null || monsterDTOs.isEmpty()) {
+            return List.of();
+        }
+        List<MonsterData> monsters = new ArrayList<>();
+        for (MonsterDataDTO mdDTO : monsterDTOs) {
+            MonsterData md = new MonsterData();
+            md.setRecordId(recordId);
+            md.setMonsterType(mdDTO.getMonsterType());
+            md.setTargetStr(mdDTO.getTargetStr());
+            md.setSpeed(mdDTO.getSpeed());
+            md.setSurvivalTime(mdDTO.getSurvivalTime());
+            md.setDestroyCostTime(mdDTO.getDestroyCostTime());
+            md.setTotalCount(mdDTO.getTotalCount());
+            md.setInputErrorCount(mdDTO.getInputErrorCount());
+            md.setIsTrueMean(mdDTO.getIsTrueMean());
+            md.setScore(mdDTO.getScore());
+            md.setDifficultyLevel(mdDTO.getDifficultyLevel());
+            md.setSpawnWave(mdDTO.getSpawnWave());
+            md.setIsParent(Boolean.TRUE.equals(mdDTO.getIsParent()));
+            monsters.add(md);
+        }
+        return monsterDataRepository.saveAll(monsters);
     }
 
     private void syncLeaderboardAndUserSummary(GameRecord record) {

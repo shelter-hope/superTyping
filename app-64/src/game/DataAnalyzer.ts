@@ -71,11 +71,11 @@ export class DataAnalyzer {
     };
 
     charStats.forEach(stat => {
-      const char = stat.character;
+      const char = stat.charValue;
       const type = this.getCharType(char);
       
       if (type in distribution) {
-        distribution[type as keyof CharTypeDistribution] += stat.total_attempts;
+        distribution[type as keyof CharTypeDistribution] += stat.totalAttempts;
       }
     });
 
@@ -100,11 +100,11 @@ export class DataAnalyzer {
   getTopErrorChars(charStats: CharacterStat[], topN: number = 10): ErrorCharInfo[] {
     return charStats
       .map(stat => ({
-        character: stat.character,
-        errorCount: stat.error_count,
-        totalAttempts: stat.total_attempts,
-        accuracy: stat.avg_accuracy,
-        charType: stat.char_type || this.getCharType(stat.character),
+        character: stat.charValue,
+        errorCount: stat.errorCount,
+        totalAttempts: stat.totalAttempts,
+        accuracy: stat.averageAccuracy ?? 0,
+        charType: stat.charType || this.getCharType(stat.charValue),
       }))
       .sort((a, b) => b.errorCount - a.errorCount)
       .slice(0, topN);
@@ -116,7 +116,7 @@ export class DataAnalyzer {
   calculateErrorCharRatio(charStats: CharacterStat[]): number {
     if (charStats.length === 0) return 0;
 
-    const errorChars = charStats.filter(stat => stat.avg_accuracy < 70);
+    const errorChars = charStats.filter(stat => (stat.averageAccuracy ?? 0) < 70);
     return errorChars.length / charStats.length;
   }
 
@@ -161,7 +161,7 @@ export class DataAnalyzer {
       topErrorChars: this.getTopErrorChars(charStats, 10),
       errorCharRatio: this.calculateErrorCharRatio(charStats),
       stringLengthDistribution: this.analyzeStringLengthDistribution(rounds),
-      totalCharacters: charStats.reduce((sum, stat) => sum + stat.total_attempts, 0),
+      totalCharacters: charStats.reduce((sum, stat) => sum + stat.totalAttempts, 0),
       uniqueCharacters: charStats.length,
     };
   }

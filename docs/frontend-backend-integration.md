@@ -152,7 +152,7 @@ function getDefaultErrorMessage(status: number): string {
 | 好友系统 | `src/services/social.ts` | `/api/v1/friends`, `/api/v1/friends/request` | user-svc | `FriendController` |
 | 游戏记录 | `src/services/game.ts` | `/api/v1/game/records`, `/api/v1/game/config/next-round` | game-core-svc | `GameRecordController`, `GameConfigController` |
 | 字符统计 | `src/services/stats.ts` | `/api/v1/stats/character`, `/api/v1/stats/character/user/{userId}` | game-core-svc | `StatsController` |
-| 词库管理 | `src/services/dictionary.ts` | `/api/v1/dictionary/custom`, `/api/v1/dictionary/system` | chat-svc | `DictionaryController` |
+| 词库管理 | `src/services/dictionary.ts` | `/api/v1/dictionaries/custom`, `/api/v1/dictionaries/system` | chat-svc | `DictionaryController` |
 | 游戏配置 | `src/services/game.ts` | `/api/v1/game/config/next-round`, `/api/v1/game/config/char-types` | game-core-svc | `GameConfigController` |
 | 排行榜 | `src/services/game.ts` | `/api/v1/leaderboard/{gameMode}` | chat-svc | `LeaderboardController` |
 | 遗传进化 | `src/services/game.ts` | `/api/v1/game/config/next-round` | game-core-svc | `GameConfigController` |
@@ -171,7 +171,7 @@ function getDefaultErrorMessage(status: number): string {
 | `/api/v1/ai/**` | ai-svc | AI 助手 |
 | `/api/v1/messages/**` | chat-svc | 消息中心 |
 | `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
-| `/api/v1/dictionary/**` | chat-svc | 词库管理 |
+| `/api/v1/dictionaries/**` | chat-svc | 词库管理 |
 
 ---
 

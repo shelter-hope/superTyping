@@ -5,18 +5,18 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+  "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden border px-2 py-0.5 text-xs font-bold uppercase tracking-[0.08em] whitespace-nowrap transition-[color,box-shadow,border-color] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[2px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3",
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+          "border-primary/50 bg-primary/12 text-primary shadow-[inset_3px_0_0_hsl(var(--primary)/0.65)] [a&]:hover:border-primary",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+          "border-border bg-secondary/45 text-secondary-foreground [a&]:hover:border-primary/50",
         destructive:
-          "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "border-destructive/60 bg-destructive/16 text-destructive-foreground focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
         outline:
-          "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+          "border-border bg-transparent text-muted-foreground [a&]:hover:border-primary/50 [a&]:hover:text-primary",
       },
     },
     defaultVariants: {

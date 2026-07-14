@@ -85,7 +85,7 @@ export default function UserManagement() {
     try {
       await updateProfile(editingUser.userId, {
         username: editForm.username,
-        nickname: editForm.nickname || null,
+        nickname: editForm.nickname || undefined,
       });
 
       if (editForm.role !== editingUser.role) {
@@ -197,7 +197,7 @@ export default function UserManagement() {
                           {user.role === 'admin' ? '管理员' : '普通用户'}
                         </span>
                       </TableCell>
-                      <TableCell>{new Date(user.createTime).toLocaleDateString()}</TableCell>
+                      <TableCell>{user.createTime ? new Date(user.createTime).toLocaleDateString() : '-'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button

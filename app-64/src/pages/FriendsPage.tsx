@@ -30,7 +30,7 @@ import {
 import { Users, UserPlus, MessageCircle, Trash2, Search, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import type { Friend, Profile, FriendResponseDTO } from '@/types/database'; // camelCase types
+import type { FriendResponseDTO } from '@/types/database';
 import { 
   getFriendList, 
   searchUsers, 
@@ -111,10 +111,11 @@ export default function FriendsPage() {
       setSearchQuery('');
       setSearchResults([]);
       setRequestMessage('');
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '无法发送好友请求';
       console.error('发送好友请求失败:', error);
       // Check if error message indicates duplicate
-      if (error.message?.includes('exist')) {
+      if (message.includes('exist')) {
         toast({
             title: '已发送过请求',
             description: '请等待对方回应',
@@ -122,7 +123,7 @@ export default function FriendsPage() {
       } else {
         toast({
             title: '发送失败',
-            description: error.message || '无法发送好友请求',
+            description: message,
             variant: 'destructive',
           });
       }
