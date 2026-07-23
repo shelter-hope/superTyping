@@ -43,7 +43,7 @@
 
 ### 架构适配
 
-前端通过 **API 网关**（`http://localhost:8080/typingWord`）统一访问后端微服务：
+前端通过 **API 网关**（`http://localhost:8080`）统一访问后端微服务，前端请求层自动拼接 `/api/v1`：
 
 | API 路径前缀 | 后端服务 | 职责 |
 |-------------|----------|------|
@@ -149,7 +149,7 @@ app-64/
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `VITE_BACKEND_BASE_URL` | API 网关地址（后端统一入口） | `http://localhost:8080/typingWord` |
+| `VITE_BACKEND_BASE_URL` | API 网关地址（后端统一入口，不含 `/api/v1`） | `http://localhost:8080` |
 
 ---
 

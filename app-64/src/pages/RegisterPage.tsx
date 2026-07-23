@@ -1,5 +1,5 @@
 // 注册页面
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,13 +14,15 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
+    if (submittingRef.current) return;
+
     if (!username || !password || !confirmPassword) {
       toast({
         title: '请填写完整信息',
@@ -57,6 +59,7 @@ export default function RegisterPage() {
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
     try {
       await signUp(username, password);
@@ -66,12 +69,16 @@ export default function RegisterPage() {
       });
       navigate('/');
     } catch (error) {
+      const message = error instanceof Error ? error.message : '注册过程中出现错误';
       toast({
-        title: '注册失败',
-        description: error instanceof Error ? error.message : '注册过程中出现错误',
+        title: message.includes('用户名已存在') ? '用户名已被占用' : '注册失败',
+        description: message.includes('用户名已存在')
+          ? '该账号可能已注册成功，请直接登录'
+          : message,
         variant: 'destructive',
       });
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }

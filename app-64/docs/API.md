@@ -12,7 +12,7 @@
 
 | 配置 | 说明 |
 |------|------|
-| `VITE_BACKEND_BASE_URL` | 后端根路径，默认 `http://localhost:8080/typingWord`（见 `client.ts`） |
+| `VITE_BACKEND_BASE_URL` | API Gateway 根路径，默认 `http://localhost:8080`（见 `client.ts`） |
 | 实际 API 前缀 | `{backendBaseUrl}/api/v1` |
 
 ### 1.2 统一响应体
@@ -307,7 +307,7 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 
 ## 13. 微服务路由映射
 
-前端所有请求通过 API Gateway（`http://localhost:8080/typingWord`）统一入口，按路径前缀路由到对应微服务：
+前端所有请求通过 API Gateway（`http://localhost:8080`）统一入口，按路径前缀路由到对应微服务：
 
 | 路径前缀 | 目标微服务 | 端口 |
 |----------|-----------|------|

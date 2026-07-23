@@ -1,5 +1,5 @@
 // 登录页面
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -13,13 +13,15 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
+    if (submittingRef.current) return;
+
     if (!username || !password) {
       toast({
         title: '请填写完整信息',
@@ -29,6 +31,7 @@ export default function LoginPage() {
       return;
     }
 
+    submittingRef.current = true;
     setLoading(true);
     try {
       await signIn(username, password);
@@ -44,6 +47,7 @@ export default function LoginPage() {
         variant: 'destructive',
       });
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }
@@ -55,6 +59,8 @@ export default function LoginPage() {
           <CardTitle className="text-2xl font-bold text-center">登录</CardTitle>
           <CardDescription className="text-center">
             输入您的用户名和密码以登录
+            <br />
+            <span className="text-xs">演示账号：admin / admin123 或 test / test123</span>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

@@ -21,6 +21,7 @@ public class UserInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // 自增主键（对应 MySQL 的 AUTO_INCREMENT）
     private Integer userId; // 用户唯一ID（自增）
+    @Column(unique = true, nullable = false, length = 50)
     private String username; // 登录账号（唯一）
     @com.fasterxml.jackson.annotation.JsonIgnore
     private String password; // 加密密码

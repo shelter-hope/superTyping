@@ -28,6 +28,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
+                        // 排行榜公开读（my-rank 仍需登录）
+                        .requestMatchers(HttpMethod.GET, "/api/v1/leaderboard").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/leaderboard/period").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/leaderboard/search").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/leaderboard/details").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
