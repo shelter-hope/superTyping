@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS monster_attempt (
     session_id BIGINT NOT NULL COMMENT '游戏会话ID',
     round_id BIGINT NOT NULL COMMENT '游戏轮次ID',
     plan_version BIGINT NOT NULL COMMENT 'RoundPlan版本',
-    monster_key VARCHAR(100) NULL COMMENT '客户端怪物标识',
+    monster_key VARCHAR(255) NULL COMMENT '客户端怪物标识',
     target_str VARCHAR(200) NOT NULL COMMENT '目标字符串',
     monster_type VARCHAR(20) NOT NULL COMMENT '怪物类型',
     speed DECIMAL(8,3) NULL COMMENT '怪物速度，像素/秒',

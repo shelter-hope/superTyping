@@ -58,6 +58,9 @@ public class GameRoundServiceImpl implements GameRoundService {
         if ("COMPLETED".equals(round.getStatus())) {
             return buildResult(round, monsterAttemptRepository.findByRoundId(round.getRoundId()));
         }
+        if (!"CREATED".equals(round.getStatus())) {
+            throw new IllegalArgumentException("当前轮次状态不允许结算");
+        }
 
         List<MonsterDataDTO> planned = readPlan(round.getPlanPayload());
         List<MonsterDataDTO> reported = request.getMonsters() == null ? List.of() : request.getMonsters();
@@ -67,24 +70,31 @@ public class GameRoundServiceImpl implements GameRoundService {
 
         Map<String, List<MonsterDataDTO>> plannedByKey = new HashMap<>();
         for (MonsterDataDTO monster : planned) {
-            plannedByKey.computeIfAbsent(planKey(monster), ignored -> new ArrayList<>()).add(monster);
+            plannedByKey.computeIfAbsent(matchKey(monster), ignored -> new ArrayList<>()).add(monster);
         }
         List<MonsterAttempt> attempts = new ArrayList<>();
         for (MonsterDataDTO item : reported) {
-            List<MonsterDataDTO> candidates = plannedByKey.get(planKey(item));
+            List<MonsterDataDTO> candidates = plannedByKey.get(matchKey(item));
             if (candidates == null || candidates.isEmpty()) {
                 throw new IllegalArgumentException("上报怪物不属于服务端RoundPlan");
             }
             MonsterDataDTO plan = candidates.remove(0);
-            String attemptKey = planKey(plan) + "#" + (planned.size() - candidates.size());
+            String attemptKey = plan.getMonsterKey() == null || plan.getMonsterKey().isBlank()
+                    ? planKey(plan) + "#" + attempts.size() : plan.getMonsterKey();
             int inputCount = nonNegative(item.getInputCount());
             int errorCount = nonNegative(item.getErrorCount() == null ? item.getInputErrorCount() : item.getErrorCount());
             int correctCount = Math.min(nonNegative(item.getCorrectCount()), plan.getTargetStr().length());
-            if (correctCount + errorCount > inputCount) {
+            if (inputCount > 10000 || errorCount > inputCount || correctCount + errorCount != inputCount) {
                 throw new IllegalArgumentException("怪物输入统计不一致");
             }
-            boolean killed = "KILLED".equalsIgnoreCase(item.getResult())
-                    && correctCount >= plan.getTargetStr().length();
+            String result = normalizeResult(item.getResult());
+            if (!List.of("KILLED", "MISSED", "EVADED", "COLLISION", "TIMEOUT", "ABANDONED").contains(result)) {
+                throw new IllegalArgumentException("怪物结果类型不合法");
+            }
+            if ("KILLED".equals(result) && correctCount < plan.getTargetStr().length()) {
+                throw new IllegalArgumentException("击杀结果与正确输入数不一致");
+            }
+            boolean killed = "KILLED".equals(result);
             MonsterAttempt attempt = new MonsterAttempt();
             attempt.setSessionId(session.getSessionId());
             attempt.setRoundId(round.getRoundId());
@@ -96,9 +106,10 @@ public class GameRoundServiceImpl implements GameRoundService {
             attempt.setInputCount(inputCount);
             attempt.setCorrectCount(correctCount);
             attempt.setErrorCount(errorCount);
-            attempt.setResult(killed ? "KILLED" : normalizeResult(item.getResult()));
+            attempt.setResult(result);
             attempt.setClientScore(item.getScore());
             attempt.setVerifiedScore(killed ? nonNegative(plan.getScore()) : 0);
+            attempt.setFitness(calculateFitness(correctCount, errorCount, inputCount, attempt.getVerifiedScore()));
             attempt.setGeneration(plan.getGeneration() == null ? 0 : plan.getGeneration());
             attempt.setCreatedAt(new Date());
             attempts.add(attempt);
@@ -169,6 +180,11 @@ public class GameRoundServiceImpl implements GameRoundService {
         return String.valueOf(monster.getMonsterType()) + "|" + String.valueOf(monster.getTargetStr());
     }
 
+    private String matchKey(MonsterDataDTO monster) {
+        return monster.getMonsterKey() == null || monster.getMonsterKey().isBlank()
+                ? "PLAN:" + planKey(monster) : "ID:" + monster.getMonsterKey();
+    }
+
     private String normalizeResult(String result) {
         return result == null || result.isBlank() ? "ABANDONED" : result.toUpperCase();
     }
@@ -181,6 +197,14 @@ public class GameRoundServiceImpl implements GameRoundService {
         int correct = attempts.stream().mapToInt(item -> nonNegative(item.getCorrectCount())).sum();
         int input = attempts.stream().mapToInt(item -> nonNegative(item.getInputCount())).sum();
         return ratio(correct, input);
+    }
+
+    private BigDecimal calculateFitness(int correctCount, int errorCount, int inputCount, int verifiedScore) {
+        BigDecimal accuracy = ratio(correctCount, inputCount);
+        return BigDecimal.valueOf(verifiedScore)
+                .add(accuracy.multiply(BigDecimal.valueOf(100)))
+                .subtract(BigDecimal.valueOf(errorCount * 2L))
+                .max(BigDecimal.ZERO);
     }
 
     private BigDecimal ratio(long numerator, long denominator) {

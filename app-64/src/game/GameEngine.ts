@@ -18,9 +18,16 @@ import type {
 
 /** 后端下发的本轮怪物项（词源界定等模式用） */
 export interface RoundMonsterItem {
+  monsterKey?: string;
   targetStr?: string;
   speed?: number;
   monsterType?: string;
+  parentAttemptAId?: number;
+  parentAttemptBId?: number;
+  crossoverPoint?: number;
+  mutationRate?: number;
+  mutationPositions?: string;
+  mutationChars?: string;
 }
 
 export class GameEngine {
@@ -387,7 +394,14 @@ export class GameEngine {
         x,
         y,
         speed,
-        size
+        size,
+        item.monsterKey,
+        item.parentAttemptAId,
+        item.parentAttemptBId,
+        item.crossoverPoint,
+        item.mutationRate,
+        item.mutationPositions,
+        item.mutationChars
       );
       return monster;
     }
@@ -623,7 +637,14 @@ export class GameEngine {
       difficultyLevel: 1, // 暂时默认为1
       spawnWave: this.stats.round,
        isParent: false, // 暂时默认为false
-       result: outcome
+        monsterKey: monster.planKey,
+        parentAttemptAId: monster.parentAttemptAId,
+        parentAttemptBId: monster.parentAttemptBId,
+        crossoverPoint: monster.crossoverPoint,
+        mutationRate: monster.mutationRate,
+        mutationPositions: monster.mutationPositions,
+        mutationChars: monster.mutationChars,
+        result: outcome
     });
   }
 

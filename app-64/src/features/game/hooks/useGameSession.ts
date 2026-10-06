@@ -40,9 +40,16 @@ interface UseGameSessionOptions {
 function toRoundMonsters(monsters: MonsterDataDTO[] | undefined): RoundMonsterItem[] | undefined {
   if (!monsters?.length) return undefined;
   return monsters.map((monster) => ({
+    monsterKey: monster.monsterKey,
     targetStr: monster.targetStr,
     speed: monster.speed != null ? Number(monster.speed) : undefined,
     monsterType: monster.monsterType,
+    parentAttemptAId: monster.parentAttemptAId,
+    parentAttemptBId: monster.parentAttemptBId,
+    crossoverPoint: monster.crossoverPoint,
+    mutationRate: monster.mutationRate,
+    mutationPositions: monster.mutationPositions,
+    mutationChars: monster.mutationChars,
   }));
 }
 
@@ -219,7 +226,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
           }));
         const complete = sessionId != null && planVersion != null
           ? completeGameRound(event.round, sessionId, planVersion, currentRoundMonsters)
-          : Promise.resolve(null);
+          : Promise.reject(new Error('缺少轮次会话或计划版本'));
         complete.then(() => getNextRound(event.round + 1, currentConfig.gameMode, currentConfig.customDictIds, currentConfig.systemDictIds, sessionId))
           .then((response) => {
             if (token !== sessionTokenRef.current) return;
@@ -239,7 +246,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
             if (roundMonsters?.length) engine.setRoundMonsters(roundMonsters);
           })
           .catch(() => {
-            toast({ title: '下一轮参数加载失败', description: '已继续使用当前难度参数', variant: 'destructive' });
+            toast({ title: '轮次结算失败', description: '未加载下一轮，请检查网络后重试', variant: 'destructive' });
           });
         break;
       }

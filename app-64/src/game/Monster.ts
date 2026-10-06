@@ -28,6 +28,13 @@ export class MonsterEntity implements Monster {
 
   /** 是否计入本轮数量（本轮固定数量全部消灭后进入下一轮；ATTACKER 小怪不计入） */
   isRoundMonster: boolean;
+  planKey?: string;
+  parentAttemptAId?: number;
+  parentAttemptBId?: number;
+  crossoverPoint?: number;
+  mutationRate?: number;
+  mutationPositions?: string;
+  mutationChars?: string;
 
   constructor(
     id: string,
@@ -36,7 +43,14 @@ export class MonsterEntity implements Monster {
     x: number,
     y: number,
     speed: number,
-    size: number = 1
+    size: number = 1,
+    planKey?: string,
+    parentAttemptAId?: number,
+    parentAttemptBId?: number,
+    crossoverPoint?: number,
+    mutationRate?: number,
+    mutationPositions?: string,
+    mutationChars?: string
   ) {
     this.id = id;
     this.text = text;
@@ -53,6 +67,13 @@ export class MonsterEntity implements Monster {
     this.lastInputEvaded = false;
     this.evadeChance = type === 'EVASIVE' ? 0.3 : 0;
     this.isRoundMonster = true;
+    this.planKey = planKey;
+    this.parentAttemptAId = parentAttemptAId;
+    this.parentAttemptBId = parentAttemptBId;
+    this.crossoverPoint = crossoverPoint;
+    this.mutationRate = mutationRate;
+    this.mutationPositions = mutationPositions;
+    this.mutationChars = mutationChars;
 
     // 初始化激射状态
     this.isEjecting = false;

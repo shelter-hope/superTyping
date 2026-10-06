@@ -15,6 +15,7 @@ import com.typinggame.dto.stats.TrainingSuggestionDTO;
 import com.typinggame.entity.config.GameCharTypeConfig;
 import com.typinggame.entity.config.SystemGameModeConfig;
 import com.typinggame.entity.config.SystemMonsterTypeConfig;
+import com.typinggame.entity.game.MonsterAttempt;
 import com.typinggame.entity.user.CharacterStats;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.GameCharTypeConfigRepository;
@@ -30,6 +31,7 @@ import com.typinggame.entity.game.GameRound;
 import com.typinggame.entity.game.GameSession;
 import com.typinggame.game.repository.GameRoundRepository;
 import com.typinggame.game.repository.GameSessionRepository;
+import com.typinggame.game.repository.MonsterAttemptRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.concurrent.ThreadLocalRandom;
@@ -64,6 +67,7 @@ public class GameConfigServiceImpl implements GameConfigService {
     private final GameSessionRepository gameSessionRepository;
     private final GameRoundRepository gameRoundRepository;
     private final ObjectMapper objectMapper;
+    private final MonsterAttemptRepository monsterAttemptRepository;
 
     public GameConfigServiceImpl(StatsService statsService,
                                  CharacterStatsService characterStatsService,
@@ -74,7 +78,8 @@ public class GameConfigServiceImpl implements GameConfigService {
                                  List<WordSourceStrategy> wordSourceStrategies,
                                  GameSessionRepository gameSessionRepository,
                                  GameRoundRepository gameRoundRepository,
-                                 ObjectMapper objectMapper) {
+                                 ObjectMapper objectMapper,
+                                 MonsterAttemptRepository monsterAttemptRepository) {
         this.statsService = statsService;
         this.characterStatsService = characterStatsService;
         this.difficultyModelService = difficultyModelService;
@@ -85,6 +90,7 @@ public class GameConfigServiceImpl implements GameConfigService {
         this.gameSessionRepository = gameSessionRepository;
         this.gameRoundRepository = gameRoundRepository;
         this.objectMapper = objectMapper;
+        this.monsterAttemptRepository = monsterAttemptRepository;
     }
 
     @Override
@@ -166,11 +172,19 @@ public class GameConfigServiceImpl implements GameConfigService {
                 customDictIds,
                 systemDictIds));
         long planVersion = PLAN_SEQUENCE.incrementAndGet();
+        List<MonsterDataDTO> monsters = buildMonsters(words, adjustParam, Math.max(1, roundNum));
+        if (sessionId != null && mode == GameMode.ENDLESS_ADAPT && roundNum > 1) {
+            List<MonsterAttempt> parents = monsterAttemptRepository
+                    .findBySessionIdAndResultOrderByFitnessDesc(sessionId, "KILLED");
+            if (!parents.isEmpty()) {
+                monsters = buildGeneticMonsters(monsters, parents, focusChars, roundNum);
+            }
+        }
         NextRoundResponseDTO response = NextRoundResponseDTO.builder()
                 .planVersion(planVersion)
                 .targetAccuracy(BigDecimal.valueOf(0.85))
                 .adjustParam(adjustParam)
-                .monsters(buildMonsters(words, adjustParam, Math.max(1, roundNum)))
+                .monsters(monsters)
                 .build();
         if (sessionId != null) {
             GameRound round = gameRoundRepository.findBySessionIdAndRoundNum(sessionId, roundNum).orElseGet(GameRound::new);
@@ -315,9 +329,79 @@ public class GameConfigServiceImpl implements GameConfigService {
             monster.setDifficultyLevel(roundNum);
             monster.setSpawnWave(roundNum);
             monster.setIsParent(false);
+            monster.setMonsterKey("round-" + roundNum + "-monster-" + i);
             monsters.add(monster);
         }
         return monsters;
+    }
+
+    private List<MonsterDataDTO> buildGeneticMonsters(List<MonsterDataDTO> baseMonsters,
+                                                       List<MonsterAttempt> attempts,
+                                                       List<String> focusChars,
+                                                       int roundNum) {
+        List<MonsterAttempt> parents = attempts.stream()
+                .filter(attempt -> attempt.getTargetStr() != null && !attempt.getTargetStr().isBlank())
+                .limit(10)
+                .collect(Collectors.toList());
+        if (parents.isEmpty()) {
+            return baseMonsters;
+        }
+        for (int i = 0; i < baseMonsters.size(); i++) {
+            MonsterDataDTO child = baseMonsters.get(i);
+            MonsterAttempt parentA = parents.get(ThreadLocalRandom.current().nextInt(parents.size()));
+            MonsterAttempt parentB = parents.size() > 1
+                    ? parents.get(ThreadLocalRandom.current().nextInt(parents.size())) : null;
+            if (parentB != null && parents.size() > 1 && Objects.equals(parentA.getAttemptId(), parentB.getAttemptId())) {
+                parentB = parents.get((parents.indexOf(parentA) + 1) % parents.size());
+            }
+            int targetLength = Math.max(1, child.getTargetStr() == null ? 1 : child.getTargetStr().length());
+            int crossoverPoint = parentA.getTargetStr().length() > 1
+                    ? ThreadLocalRandom.current().nextInt(1, parentA.getTargetStr().length()) : 0;
+            String text = crossover(parentA.getTargetStr(), parentB == null ? parentA.getTargetStr() : parentB.getTargetStr(), crossoverPoint, targetLength);
+            BigDecimal mutationRate = BigDecimal.valueOf(0.15);
+            List<Integer> mutationPositions = new ArrayList<>();
+            List<String> mutationChars = new ArrayList<>();
+            if (ThreadLocalRandom.current().nextDouble() < mutationRate.doubleValue() && !text.isEmpty()) {
+                int position = ThreadLocalRandom.current().nextInt(text.length());
+                String replacement = chooseMutationChar(text, position, focusChars);
+                text = text.substring(0, position) + replacement + text.substring(position + 1);
+                mutationPositions.add(position);
+                mutationChars.add(replacement);
+            }
+            child.setTargetStr(text);
+            child.setTotalCount(text.length());
+            child.setMonsterKey("round-" + roundNum + "-monster-" + i);
+            child.setGeneration(Math.max(parentA.getGeneration() == null ? 0 : parentA.getGeneration(),
+                    parentB == null || parentB.getGeneration() == null ? 0 : parentB.getGeneration()) + 1);
+            child.setParentAttemptAId(parentA.getAttemptId());
+            child.setParentAttemptBId(parentB == null ? null : parentB.getAttemptId());
+            child.setCrossoverPoint(crossoverPoint);
+            child.setMutationRate(mutationRate);
+            child.setMutationPositions(mutationPositions.stream().map(String::valueOf).collect(Collectors.joining(",")));
+            child.setMutationChars(String.join("", mutationChars));
+        }
+        return baseMonsters;
+    }
+
+    private String crossover(String parentA, String parentB, int crossoverPoint, int targetLength) {
+        String prefix = parentA.substring(0, Math.min(crossoverPoint, parentA.length()));
+        String suffix = parentB.substring(Math.min(crossoverPoint, parentB.length()));
+        String child = prefix + suffix;
+        if (child.length() < targetLength) {
+            String source = parentA + parentB;
+            int sourceIndex = 0;
+            while (child.length() < targetLength) {
+                child += source.charAt(sourceIndex++ % source.length());
+            }
+        }
+        return child.substring(0, Math.min(targetLength, child.length()));
+    }
+
+    private String chooseMutationChar(String text, int position, List<String> focusChars) {
+        if (focusChars != null && !focusChars.isEmpty()) {
+            return focusChars.get(ThreadLocalRandom.current().nextInt(focusChars.size()));
+        }
+        return String.valueOf(text.charAt((position + 1) % text.length()));
     }
 
     private String pickMonsterType(int index, GameAdjustParam adjustParam) {
