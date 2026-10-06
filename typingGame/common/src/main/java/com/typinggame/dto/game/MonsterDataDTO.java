@@ -24,4 +24,11 @@ public class MonsterDataDTO {
     private String result;
     private Integer generation;
     private Long planVersion;
+    private String monsterKey;
+    private Long parentAttemptAId;
+    private Long parentAttemptBId;
+    private Integer crossoverPoint;
+    private BigDecimal mutationRate;
+    private String mutationPositions;
+    private String mutationChars;
 }

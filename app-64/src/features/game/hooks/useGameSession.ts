@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createGameRecord, getNextRound, createGameSession, type GameRecordUploadResult, type MonsterDataDTO } from '@/db/api';
+import { completeGameRound, createGameRecord, getNextRound, createGameSession, type GameRecordUploadResult, type MonsterDataDTO } from '@/db/api';
 import { GameEngine, type RoundMonsterItem } from '@/game/GameEngine';
 import { SoundSystem } from '@/game/SoundSystem';
 import type { CharacterStat, GameEvent, GameState, GameStats } from '@/game/types';
@@ -17,6 +17,7 @@ import {
 interface LoadedStartRoundParams extends StartRoundParams {
   monsters?: MonsterDataDTO[];
   sessionId?: number;
+  planVersion?: number;
 }
 
 interface InputFeedback {
@@ -79,6 +80,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
   const gameOverHandledRef = useRef(false);
   const sessionTokenRef = useRef(0);
   const sessionIdRef = useRef<number | undefined>(undefined);
+  const planVersionRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     configRef.current = config;
@@ -118,6 +120,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
           maxMonsters: param.monsterCount ?? 8,
           monsters: response?.monsters,
           sessionId,
+          planVersion: response?.planVersion,
         });
       })
       .catch(() => {
@@ -203,7 +206,21 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
           description: `得分: ${event.stats.score}, 准确率: ${event.stats.accuracy.toFixed(1)}%`,
         });
         const token = sessionTokenRef.current;
-        getNextRound(event.round + 1, currentConfig.gameMode, currentConfig.customDictIds, currentConfig.systemDictIds, sessionIdRef.current)
+        const sessionId = sessionIdRef.current;
+        const planVersion = planVersionRef.current;
+        const currentRoundMonsters = (gameEngineRef.current?.getMonsterHistory() ?? [])
+          .filter((monster) => monster.spawnWave === event.round)
+          .map((monster) => ({
+            ...monster,
+            inputCount: monster.totalCount ?? 0,
+            correctCount: Math.max(0, (monster.totalCount ?? 0) - (monster.inputErrorCount ?? 0)),
+            errorCount: monster.inputErrorCount ?? 0,
+            result: monster.result,
+          }));
+        const complete = sessionId != null && planVersion != null
+          ? completeGameRound(event.round, sessionId, planVersion, currentRoundMonsters)
+          : Promise.resolve(null);
+        complete.then(() => getNextRound(event.round + 1, currentConfig.gameMode, currentConfig.customDictIds, currentConfig.systemDictIds, sessionId))
           .then((response) => {
             if (token !== sessionTokenRef.current) return;
             const param = response?.adjustParam ?? {};
@@ -218,6 +235,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
               );
             }
             const roundMonsters = toRoundMonsters(response?.monsters);
+            planVersionRef.current = response?.planVersion;
             if (roundMonsters?.length) engine.setRoundMonsters(roundMonsters);
           })
           .catch(() => {
@@ -246,6 +264,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
 
     const currentConfig = configRef.current;
     sessionIdRef.current = startParams.sessionId;
+    planVersionRef.current = startParams.planVersion;
     const initialRoundMonsters = toRoundMonsters(startParams.monsters);
     const engine = new GameEngine(
       createEngineConfig(currentConfig, startParams, soundEnabledRef.current),

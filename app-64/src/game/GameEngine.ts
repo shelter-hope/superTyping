@@ -622,7 +622,8 @@ export class GameEngine {
       score: score,
       difficultyLevel: 1, // 暂时默认为1
       spawnWave: this.stats.round,
-      isParent: false // 暂时默认为false
+       isParent: false, // 暂时默认为false
+       result: outcome
     });
   }
 

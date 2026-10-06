@@ -95,6 +95,23 @@ export interface MonsterDataDTO {
   result?: string;
   generation?: number;
   planVersion?: number;
+  monsterKey?: string;
+  parentAttemptAId?: number;
+  parentAttemptBId?: number;
+  crossoverPoint?: number;
+  mutationRate?: number;
+  mutationPositions?: string;
+  mutationChars?: string;
+}
+
+export interface GameRoundCompleteResult {
+  roundId?: number;
+  roundNum?: number;
+  verifiedAccuracy?: number;
+  killRate?: number;
+  verifiedScore?: number;
+  attemptCount?: number;
+  status?: string;
 }
 
 export interface NextRoundResponse {
@@ -129,6 +146,21 @@ export async function getNextRound(
   if (systemDictIds?.length) params.systemDictIds = systemDictIds;
   const response = await apiClient.get('/game/config/next-round', { params });
   return response.data.data ?? { adjustParam: {}, monsters: [] };
+}
+
+export async function completeGameRound(
+  roundNum: number,
+  sessionId: number,
+  planVersion: number,
+  monsters: MonsterDataDTO[],
+): Promise<GameRoundCompleteResult | null> {
+  const response = await apiClient.post(`/game/rounds/${roundNum}/complete`, {
+    roundNum,
+    sessionId,
+    planVersion,
+    monsters,
+  });
+  return response.data.data ?? null;
 }
 
 export interface GameCharTypeConfigDTO {
