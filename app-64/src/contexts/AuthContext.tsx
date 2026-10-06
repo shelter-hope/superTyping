@@ -73,9 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signIn(username: string, password: string) {
     try {
       const response = await apiClient.post('/auth/login', { username, password });
-      const { accessToken, user: userData } = response.data.data;
+      const { accessToken, refreshToken, user: userData } = response.data.data;
       
       localStorage.setItem('auth_token', accessToken);
+      if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
       
       const initialProfile = userData as unknown as Profile;
       setUser(initialProfile);
@@ -103,9 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         nickname: nickname || username 
       });
-      const { accessToken, user: userData } = response.data.data;
+      const { accessToken, refreshToken, user: userData } = response.data.data;
       
       localStorage.setItem('auth_token', accessToken);
+      if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
       
       const initialProfile = userData as unknown as Profile;
       setUser(initialProfile);
@@ -123,10 +125,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    const refreshToken = localStorage.getItem('refresh_token');
     try {
-      // await apiClient.post('/auth/logout'); // Optional
+      await apiClient.post('/auth/logout', null, {
+        params: refreshToken ? { refreshToken } : undefined,
+      });
     } finally {
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
       setUser(null);
       setProfile(null);
     }

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface FriendChatMessageRepository extends JpaRepository<FriendChatMessage, Integer> {
@@ -14,4 +15,5 @@ public interface FriendChatMessageRepository extends JpaRepository<FriendChatMes
     List<FriendChatMessage> findByReceiverIdAndMessageTypeOrderBySendTimeDesc(Integer receiverId, Integer messageType);
     int countByConversationIdAndReceiverIdAndReadStatus(Integer conversationId, Integer receiverId, Integer readStatus);
     int countByReceiverIdAndReadStatus(Integer receiverId, Integer readStatus);
+    Optional<FriendChatMessage> findByIdAndReceiverId(Integer id, Integer receiverId);
 }

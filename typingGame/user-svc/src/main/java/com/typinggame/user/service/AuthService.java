@@ -15,6 +15,8 @@ public interface AuthService {
 
     TokenResponseDTO refreshToken(String refreshToken);
 
+    void logout(String accessToken, String refreshToken);
+
     UserDTO me(Integer userId);
 
     boolean changePassword(Integer userId, ChangePasswordDTO changePasswordDTO);

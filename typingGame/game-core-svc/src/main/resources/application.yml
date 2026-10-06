@@ -14,8 +14,8 @@ spring:
         ip: 127.0.0.1
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/typing_word_game?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+     username: ${MYSQL_USER:root}
+     password: ${MYSQL_PASSWORD:123456}
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
       initial-size: 10
@@ -33,7 +33,7 @@ spring:
     redis:
       host: 127.0.0.1
       port: 6379
-      password: 123456
+       password: ${REDIS_PASSWORD:123456}
       database: 0
       lettuce:
         pool:
@@ -45,16 +45,16 @@ spring:
     enabled: true
 
 jwt:
-  secret: H5FQLg1tDHnqxGXoNhAKDvSwQfkQLDa4W+I72dPruXE=
+  secret: ${JWT_SECRET:H5FQLg1tDHnqxGXoNhAKDvSwQfkQLDa4W+I72dPruXE=}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+         include: health,info
   endpoint:
     health:
-      show-details: always
+       show-details: never
 
 logging:
   level:

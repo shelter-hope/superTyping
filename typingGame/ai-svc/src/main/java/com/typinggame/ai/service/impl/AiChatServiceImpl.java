@@ -19,6 +19,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 import java.util.*;
 
@@ -29,6 +31,8 @@ public class AiChatServiceImpl implements AiChatService {
     private static final int ROLE_USER = 1;
     private static final int ROLE_ASSISTANT = 2;
     private static final int TYPE_TEXT = 1;
+    private static final int MAX_MESSAGE_LENGTH = 4000;
+    private static final int MAX_REPLY_LENGTH = 12000;
 
     @Autowired
     private AiConversationRepository conversationRepository;
@@ -52,6 +56,13 @@ public class AiChatServiceImpl implements AiChatService {
         if (request == null || request.getMessage() == null || request.getMessage().isBlank()) {
             return AiChatResponseDTO.builder()
                     .reply("请输入有效内容。")
+                    .conversationId(0)
+                    .build();
+        }
+        String userMessage = request.getMessage().trim();
+        if (userMessage.length() > MAX_MESSAGE_LENGTH) {
+            return AiChatResponseDTO.builder()
+                    .reply("输入内容不能超过" + MAX_MESSAGE_LENGTH + "个字符。")
                     .conversationId(0)
                     .build();
         }
@@ -92,14 +103,14 @@ public class AiChatServiceImpl implements AiChatService {
         userMsg.setAiRobotId(robotId);
         userMsg.setMessageRole(ROLE_USER);
         userMsg.setMessageType(TYPE_TEXT);
-        userMsg.setMessageContent(request.getMessage().trim());
+        userMsg.setMessageContent(userMessage);
         userMsg.setSendTime(now);
         userMsg.setIsSuccess(true);
         userMsg = messageRepository.save(userMsg);
 
         String systemPrompt = aiService.getTrainingSummary(userId).getContextForPrompt();
         if (systemPrompt == null) systemPrompt = "你是打字训练助手。";
-        String replyContent = callLlm(systemPrompt, request.getMessage().trim());
+        String replyContent = callLlm(systemPrompt, userMessage);
 
         AiChatMessage assistantMsg = new AiChatMessage();
         assistantMsg.setConversation(conv);
@@ -177,17 +188,27 @@ public class AiChatServiceImpl implements AiChatService {
                     if (root.has("result")) {
                         return root.path("result").asText();
                     }
-                    return respBody;
+                    return limitReply(respBody);
                 } catch (Exception parseEx) {
                     log.warn("解析 LLM 响应失败: {}", parseEx.getMessage());
-                    return response.getBody();
+                    return limitReply(response.getBody());
                 }
             }
             return "LLM 调用失败，HTTP 状态码：" + response.getStatusCodeValue();
+        } catch (ResourceAccessException e) {
+            log.warn("LLM 调用超时或网络不可达: {}", e.getMessage());
+            return "LLM 服务暂时不可用，请稍后重试。";
         } catch (Exception e) {
             log.warn("LLM 调用失败: {}", e.getMessage());
-            return "调用 LLM 时出错：" + e.getMessage() + "。请检查 ai.llm.url 与 api-key 配置或稍后重试。";
+            return "LLM 服务调用失败，请稍后重试。";
         }
+    }
+
+    private String limitReply(String reply) {
+        if (reply == null || reply.isBlank()) {
+            return "LLM 未返回有效内容，请稍后重试。";
+        }
+        return reply.length() > MAX_REPLY_LENGTH ? reply.substring(0, MAX_REPLY_LENGTH) : reply;
     }
 
     @Slf4j
@@ -195,8 +216,11 @@ public class AiChatServiceImpl implements AiChatService {
     public static class AiLlmConfig {
 
         @org.springframework.context.annotation.Bean("aiRestTemplate")
-        public RestTemplate aiRestTemplate() {
-            return new RestTemplate();
+        public RestTemplate aiRestTemplate(AiLlmProperties properties) {
+            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+            factory.setConnectTimeout(properties.getLlm().getConnectTimeoutMs());
+            factory.setReadTimeout(properties.getLlm().getReadTimeoutMs());
+            return new RestTemplate(factory);
         }
 
         @org.springframework.context.annotation.Bean
@@ -216,6 +240,8 @@ public class AiChatServiceImpl implements AiChatService {
                 private String url;
                 private String apiKey;
                 private String workflowId;
+                private int connectTimeoutMs = 3000;
+                private int readTimeoutMs = 15000;
             }
         }
     }

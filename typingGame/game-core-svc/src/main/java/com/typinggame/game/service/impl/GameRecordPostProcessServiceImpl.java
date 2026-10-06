@@ -157,10 +157,9 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
 
     private BigDecimal calculatePostGameDifficulty(BigDecimal before, GameRecord record) {
         BigDecimal base = before == null ? BigDecimal.valueOf(0.30) : before;
-        double accuracy = record.getAvgAccuracy() == null ? 0 : record.getAvgAccuracy().doubleValue();
-        double delta = accuracy >= 85 ? 0.03 : accuracy <= 50 ? -0.05 : 0.0;
-        double scorePressure = Math.min(0.03, safeInt(record.getRoundNum()) * 0.003);
-        return BigDecimal.valueOf(clamp(base.doubleValue() + delta + scorePressure, 0.15, 0.95)).setScale(2, RoundingMode.HALF_UP);
+        double accuracy = record.getAvgAccuracy() == null ? 0.85 : record.getAvgAccuracy().doubleValue() / 100.0;
+        double delta = clamp((accuracy - 0.85) * 0.35, -0.05, 0.05);
+        return BigDecimal.valueOf(clamp(base.doubleValue() + delta, 0.15, 0.95)).setScale(2, RoundingMode.HALF_UP);
     }
 
     private int resolveMismatchRound(UserModelParams params, BigDecimal before, BigDecimal after) {

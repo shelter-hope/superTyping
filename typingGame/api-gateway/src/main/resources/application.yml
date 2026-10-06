@@ -59,7 +59,7 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOriginPatterns: "*"
+             allowedOriginPatterns: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
             allowedMethods: "*"
             allowedHeaders: "*"
             allowCredentials: false
@@ -69,12 +69,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+         include: health,info
   endpoint:
     health:
-      show-details: always
+       show-details: never
 
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
-    org.springframework.web.reactive: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.web.reactive: INFO

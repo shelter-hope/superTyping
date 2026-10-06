@@ -65,7 +65,10 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public List<MessageDTO> getConversationMessages(Integer conversationId, Integer page, Integer size) {
+    public List<MessageDTO> getConversationMessages(Integer userId, Integer conversationId, Integer page, Integer size) {
+        if (!userConversationRepository.findByIdAndUserId(conversationId, userId).isPresent()) {
+            return new java.util.ArrayList<>();
+        }
         Pageable pageable = PageRequest.of(page, size);
         List<FriendChatMessage> messages = friendChatMessageRepository.findByConversationIdOrderBySendTimeDesc(conversationId, pageable);
         return messages.stream().map(this::convertToDTO).collect(Collectors.toList());
@@ -143,15 +146,15 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     @Transactional
-    public boolean markMessageAsRead(Integer messageId) {
-        Optional<FriendChatMessage> messageOptional = friendChatMessageRepository.findById(messageId);
+    public boolean markMessageAsRead(Integer userId, Integer messageId) {
+        Optional<FriendChatMessage> messageOptional = friendChatMessageRepository.findByIdAndReceiverId(messageId, userId);
         if (messageOptional.isPresent()) {
             FriendChatMessage message = messageOptional.get();
             if (!Objects.equals(message.getReadStatus(), ReadStatus.READ.getCode())) {
                 message.setReadStatus(ReadStatus.READ.getCode());
                 friendChatMessageRepository.save(message);
 
-                Optional<UserConversation> convOpt = userConversationRepository.findById(message.getConversationId());
+                Optional<UserConversation> convOpt = userConversationRepository.findByIdAndUserId(message.getConversationId(), userId);
                 convOpt.ifPresent(conv -> {
                     if (conv.getUnreadCount() > 0) {
                         conv.setUnreadCount(conv.getUnreadCount() - 1);
@@ -227,9 +230,14 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public boolean deleteMessage(Integer messageId) {
-        if (friendChatMessageRepository.existsById(messageId)) {
-            friendChatMessageRepository.deleteById(messageId);
+    public boolean deleteMessage(Integer userId, Integer messageId) {
+        Optional<FriendChatMessage> messageOptional = friendChatMessageRepository.findById(messageId);
+        if (messageOptional.isPresent()) {
+            FriendChatMessage message = messageOptional.get();
+            if (!Objects.equals(userId, message.getSenderId()) && !Objects.equals(userId, message.getReceiverId())) {
+                return false;
+            }
+            friendChatMessageRepository.delete(message);
             return true;
         }
         return false;

@@ -1,5 +1,6 @@
 package com.typinggame.game.service.impl;
 
+import com.typinggame.common.exception.BusinessException;
 import com.typinggame.dto.game.GameRecordUploadDTO;
 import com.typinggame.dto.game.GameRecordUploadResultDTO;
 import com.typinggame.dto.game.MonsterDataDTO;
@@ -30,10 +31,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class GameRecordServiceImpl implements GameRecordService {
+
+    private static final int MAX_ROUND = 10000;
+    private static final int MAX_TOTAL_CHARS = 1_000_000;
+    private static final int MAX_MONSTERS = 10000;
+    private static final int MAX_CHARACTER_UPDATES = 10000;
 
     private static final Logger log = LoggerFactory.getLogger(GameRecordServiceImpl.class);
 
@@ -47,6 +54,7 @@ public class GameRecordServiceImpl implements GameRecordService {
     @Override
     @Transactional
     public GameRecordUploadResultDTO saveRecord(Integer userId, GameRecordUploadDTO recordDTO) {
+        validateUpload(recordDTO);
         GameRecordUploadResultDTO result = new GameRecordUploadResultDTO();
         result.setRecordId(null);
         result.setCurrentDifficulty(null);
@@ -83,6 +91,67 @@ public class GameRecordServiceImpl implements GameRecordService {
         result.setCurrentDifficulty(postProcessService.process(userId, record, recordDTO, monsters));
 
         return result;
+    }
+
+    private void validateUpload(GameRecordUploadDTO dto) {
+        if (dto == null) {
+            throw BusinessException.badRequest("游戏记录不能为空");
+        }
+        validateNonNegative(dto.getRoundNum(), "轮次", MAX_ROUND);
+        validateNonNegative(dto.getTotalScore(), "总分", Integer.MAX_VALUE);
+        validateNonNegative(dto.getTotalChars(), "总字符数", MAX_TOTAL_CHARS);
+        validateNonNegative(dto.getCorrectChars(), "正确字符数", MAX_TOTAL_CHARS);
+        if (dto.getTotalChars() != null && dto.getCorrectChars() != null
+                && dto.getCorrectChars() > dto.getTotalChars()) {
+            throw BusinessException.badRequest("正确字符数不能大于总字符数");
+        }
+        validateNonNegative(dto.getGameDuration(), "游戏时长", 24 * 60 * 60);
+        validateDecimal(dto.getAvgSpeed(), "平均速度", 10000);
+        validateDecimal(dto.getPeakSpeed(), "峰值速度", 10000);
+        validateDecimal(dto.getAvgAccuracy(), "平均准确率", 100);
+        validateDecimal(dto.getPeakAccuracy(), "峰值准确率", 100);
+
+        if (dto.getMonsters() != null && dto.getMonsters().size() > MAX_MONSTERS) {
+            throw BusinessException.badRequest("怪物数据数量不能超过" + MAX_MONSTERS);
+        }
+        if (dto.getMonsters() != null) {
+            dto.getMonsters().forEach(monster -> {
+                if (monster == null) {
+                    throw BusinessException.badRequest("怪物数据不能为空");
+                }
+                validateDecimal(monster.getSpeed(), "怪物速度", 10000);
+                validateNonNegative(monster.getSurvivalTime(), "怪物存活时间", 24 * 60 * 60);
+                validateNonNegative(monster.getDestroyCostTime(), "怪物击杀耗时", 24 * 60 * 60);
+                validateNonNegative(monster.getTotalCount(), "怪物输入总数", MAX_TOTAL_CHARS);
+                validateNonNegative(monster.getInputErrorCount(), "怪物输入错误数", MAX_TOTAL_CHARS);
+                validateNonNegative(monster.getScore(), "怪物得分", Integer.MAX_VALUE);
+                validateNonNegative(monster.getDifficultyLevel(), "怪物难度", 100);
+                validateNonNegative(monster.getSpawnWave(), "怪物波次", MAX_ROUND);
+                if (monster.getTotalCount() != null && monster.getInputErrorCount() != null
+                        && monster.getInputErrorCount() > monster.getTotalCount()) {
+                    throw BusinessException.badRequest("怪物输入错误数不能大于输入总数");
+                }
+                if (monster.getTargetStr() != null && monster.getTargetStr().length() > 200) {
+                    throw BusinessException.badRequest("怪物目标文本过长");
+                }
+            });
+        }
+        if (dto.getCharacterStatsUpdates() != null
+                && dto.getCharacterStatsUpdates().size() > MAX_CHARACTER_UPDATES) {
+            throw BusinessException.badRequest("字符统计数据数量不能超过" + MAX_CHARACTER_UPDATES);
+        }
+    }
+
+    private void validateNonNegative(Integer value, String field, int max) {
+        if (value != null && (value < 0 || value > max)) {
+            throw BusinessException.badRequest(field + "超出允许范围");
+        }
+    }
+
+    private void validateDecimal(BigDecimal value, String field, int max) {
+        if (value != null && (value.signum() < 0 || value.compareTo(BigDecimal.valueOf(max)) > 0)) {
+            throw BusinessException.badRequest(field + "超出允许范围");
+        }
     }
 
     private List<MonsterData> saveMonsters(Integer recordId, List<MonsterDataDTO> monsterDTOs) {

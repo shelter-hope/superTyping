@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface UserConversationRepository extends JpaRepository<UserConversation, Integer> {
     List<UserConversation> findByUserId(Integer userId);
     Optional<UserConversation> findByUserIdAndTargetUserId(Integer userId, Integer targetUserId);
+    Optional<UserConversation> findByIdAndUserId(Integer id, Integer userId);
 }

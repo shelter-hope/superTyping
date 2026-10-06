@@ -191,7 +191,7 @@ export class InputHandler {
       }
     } else {
       // 检查是否是回避
-      if (monster.type === 'EVASIVE' && Math.random() < monster.evadeChance) {
+      if (monster.type === 'EVASIVE' && monster.wasLastInputEvaded()) {
         this.emitEvent({
           type: 'MONSTER_EVADED',
           monster: monster.toJSON(),

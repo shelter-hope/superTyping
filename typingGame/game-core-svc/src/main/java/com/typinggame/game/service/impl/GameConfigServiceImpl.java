@@ -34,9 +34,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class GameConfigServiceImpl implements GameConfigService {
+
+    private static final AtomicLong PLAN_SEQUENCE = new AtomicLong(0);
 
     private static final String DEFAULT_CHAR_TYPES = "lower,upper,number,punct";
     private static final Set<String> ALLOWED_CHAR_TYPES = Set.of("lower", "upper", "number", "punct", "operator", "chinese", "special");
@@ -133,6 +137,8 @@ public class GameConfigServiceImpl implements GameConfigService {
                 customDictIds,
                 systemDictIds));
         return NextRoundResponseDTO.builder()
+                .planVersion(PLAN_SEQUENCE.incrementAndGet())
+                .targetAccuracy(BigDecimal.valueOf(0.85))
                 .adjustParam(adjustParam)
                 .monsters(buildMonsters(words, adjustParam, Math.max(1, roundNum)))
                 .build();
@@ -234,7 +240,7 @@ public class GameConfigServiceImpl implements GameConfigService {
     }
 
     private String pickMonsterType(int index, GameAdjustParam adjustParam) {
-        int bucket = index % 100;
+        int bucket = ThreadLocalRandom.current().nextInt(100);
         if (bucket < adjustParam.getNormalRatio()) return "NORMAL";
         if (bucket < adjustParam.getNormalRatio() + adjustParam.getAttackRatio()) return "ATTACKER";
         if (bucket < adjustParam.getNormalRatio() + adjustParam.getAttackRatio() + adjustParam.getEvasiveRatio()) return "EVASIVE";

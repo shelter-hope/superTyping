@@ -9,6 +9,7 @@ import com.typinggame.dto.user.UserDTO;
 import com.typinggame.entity.user.UserInfo;
 import com.typinggame.user.repository.UserInfoRepository;
 import com.typinggame.common.security.JwtTokenProvider;
+import com.typinggame.common.security.TokenRevocationService;
 import com.typinggame.user.service.AuthService;
 import com.typinggame.user.service.UserRegistrationInitService;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserInfoRepository userInfoRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenRevocationService tokenRevocationService;
     private final UserRegistrationInitService userRegistrationInitService;
 
     @Value("${jwt.expiration}")
@@ -94,7 +96,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public TokenResponseDTO refreshToken(String refreshToken) {
-        if (!jwtTokenProvider.validateToken(refreshToken)) {
+        if (!jwtTokenProvider.validateToken(refreshToken)
+                || !"refresh".equals(jwtTokenProvider.getTokenType(refreshToken))
+                || tokenRevocationService.isRevoked(refreshToken)) {
             throw BusinessException.unauthorized("无效的刷新令牌");
         }
 
@@ -104,6 +108,12 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> BusinessException.notFound("用户不存在"));
 
         return generateTokenResponse(userInfo);
+    }
+
+    @Override
+    public void logout(String accessToken, String refreshToken) {
+        tokenRevocationService.revoke(accessToken);
+        tokenRevocationService.revoke(refreshToken);
     }
 
     @Override
@@ -133,8 +143,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private TokenResponseDTO generateTokenResponse(UserInfo userInfo) {
-        String accessToken = jwtTokenProvider.generateToken(userInfo.getUserId());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(userInfo.getUserId());
+        String accessToken = jwtTokenProvider.generateToken(userInfo.getUserId(), userInfo.getRole());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(userInfo.getUserId(), userInfo.getRole());
 
         TokenResponseDTO tokenResponseDTO = new TokenResponseDTO();
         tokenResponseDTO.setAccessToken(accessToken);

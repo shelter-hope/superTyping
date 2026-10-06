@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
@@ -21,16 +23,30 @@ public class JwtTokenProvider {
     private long jwtRefreshExpiration;
 
     public String generateToken(Integer userId) {
+        return generateToken(userId, "user");
+    }
+
+    public String generateToken(Integer userId, String role) {
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim("role", normalizeRole(role))
+                .claim("tokenType", "access")
+                .id(UUID.randomUUID().toString())
                 .signWith(getSignInKey())
                 .expiration(new java.util.Date(System.currentTimeMillis() + jwtExpiration))
                 .compact();
     }
 
     public String generateRefreshToken(Integer userId) {
+        return generateRefreshToken(userId, "user");
+    }
+
+    public String generateRefreshToken(Integer userId, String role) {
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim("role", normalizeRole(role))
+                .claim("tokenType", "refresh")
+                .id(UUID.randomUUID().toString())
                 .signWith(getSignInKey())
                 .expiration(new java.util.Date(System.currentTimeMillis() + jwtRefreshExpiration))
                 .compact();
@@ -53,6 +69,25 @@ public class JwtTokenProvider {
         return Integer.parseInt(claims.getSubject());
     }
 
+    public String getRoleFromToken(String token) {
+        Claims claims = extractAllClaims(token);
+        return normalizeRole(claims.get("role", String.class));
+    }
+
+    public String getTokenType(String token) {
+        Claims claims = extractAllClaims(token);
+        String tokenType = claims.get("tokenType", String.class);
+        return tokenType == null ? "access" : tokenType;
+    }
+
+    public String getTokenId(String token) {
+        return extractAllClaims(token).getId();
+    }
+
+    public Date getExpiration(String token) {
+        return extractAllClaims(token).getExpiration();
+    }
+
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSignInKey())
@@ -64,6 +99,10 @@ public class JwtTokenProvider {
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    private String normalizeRole(String role) {
+        return "admin".equalsIgnoreCase(role) ? "admin" : "user";
     }
 
     public long getJwtExpiration() {

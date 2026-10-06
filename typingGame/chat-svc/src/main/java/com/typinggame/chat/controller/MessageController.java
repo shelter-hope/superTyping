@@ -39,7 +39,8 @@ public class MessageController {
             @PathVariable Integer conversationId,
             @RequestParam(name = "page", defaultValue = "0") Integer page,
             @RequestParam(name = "size", defaultValue = "20") Integer size) {
-        List<MessageDTO> messages = messageService.getConversationMessages(conversationId, page, size);
+        Integer userId = getCurrentUserId();
+        List<MessageDTO> messages = messageService.getConversationMessages(userId, conversationId, page, size);
         return ResponseEntity.ok(ResultMessage.success(messages));
     }
 
@@ -69,13 +70,13 @@ public class MessageController {
 
     @PatchMapping("/{messageId}/read")
     public ResponseEntity<ResultMessage<Boolean>> markMessageAsRead(@PathVariable Integer messageId) {
-        boolean result = messageService.markMessageAsRead(messageId);
+        boolean result = messageService.markMessageAsRead(getCurrentUserId(), messageId);
         return ResponseEntity.ok(ResultMessage.success(result));
     }
 
     @DeleteMapping("/{messageId}")
     public ResponseEntity<ResultMessage<Boolean>> deleteMessage(@PathVariable Integer messageId) {
-        boolean result = messageService.deleteMessage(messageId);
+        boolean result = messageService.deleteMessage(getCurrentUserId(), messageId);
         return ResponseEntity.ok(ResultMessage.success(result));
     }
 

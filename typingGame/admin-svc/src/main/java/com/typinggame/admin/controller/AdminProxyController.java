@@ -33,7 +33,9 @@ public class AdminProxyController {
 
         String target = resolveTargetService(adminPath);
         String query = request.getQueryString();
-        String url = "http://" + target + "/typingWord/api/v1/internal/admin" + adminPath + (query == null ? "" : "?" + query);
+        String targetContextPath = resolveTargetContextPath(target);
+        String url = "http://" + target + targetContextPath + "/api/v1/internal/admin" + adminPath
+                + (query == null ? "" : "?" + query);
 
         HttpHeaders headers = new HttpHeaders();
         Enumeration<String> names = request.getHeaderNames();
@@ -46,6 +48,16 @@ public class AdminProxyController {
         String body = StreamUtils.copyToString(request.getInputStream(), StandardCharsets.UTF_8);
         HttpMethod method = HttpMethod.valueOf(request.getMethod());
         return restTemplate.exchange(url, method, new HttpEntity<>(body.isEmpty() ? null : body, headers), String.class);
+    }
+
+    private String resolveTargetContextPath(String service) {
+        return switch (service) {
+            case "user-svc" -> "/user-svc";
+            case "game-core-svc" -> "/game-core-svc";
+            case "chat-svc" -> "/chat-svc";
+            case "ai-svc" -> "/ai-svc";
+            default -> throw new IllegalArgumentException("不支持的后台目标服务: " + service);
+        };
     }
 
     private String resolveTargetService(String path) {

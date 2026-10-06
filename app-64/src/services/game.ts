@@ -93,6 +93,8 @@ export interface MonsterDataDTO {
 export interface NextRoundResponse {
   adjustParam: GameAdjustParam;
   monsters: MonsterDataDTO[];
+  planVersion?: number;
+  targetAccuracy?: number;
 }
 
 export async function getNextRound(

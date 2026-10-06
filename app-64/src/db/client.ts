@@ -90,6 +90,7 @@ apiClient.interceptors.response.use((response) => {
     // 登录失败的 401 是凭证错误，不要当成“会话过期”清 token 以外的状态
     if (status === 401 && !isLoginAttempt) {
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
     }
   } else if (error.request) {
     // 常见于 CORS：Network 面板可能仍显示 200，但 JS 读不到响应体

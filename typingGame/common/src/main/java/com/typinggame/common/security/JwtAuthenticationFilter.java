@@ -17,9 +17,11 @@ import java.util.Collections;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenRevocationService tokenRevocationService;
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, TokenRevocationService tokenRevocationService) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.tokenRevocationService = tokenRevocationService;
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {
@@ -35,11 +37,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = getJwtFromRequest(request);
 
-            if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
+            if (StringUtils.hasText(jwt)
+                    && jwtTokenProvider.validateToken(jwt)
+                    && "access".equals(jwtTokenProvider.getTokenType(jwt))
+                    && !tokenRevocationService.isRevoked(jwt)) {
                 Integer userId = jwtTokenProvider.getUserIdFromToken(jwt);
+                String role = jwtTokenProvider.getRoleFromToken(jwt);
 
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        String.valueOf(userId), null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+                        String.valueOf(userId), null,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }

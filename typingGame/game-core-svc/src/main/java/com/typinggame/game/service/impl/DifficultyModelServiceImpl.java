@@ -51,13 +51,16 @@ public class DifficultyModelServiceImpl implements DifficultyModelService {
         double weakRatio = Math.min(1.0, Math.max(0.0, weakCharCount / 10.0));
         int safeRound = Math.max(1, roundNum);
 
-        double rawDifficulty = weight(firstNonNull(userParams == null ? null : userParams.getLastDifficulty(), weights.getInitDifficulty()), 0.30)
-                + weight(firstNonNull(userParams == null ? null : userParams.getWeightRealAccuracy(), weights.getWeightRealAccuracy()), 0.35) * (1 - accuracy)
-                + weight(firstNonNull(userParams == null ? null : userParams.getWeightRealSpeed(), weights.getWeightRealSpeed()), 0.25) * Math.min(1.0, speed / Math.max(1.0, maxSpeed))
-                + weight(firstNonNull(userParams == null ? null : userParams.getWeightCharErrorRate(), weights.getWeightCharErrorRate()), 0.20) * weakRatio
-                + weight(firstNonNull(userParams == null ? null : userParams.getWeightHistoryPeakSpeed(), weights.getWeightHistoryPeakSpeed()), 0.05) * Math.min(1.0, speed / Math.max(1.0, refPeakSpeed))
-                + weight(firstNonNull(userParams == null ? null : userParams.getWeightCurrentRound(), weights.getWeightCurrentRound()), 0.10) * Math.min(1.0, Math.log(safeRound + 1) / Math.log(32));
-        double difficulty = clamp(rawDifficulty, 0.15, 0.95);
+        double previous = weight(firstNonNull(userParams == null ? null : userParams.getLastDifficulty(), weights.getInitDifficulty()), 0.30);
+        double normalizedSpeed = Math.min(1.0, speed / Math.max(1.0, maxSpeed));
+        double historySpeed = Math.min(1.0, speed / Math.max(1.0, refPeakSpeed));
+        double performance = 0.45 * accuracy
+                + 0.20 * normalizedSpeed
+                + 0.10 * historySpeed
+                + 0.10 * (1.0 - weakRatio)
+                + 0.15 * Math.min(1.0, Math.log(safeRound + 1) / Math.log(32));
+        double rawDifficulty = previous + 0.35 * (performance - 0.85);
+        double difficulty = clamp(previous + clamp(rawDifficulty - previous, -0.05, 0.05), 0.15, 0.95);
 
         BigDecimal minSpeed = bounds != null && bounds.getMinSpeed() != null ? bounds.getMinSpeed() : DEFAULT_MIN_SPEED;
         BigDecimal maxMonsterSpeed = bounds != null && bounds.getMaxSpeed() != null ? bounds.getMaxSpeed() : DEFAULT_MAX_SPEED;
@@ -71,10 +74,10 @@ public class DifficultyModelServiceImpl implements DifficultyModelService {
         param.setAvgStringLength((int) clamp(Math.round(minLength + difficulty * (maxLength - minLength)), minLength, maxLength));
 
         int pressure = (int) Math.round(difficulty * 100);
-        param.setNormalRatio((int) clamp(82 - pressure * 0.35, 45, 80));
-        param.setAttackRatio((int) clamp(5 + pressure * 0.12, 5, 20));
-        param.setEvasiveRatio((int) clamp(8 + pressure * 0.10, 5, 25));
-        param.setSmartRatio(Math.max(5, 100 - param.getNormalRatio() - param.getAttackRatio() - param.getEvasiveRatio()));
+        param.setNormalRatio((int) clamp(80 - pressure * 0.30, 50, 80));
+        param.setAttackRatio((int) clamp(5 + pressure * 0.10, 5, 15));
+        param.setEvasiveRatio((int) clamp(10 + pressure * 0.10, 10, 20));
+        param.setSmartRatio(100 - param.getNormalRatio() - param.getAttackRatio() - param.getEvasiveRatio());
         return param;
     }
 
@@ -83,7 +86,7 @@ public class DifficultyModelServiceImpl implements DifficultyModelService {
     }
 
     private double normalizeAccuracy(Double accuracy) {
-        if (accuracy == null || accuracy <= 0) return 0.9;
+        if (accuracy == null) return 0.85;
         return accuracy > 1 ? clamp(accuracy / 100.0, 0, 1) : clamp(accuracy, 0, 1);
     }
 

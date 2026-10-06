@@ -208,10 +208,8 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
                 count ?? engine.getAdaptiveSystem().getCurrentMaxMonsters()
               );
             }
-            if (currentConfig.gameMode === 'dictionary') {
-              const roundMonsters = toRoundMonsters(response?.monsters);
-              if (roundMonsters?.length) engine.setRoundMonsters(roundMonsters);
-            }
+            const roundMonsters = toRoundMonsters(response?.monsters);
+            if (roundMonsters?.length) engine.setRoundMonsters(roundMonsters);
           })
           .catch(() => {
             toast({ title: '下一轮参数加载失败', description: '已继续使用当前难度参数', variant: 'destructive' });
@@ -238,7 +236,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
     gameOverHandledRef.current = false;
 
     const currentConfig = configRef.current;
-    const initialRoundMonsters = currentConfig.gameMode === 'dictionary' ? toRoundMonsters(startParams.monsters) : undefined;
+    const initialRoundMonsters = toRoundMonsters(startParams.monsters);
     const engine = new GameEngine(
       createEngineConfig(currentConfig, startParams, soundEnabledRef.current),
       createAdaptiveConfig(startParams),

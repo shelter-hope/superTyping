@@ -53,6 +53,8 @@ export class GameEngine {
 
   // 怪物历史记录
   private monsterHistory: any[] = [];
+  private spawnedMinionsThisRound = 0;
+  private static readonly MAX_MINIONS_PER_ROUND = 16;
 
   /** 本轮需生成的怪物总数（由模型/后端调节）；无尽/词源模式：全部消灭后进入下一轮 */
   private roundMonsterTotal: number = 0;
@@ -98,12 +100,16 @@ export class GameEngine {
     this.eventHandlers = [];
     if (initialRoundMonsters != null && initialRoundMonsters.length > 0) {
       this.roundMonstersQueue = [...initialRoundMonsters];
+      this.roundMonsterTotal = initialRoundMonsters.length;
     }
   }
 
   /** 设置下一轮怪物列表（词源界定模式在 ROUND_COMPLETE 后由 GamePage 调用） */
   setRoundMonsters(monsters: RoundMonsterItem[]): void {
     this.roundMonstersQueue = monsters != null ? [...monsters] : [];
+    if (this.roundMonstersQueue.length > 0) {
+      this.roundMonsterTotal = this.roundMonstersQueue.length;
+    }
   }
 
   // 初始化统计
@@ -196,9 +202,6 @@ export class GameEngine {
 
     // 更新统计
     this.updateStats();
-
-    // 更新自适应系统
-    this.adaptiveSystem.update(this.stats);
 
     // 检查轮次结束
     this.checkRoundComplete();
@@ -393,6 +396,7 @@ export class GameEngine {
 
   // 生成小怪（ATTACKER类型）
   private spawnMinion(parent: MonsterEntity): void {
+    if (this.spawnedMinionsThisRound >= GameEngine.MAX_MINIONS_PER_ROUND) return;
     const speed = this.adaptiveSystem.getCurrentSpeed();
     const minion = this.generator.generate(this.config.canvasWidth, speed);
     
@@ -417,11 +421,12 @@ export class GameEngine {
     minion.isRoundMonster = false;
 
     this.monsters.push(minion);
+    this.spawnedMinionsThisRound++;
   }
 
   // 爆发生成多个小怪（ATTACKER类型）
   private spawnBurst(parent: MonsterEntity): void {
-    const count = 8;
+    const count = Math.min(8, GameEngine.MAX_MINIONS_PER_ROUND - this.spawnedMinionsThisRound);
     for (let i = 0; i < count; i++) {
       const char = this.characterPool[Math.floor(Math.random() * this.characterPool.length)] || 'a';
       const speed = this.adaptiveSystem.getCurrentSpeed();
@@ -449,6 +454,7 @@ export class GameEngine {
       minion.isRoundMonster = false;
 
       this.monsters.push(minion);
+      this.spawnedMinionsThisRound++;
     }
   }
 
@@ -502,6 +508,7 @@ export class GameEngine {
       // 无尽/词源模式：本轮固定数量怪物全部消灭后进入下一轮，不用时间界定
       const roundMonstersAlive = this.monsters.filter(m => m.isAlive && m.isRoundMonster).length;
       if (this.roundMonstersSpawned >= this.roundMonsterTotal && roundMonstersAlive === 0) {
+        this.monsters = this.monsters.filter(m => m.isRoundMonster);
         this.completeRound();
       }
       return;
@@ -516,22 +523,6 @@ export class GameEngine {
 
   // 完成轮次
   private completeRound(): void {
-    // 更新进化历史
-    this.generator.updateEvolutionHistory(this.monsters.map(m => m.toJSON()));
-
-    // 更新易错字符
-    const weakChars = this.adaptiveSystem.getWeakCharacters();
-    this.generator.updateWeakCharacters(weakChars);
-
-    // 更新生成配置
-    const recommendedLength = this.adaptiveSystem.getRecommendedLength(this.stats.accuracy);
-    const recommendedWeights = this.adaptiveSystem.getRecommendedTypeWeights(this.stats.accuracy);
-
-    this.generator.updateConfig({
-      ...recommendedWeights,
-      preferredLength: recommendedLength,
-    });
-
     // 发送事件（GamePage 会拉取下一轮参数并 setRoundMonsterTotal / applyAdjustParam）
     this.emitEvent({
       type: 'ROUND_COMPLETE',
@@ -542,6 +533,7 @@ export class GameEngine {
     // 进入下一轮；下一轮总数由 applyAdjustParam / setRoundMonsterTotal 设置
     this.stats.round++;
     this.roundMonstersSpawned = 0;
+    this.spawnedMinionsThisRound = 0;
   }
 
   // 游戏结束
@@ -623,7 +615,8 @@ export class GameEngine {
       speed: monster.speed,
       survivalTime: survivalTime,
       destroyCostTime: outcome === 'KILLED' ? survivalTime : null,
-      totalCount: monster.text.length,
+      // 输入总次数包含正确输入和重复错误输入，避免错误率被低估。
+      totalCount: monster.text.length + (monster.errorCount || 0),
       inputErrorCount: monster.errorCount || 0,
       isTrueMean: 0, // 暂时默认为0，后续可根据词库判断
       score: score,
@@ -689,7 +682,9 @@ export class GameEngine {
   applyAdjustParam(speed: number, maxMonsters: number): void {
     this.adaptiveSystem.setCurrentSpeed(speed);
     this.adaptiveSystem.setCurrentMaxMonsters(maxMonsters);
-    this.roundMonsterTotal = maxMonsters;
+    if (this.roundMonstersQueue.length === 0) {
+      this.roundMonsterTotal = maxMonsters;
+    }
   }
 
   // 获取字符统计

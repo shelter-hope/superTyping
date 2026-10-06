@@ -14,8 +14,8 @@ spring:
         ip: 127.0.0.1
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/typing_word_game?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+     username: ${MYSQL_USER:root}
+     password: ${MYSQL_PASSWORD:123456}
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
       initial-size: 10
@@ -33,16 +33,16 @@ spring:
     redis:
       host: 127.0.0.1
       port: 6379
-      password: 123456
+       password: ${REDIS_PASSWORD:123456}
       database: 0
 
 jwt:
-  secret: H5FQLg1tDHnqxGXoNhAKDvSwQfkQLDa4W+I72dPruXE=
+  secret: ${JWT_SECRET:H5FQLg1tDHnqxGXoNhAKDvSwQfkQLDa4W+I72dPruXE=}
 
 ai:
   llm:
     url: https://api.coze.cn/v1/workflow/run
-    api-key: cztei_lksF2PzdPV7SaH8aNEJByRI7njNwsMQFglF34rR5inSDZRVGg6yjwrfk6zhbKNxGU
+    api-key: ${AI_LLM_API_KEY:cztei_lksF2PzdPV7SaH8aNEJByRI7njNwsMQFglF34rR5inSDZRVGg6yjwrfk6zhbKNxGU}
     workflow-id: 7593204689836998708
   default-robot-id: 1
   default-conversation-title: "默认"
@@ -51,10 +51,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+         include: health,info
   endpoint:
     health:
-      show-details: always
+       show-details: never
 
 logging:
   level:

@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Component
@@ -40,7 +41,8 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
     @Override
     public List<String> generateWords(WordSourceContext context) {
         Set<String> pool = new LinkedHashSet<>();
-        pool.addAll(loadParentStrings(context.getUserId()));
+        List<String> parentStrings = loadParentStrings(context.getUserId());
+        pool.addAll(parentStrings);
         pool.addAll(context.getFocusChars());
         List<String> charTypes = context.getCharTypes().isEmpty() ? List.of("lower", "upper", "number", "punct") : context.getCharTypes();
         for (String type : charTypes) {
@@ -49,7 +51,55 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
         if (pool.isEmpty()) {
             pool.addAll(LOWER);
         }
+        if (context.getGameMode() == GameMode.ENDLESS_ADAPT && parentStrings.size() >= 2) {
+            return generateEvolvedWords(parentStrings, context.getFocusChars(), context.getCount(), context.getLength(), new ArrayList<>(pool));
+        }
         return buildFromPool(new ArrayList<>(pool), context.getCount(), context.getLength());
+    }
+
+    private List<String> generateEvolvedWords(List<String> parents, List<String> weakChars,
+                                               int count, int length, List<String> fallbackPool) {
+        int safeCount = Math.max(3, Math.min(25, count));
+        int safeLength = Math.max(1, Math.min(15, length));
+        Set<String> result = new LinkedHashSet<>();
+        int attempts = 0;
+        while (result.size() < safeCount && attempts++ < safeCount * 8) {
+            String first = parents.get(ThreadLocalRandom.current().nextInt(parents.size()));
+            String second = parents.get(ThreadLocalRandom.current().nextInt(parents.size()));
+            String child = crossover(first, second, safeLength);
+            if (!weakChars.isEmpty() && ThreadLocalRandom.current().nextDouble() < 0.25) {
+                child = mutateWeakCharacter(child, weakChars);
+            }
+            result.add(child);
+        }
+        int index = 0;
+        while (result.size() < safeCount) {
+            result.add(buildFromPool(fallbackPool, index + 1, safeLength).get(index));
+            index++;
+        }
+        return new ArrayList<>(result).subList(0, safeCount);
+    }
+
+    private String crossover(String first, String second, int length) {
+        String left = first == null ? "" : first;
+        String right = second == null ? "" : second;
+        int cut = left.isEmpty() ? 0 : ThreadLocalRandom.current().nextInt(left.length() + 1);
+        String child = left.substring(0, cut) + right.substring(Math.min(cut, right.length()));
+        if (child.isEmpty()) child = left.isEmpty() ? right : left;
+        StringBuilder normalized = new StringBuilder(child);
+        while (normalized.length() < length) {
+            normalized.append(normalized.charAt(normalized.length() % Math.max(1, normalized.length())));
+        }
+        return normalized.substring(0, Math.min(length, normalized.length()));
+    }
+
+    private String mutateWeakCharacter(String value, List<String> weakChars) {
+        if (value.isEmpty()) return value;
+        char[] chars = value.toCharArray();
+        int position = ThreadLocalRandom.current().nextInt(chars.length);
+        String weak = weakChars.get(ThreadLocalRandom.current().nextInt(weakChars.size()));
+        if (weak != null && !weak.isEmpty()) chars[position] = weak.charAt(0);
+        return new String(chars);
     }
 
     private List<String> loadParentStrings(Integer userId) {

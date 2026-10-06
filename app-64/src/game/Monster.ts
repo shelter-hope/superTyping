@@ -24,6 +24,7 @@ export class MonsterEntity implements Monster {
   ejectionDirection: { x: number; y: number } | null;
   ejectionDistance: number;
   ejectionTargetDistance: number;
+  private lastInputEvaded: boolean;
 
   /** 是否计入本轮数量（本轮固定数量全部消灭后进入下一轮；ATTACKER 小怪不计入） */
   isRoundMonster: boolean;
@@ -49,6 +50,7 @@ export class MonsterEntity implements Monster {
     this.isLocked = false;
     this.createdAt = Date.now();
     this.errorCount = 0;
+    this.lastInputEvaded = false;
     this.evadeChance = type === 'EVASIVE' ? 0.3 : 0;
     this.isRoundMonster = true;
 
@@ -119,10 +121,13 @@ export class MonsterEntity implements Monster {
   handleInput(char: string): boolean {
     if (!this.isAlive || !this.isLocked) return false;
 
+    this.lastInputEvaded = false;
+
     const expectedChar = this.text[this.currentIndex];
     
     // EVASIVE类型有概率回避
     if (this.type === 'EVASIVE' && Math.random() < this.evadeChance) {
+      this.lastInputEvaded = true;
       return false; // 回避成功
     }
 
@@ -140,6 +145,10 @@ export class MonsterEntity implements Monster {
       this.errorCount++;
       return false;
     }
+  }
+
+  wasLastInputEvaded(): boolean {
+    return this.lastInputEvaded;
   }
 
   // 获取剩余字符
