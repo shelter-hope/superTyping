@@ -73,6 +73,11 @@ public class GameRecordServiceImpl implements GameRecordService {
         record.setAvgAccuracy(recordDTO.getAvgAccuracy());
         record.setPeakAccuracy(recordDTO.getPeakAccuracy());
         record.setGameDuration(recordDTO.getGameDuration());
+        record.setSessionId(recordDTO.getSessionId());
+        record.setLastRoundId(recordDTO.getLastRoundId());
+        record.setAccuracyRatio(resolveAccuracyRatio(recordDTO));
+        record.setGameDurationMs(resolveDurationMillis(recordDTO));
+        record.setDataVersion(recordDTO.getDataVersion() == null ? 1 : recordDTO.getDataVersion());
         record.setCreateTime(new Date());
 
         record = gameRecordRepository.save(record);
@@ -174,9 +179,39 @@ public class GameRecordServiceImpl implements GameRecordService {
             md.setDifficultyLevel(mdDTO.getDifficultyLevel());
             md.setSpawnWave(mdDTO.getSpawnWave());
             md.setIsParent(Boolean.TRUE.equals(mdDTO.getIsParent()));
+            md.setRoundId(mdDTO.getRoundId());
+            md.setInputCount(mdDTO.getInputCount() == null ? mdDTO.getTotalCount() : mdDTO.getInputCount());
+            md.setCorrectCount(mdDTO.getCorrectCount() == null
+                    ? Math.max(0, safeInt(md.getInputCount()) - safeInt(mdDTO.getInputErrorCount()))
+                    : mdDTO.getCorrectCount());
+            md.setErrorCount(mdDTO.getErrorCount() == null ? mdDTO.getInputErrorCount() : mdDTO.getErrorCount());
+            md.setResult(mdDTO.getResult());
+            md.setGeneration(mdDTO.getGeneration());
+            md.setPlanVersion(mdDTO.getPlanVersion());
             monsters.add(md);
         }
         return monsterDataRepository.saveAll(monsters);
+    }
+
+    private BigDecimal resolveAccuracyRatio(GameRecordUploadDTO dto) {
+        if (dto.getAccuracyRatio() != null) {
+            return dto.getAccuracyRatio();
+        }
+        if (dto.getAvgAccuracy() == null) {
+            return null;
+        }
+        return dto.getAvgAccuracy().divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP);
+    }
+
+    private Long resolveDurationMillis(GameRecordUploadDTO dto) {
+        if (dto.getGameDurationMs() != null) {
+            return dto.getGameDurationMs();
+        }
+        return dto.getGameDuration() == null ? null : dto.getGameDuration() * 1000L;
+    }
+
+    private int safeInt(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private void syncLeaderboardAndUserSummary(GameRecord record) {

@@ -58,6 +58,21 @@ public class GameRecord {
     @Column(name = "game_duration")
     private Integer gameDuration; // 游戏时长（毫秒）
 
+    @Column(name = "session_id")
+    private Long sessionId; // 新版游戏会话ID
+
+    @Column(name = "last_round_id")
+    private Long lastRoundId; // 最后完成轮次ID
+
+    @Column(name = "accuracy_ratio", precision = 6, scale = 4)
+    private BigDecimal accuracyRatio; // 新口径准确率（0~1）
+
+    @Column(name = "game_duration_ms")
+    private Long gameDurationMs; // 新口径游戏时长（毫秒）
+
+    @Column(name = "data_version")
+    private Integer dataVersion = 1; // 数据口径版本
+
     @Column(name = "create_time")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createTime; // 记录时间

@@ -17,4 +17,11 @@ public class MonsterDataDTO {
     private Integer difficultyLevel;
     private Integer spawnWave;
     private Boolean isParent;
+    private Long roundId;
+    private Integer inputCount;
+    private Integer correctCount;
+    private Integer errorCount;
+    private String result;
+    private Integer generation;
+    private Long planVersion;
 }

@@ -1,11 +1,16 @@
 package com.typinggame.game.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typinggame.dto.game.GameAdjustParam;
 import com.typinggame.dto.game.GameCharTypeConfigDTO;
 import com.typinggame.dto.game.GameCharTypeConfigUpdateDTO;
 import com.typinggame.dto.game.GameRecommendDTO;
 import com.typinggame.dto.game.MonsterDataDTO;
 import com.typinggame.dto.game.NextRoundResponseDTO;
+import com.typinggame.dto.game.GameSessionCreateDTO;
+import com.typinggame.dto.game.GameSessionDTO;
 import com.typinggame.dto.stats.TrainingSuggestionDTO;
 import com.typinggame.entity.config.GameCharTypeConfig;
 import com.typinggame.entity.config.SystemGameModeConfig;
@@ -21,6 +26,10 @@ import com.typinggame.game.service.GameConfigService;
 import com.typinggame.game.service.StatsService;
 import com.typinggame.game.service.word.WordSourceContext;
 import com.typinggame.game.service.word.WordSourceStrategy;
+import com.typinggame.entity.game.GameRound;
+import com.typinggame.entity.game.GameSession;
+import com.typinggame.game.repository.GameRoundRepository;
+import com.typinggame.game.repository.GameSessionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +61,9 @@ public class GameConfigServiceImpl implements GameConfigService {
     private final GameCharTypeConfigRepository charTypeConfigRepository;
     private final SystemMonsterTypeConfigRepository monsterTypeConfigRepository;
     private final List<WordSourceStrategy> wordSourceStrategies;
+    private final GameSessionRepository gameSessionRepository;
+    private final GameRoundRepository gameRoundRepository;
+    private final ObjectMapper objectMapper;
 
     public GameConfigServiceImpl(StatsService statsService,
                                  CharacterStatsService characterStatsService,
@@ -59,7 +71,10 @@ public class GameConfigServiceImpl implements GameConfigService {
                                  GameModeConfigRepository gameModeConfigRepository,
                                  GameCharTypeConfigRepository charTypeConfigRepository,
                                  SystemMonsterTypeConfigRepository monsterTypeConfigRepository,
-                                 List<WordSourceStrategy> wordSourceStrategies) {
+                                 List<WordSourceStrategy> wordSourceStrategies,
+                                 GameSessionRepository gameSessionRepository,
+                                 GameRoundRepository gameRoundRepository,
+                                 ObjectMapper objectMapper) {
         this.statsService = statsService;
         this.characterStatsService = characterStatsService;
         this.difficultyModelService = difficultyModelService;
@@ -67,6 +82,9 @@ public class GameConfigServiceImpl implements GameConfigService {
         this.charTypeConfigRepository = charTypeConfigRepository;
         this.monsterTypeConfigRepository = monsterTypeConfigRepository;
         this.wordSourceStrategies = wordSourceStrategies;
+        this.gameSessionRepository = gameSessionRepository;
+        this.gameRoundRepository = gameRoundRepository;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -119,7 +137,18 @@ public class GameConfigServiceImpl implements GameConfigService {
 
     @Override
     public NextRoundResponseDTO getNextRound(Integer userId, int roundNum, String gameMode, List<Integer> customDictIds, List<Integer> systemDictIds) {
+        return getNextRound(userId, null, roundNum, gameMode, customDictIds, systemDictIds);
+    }
+
+    @Override
+    @Transactional
+    public NextRoundResponseDTO getNextRound(Integer userId, Long sessionId, int roundNum, String gameMode,
+                                             List<Integer> customDictIds, List<Integer> systemDictIds) {
         GameMode mode = GameMode.fromClientMode(gameMode);
+        if (sessionId != null) {
+            gameSessionRepository.findBySessionIdAndUserId(sessionId, userId)
+                    .orElseThrow(() -> new IllegalArgumentException("游戏会话不存在或无权访问"));
+        }
         TrainingSuggestionDTO suggestion = statsService.getTrainingSuggestions(userId);
         List<CharacterStats> weakChars = characterStatsService.getWeakChars(userId, 10);
         List<String> focusChars = weakChars.stream()
@@ -136,12 +165,64 @@ public class GameConfigServiceImpl implements GameConfigService {
                 parseCharTypes(resolveCharTypeConfig(userId, mode).getCharType()),
                 customDictIds,
                 systemDictIds));
-        return NextRoundResponseDTO.builder()
-                .planVersion(PLAN_SEQUENCE.incrementAndGet())
+        long planVersion = PLAN_SEQUENCE.incrementAndGet();
+        NextRoundResponseDTO response = NextRoundResponseDTO.builder()
+                .planVersion(planVersion)
                 .targetAccuracy(BigDecimal.valueOf(0.85))
                 .adjustParam(adjustParam)
                 .monsters(buildMonsters(words, adjustParam, Math.max(1, roundNum)))
                 .build();
+        if (sessionId != null) {
+            GameRound round = gameRoundRepository.findBySessionIdAndRoundNum(sessionId, roundNum).orElseGet(GameRound::new);
+            if (round.getRoundId() != null && round.getPlanPayload() != null && !round.getPlanPayload().isBlank()) {
+                try {
+                    response.setPlanVersion(round.getPlanVersion());
+                    response.setMonsters(objectMapper.readValue(round.getPlanPayload(), new TypeReference<List<MonsterDataDTO>>() {}));
+                    return response;
+                } catch (JsonProcessingException ignored) {
+                    // Invalid historical payload is regenerated and replaced below.
+                }
+            }
+            round.setSessionId(sessionId);
+            round.setRoundNum(roundNum);
+            round.setPlanVersion(planVersion);
+            round.setFormulaVersion("v1");
+            round.setTargetAccuracy(response.getTargetAccuracy());
+            round.setMonsterSpeed(adjustParam.getMonsterSpeed());
+            round.setMonsterCount(adjustParam.getMonsterCount());
+            round.setStringLength(adjustParam.getAvgStringLength());
+            round.setNormalRatio(adjustParam.getNormalRatio());
+            round.setAttackerRatio(adjustParam.getAttackRatio());
+            round.setEvasiveRatio(adjustParam.getEvasiveRatio());
+            round.setSmartRatio(adjustParam.getSmartRatio());
+            try {
+                round.setPlanPayload(objectMapper.writeValueAsString(response.getMonsters()));
+            } catch (JsonProcessingException e) {
+                throw new IllegalStateException("无法保存游戏轮次计划", e);
+            }
+            round.setStatus("CREATED");
+            round.setCreatedAt(new Date());
+            gameRoundRepository.save(round);
+        }
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public GameSessionDTO createSession(Integer userId, GameSessionCreateDTO request) {
+        GameMode mode = GameMode.fromClientMode(request == null ? null : request.getGameMode());
+        Date now = new Date();
+        GameSession session = new GameSession();
+        session.setUserId(userId);
+        session.setGameMode(mode.name());
+        session.setStatus("RUNNING");
+        session.setCurrentRound(1);
+        session.setStartTime(now);
+        session.setCreatedAt(now);
+        session.setUpdatedAt(now);
+        session = gameSessionRepository.save(session);
+        return GameSessionDTO.builder().sessionId(session.getSessionId()).gameMode(mode.toClientMode())
+                .status(session.getStatus()).currentRound(session.getCurrentRound()).build();
     }
 
     private GameCharTypeConfig resolveCharTypeConfig(Integer userId, GameMode mode) {

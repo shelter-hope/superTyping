@@ -33,6 +33,11 @@ export interface GameRecord {
   avgAccuracy: number;
   peakAccuracy: number;
   gameDuration: number;
+  sessionId?: number;
+  lastRoundId?: number;
+  accuracyRatio?: number;
+  gameDurationMs?: number;
+  dataVersion?: number;
   createTime?: string;
 }
 
@@ -45,12 +50,34 @@ export interface CharacterStatsUpdateDTO {
 
 /** 上传游戏记录时的请求体，对应后端 GameRecordUploadDTO；可含怪物列表与字符统计 */
 export type GameRecordUpload = Omit<GameRecord, 'recordId' | 'createTime' | 'userId'> & {
-  monsters?: unknown[];
+  monsters?: MonsterDataUpload[];
   customDictIds?: number[];
   systemDictIds?: number[];
   /** 本局每个字符的输入结果，用于更新 character_stats，个人页「字符统计（错误最多）」展示 */
   characterStatsUpdates?: CharacterStatsUpdateDTO[];
 };
+
+export interface MonsterDataUpload {
+  monsterType?: string;
+  targetStr?: string;
+  speed?: number;
+  survivalTime?: number;
+  destroyCostTime?: number;
+  totalCount?: number;
+  inputErrorCount?: number;
+  isTrueMean?: number;
+  score?: number;
+  difficultyLevel?: number;
+  spawnWave?: number;
+  isParent?: boolean;
+  roundId?: number;
+  inputCount?: number;
+  correctCount?: number;
+  errorCount?: number;
+  result?: 'KILLED' | 'MISSED' | 'EVADED' | 'COLLISION' | 'TIMEOUT' | 'ABANDONED';
+  generation?: number;
+  planVersion?: number;
+}
 
 // ==================== 字符统计 ====================
 

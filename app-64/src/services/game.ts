@@ -88,6 +88,13 @@ export interface MonsterDataDTO {
   difficultyLevel?: number;
   spawnWave?: number;
   isParent?: boolean;
+  roundId?: number;
+  inputCount?: number;
+  correctCount?: number;
+  errorCount?: number;
+  result?: string;
+  generation?: number;
+  planVersion?: number;
 }
 
 export interface NextRoundResponse {
@@ -97,13 +104,27 @@ export interface NextRoundResponse {
   targetAccuracy?: number;
 }
 
+export interface GameSessionResponse {
+  sessionId: number;
+  gameMode: string;
+  status: string;
+  currentRound: number;
+}
+
+export async function createGameSession(gameMode: string): Promise<GameSessionResponse> {
+  const response = await apiClient.post('/game/config/sessions', { gameMode });
+  return response.data.data;
+}
+
 export async function getNextRound(
   roundNum: number,
   gameMode: string,
   customDictIds?: number[],
-  systemDictIds?: number[]
+  systemDictIds?: number[],
+  sessionId?: number
 ): Promise<NextRoundResponse> {
   const params: Record<string, unknown> = { roundNum, gameMode };
+  if (sessionId != null) params.sessionId = sessionId;
   if (customDictIds?.length) params.customDictIds = customDictIds;
   if (systemDictIds?.length) params.systemDictIds = systemDictIds;
   const response = await apiClient.get('/game/config/next-round', { params });

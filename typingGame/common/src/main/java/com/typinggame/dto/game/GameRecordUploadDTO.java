@@ -19,6 +19,11 @@ public class GameRecordUploadDTO {
     private BigDecimal avgAccuracy; // 对应 avgAccuracy
     private BigDecimal peakAccuracy; // 对应 peakAccuracy
     private Integer gameDuration; // 对应 gameDuration
+    private Long sessionId;
+    private Long lastRoundId;
+    private BigDecimal accuracyRatio;
+    private Long gameDurationMs;
+    private Integer dataVersion;
 
     private List<MonsterDataDTO> monsters; // 游戏过程中的怪物数据
 

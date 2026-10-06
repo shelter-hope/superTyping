@@ -59,4 +59,25 @@ public class MonsterData {
 
     @Column(name = "is_parent")
     private Boolean isParent; // 是否为下一轮父本（1=是/0=否）
+
+    @Column(name = "round_id")
+    private Long roundId; // 新版游戏轮次ID
+
+    @Column(name = "input_count")
+    private Integer inputCount; // 输入总次数
+
+    @Column(name = "correct_count")
+    private Integer correctCount; // 正确输入次数
+
+    @Column(name = "error_count")
+    private Integer errorCount; // 错误输入次数
+
+    @Column(name = "result")
+    private String result; // KILLED/MISSED/EVADED/COLLISION/TIMEOUT
+
+    @Column(name = "generation")
+    private Integer generation; // 遗传代数
+
+    @Column(name = "plan_version")
+    private Long planVersion; // RoundPlan版本
 }
