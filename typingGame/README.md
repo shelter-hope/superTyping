@@ -227,7 +227,8 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 - **父本选择**：根据玩家表现选择优秀的字符字符串作为父本
 - **切片重组**：将多个父本字符串切片后重新组合
 - **定向变异**：针对玩家薄弱字符进行强化训练
-- **难度系数 Dₜ**：综合评估玩家当前水平的难度指标
+- **难度系数 Dₜ**：综合评估玩家当前水平的难度指标。生效参数来自 `game_rule_config`（迁移 `DB/005-game-rule-config.sql`），由 `RuleConfigService` 缓存；缺失时回退代码默认值。
+- **内部管理**：`GET/PUT /api/v1/internal/admin/game-rules/{key}`、`POST /{key}/publish`、`GET /{key}/versions`、`POST /game-rules/simulate`。`key` 为 `difficulty` 或 `genetic`。结算写入 `difficulty_before/after`，下一轮读取上一轮 `actual_accuracy`。
 
 ### 数据统计与分析模块
 

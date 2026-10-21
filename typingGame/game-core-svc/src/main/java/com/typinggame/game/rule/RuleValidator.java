@@ -1,0 +1,45 @@
+package com.typinggame.game.rule;
+
+public final class RuleValidator {
+    private RuleValidator() {
+    }
+
+    public static void validateDifficulty(DifficultyRule rule) {
+        if (rule == null) throw new IllegalArgumentException("难度规则不能为空");
+        double sum = rule.getWeightAccuracy() + rule.getWeightNormalizedSpeed() + rule.getWeightHistorySpeed()
+                + rule.getWeightComposure() + rule.getWeightRound();
+        if (Math.abs(sum - 1.0) > 0.001) {
+            throw new IllegalArgumentException("难度权重之和必须为 1，当前为 " + sum);
+        }
+        requireRange("目标准确率", rule.getTargetAccuracy(), 0, 1);
+        requireRange("增益", rule.getGain(), 0, 2);
+        requireRange("步长", rule.getStep(), 0, 1);
+        if (rule.getMinDifficulty() < 0 || rule.getMaxDifficulty() > 1 || rule.getMinDifficulty() >= rule.getMaxDifficulty()) {
+            throw new IllegalArgumentException("难度区间不合法");
+        }
+        if (rule.getInitialDifficulty() < rule.getMinDifficulty() || rule.getInitialDifficulty() > rule.getMaxDifficulty()) {
+            throw new IllegalArgumentException("初始难度超出区间");
+        }
+        if (rule.getCountMin() < 1 || rule.getCountMax() < rule.getCountMin()) {
+            throw new IllegalArgumentException("怪物数量区间不合法");
+        }
+    }
+
+    public static void validateGenetic(GeneticRule rule) {
+        if (rule == null) throw new IllegalArgumentException("遗传规则不能为空");
+        if (rule.getInRoundParentLimit() < 1 || rule.getCrossRoundParentLimit() < 1) {
+            throw new IllegalArgumentException("父本上限必须大于 0");
+        }
+        requireRange("局内变异率", rule.getInRoundMutationRate(), 0, 1);
+        requireRange("跨局变异率", rule.getCrossRoundMutationRate(), 0, 1);
+        if (rule.getCrossover() == null || rule.getCrossover().isBlank()) {
+            throw new IllegalArgumentException("交叉方式不能为空");
+        }
+    }
+
+    private static void requireRange(String name, double value, double min, double max) {
+        if (value < min || value > max) {
+            throw new IllegalArgumentException(name + "超出区间 [" + min + ", " + max + "]");
+        }
+    }
+}
