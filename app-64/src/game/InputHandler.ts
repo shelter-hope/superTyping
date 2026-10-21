@@ -2,6 +2,14 @@
 import type { Monster, InputMode, GameEventHandler } from './types';
 import { MonsterEntity } from './Monster';
 
+export type InputOutcome = 'correct' | 'wrong' | 'ignore';
+
+export function isTypingKey(event: { key: string; ctrlKey?: boolean; altKey?: boolean; metaKey?: boolean }): boolean {
+  if (event.ctrlKey || event.altKey || event.metaKey) return false;
+  if (event.key === 'Tab' || event.key === 'Shift' || event.key === 'CapsLock' || event.key === '`' || event.key === 'F2') return false;
+  return event.key.length === 1 || event.key === 'Enter';
+}
+
 export class InputHandler {
   private inputMode: InputMode;
   private lockedMonster: MonsterEntity | null;
@@ -20,38 +28,37 @@ export class InputHandler {
   }
 
   // 处理键盘输入
-  handleKeyDown(event: KeyboardEvent, monsters: MonsterEntity[]): boolean {
+  handleKeyDown(event: KeyboardEvent, monsters: MonsterEntity[]): InputOutcome {
     // 处理特殊键
-    if (this.handleSpecialKey(event, monsters)) {
-      return true;
-    }
+    const special = this.handleSpecialKey(event, monsters);
+    if (special) return special;
 
     // 处理普通字符输入
     return this.handleCharacterInput(event, monsters);
   }
 
   // 处理特殊键
-  private handleSpecialKey(event: KeyboardEvent, monsters: MonsterEntity[]): boolean {
-    // Tab键：取消锁定
+  private handleSpecialKey(event: KeyboardEvent, monsters: MonsterEntity[]): InputOutcome | null {
     if (event.key === 'Tab') {
       event.preventDefault();
       this.unlockMonster();
-      return true;
+      return 'ignore';
     }
 
-    // Shift键：在游戏内用于中英文输入模式切换
     if (event.key === 'Shift') {
+      this.shiftPressed = true;
+      return 'ignore';
+    }
+
+    if (event.key === '`' || event.key === 'F2') {
       event.preventDefault();
       this.toggleInputMode();
-      // 不再将 Shift 视为大小写辅助键，专门用来切换输入模式
-      this.shiftPressed = false;
-      return true;
+      return 'ignore';
     }
 
-    // Caps Lock：切换大小写
     if (event.key === 'CapsLock') {
       this.capsLock = !this.capsLock;
-      return true;
+      return 'ignore';
     }
 
     // 空格或Ctrl：发射中文（如果在中文模式）
@@ -60,7 +67,7 @@ export class InputHandler {
       return this.fireChineseInput(monsters);
     }
 
-    return false;
+    return null;
   }
 
   // 处理键盘释放
@@ -71,16 +78,8 @@ export class InputHandler {
   }
 
   // 处理字符输入
-  private handleCharacterInput(event: KeyboardEvent, monsters: MonsterEntity[]): boolean {
-    // 忽略控制键
-    if (event.ctrlKey || event.altKey || event.metaKey) {
-      return false;
-    }
-
-    // 忽略特殊键
-    if (event.key.length > 1 && event.key !== 'Enter') {
-      return false;
-    }
+  private handleCharacterInput(event: KeyboardEvent, monsters: MonsterEntity[]): InputOutcome {
+    if (!isTypingKey(event)) return 'ignore';
 
     let char = event.key;
 
@@ -92,7 +91,7 @@ export class InputHandler {
     // 中文模式：添加到缓冲区
     if (this.inputMode === 'CHINESE') {
       this.chineseBuffer += char;
-      return true;
+      return 'ignore';
     }
 
     // 英文模式：直接处理
@@ -106,8 +105,8 @@ export class InputHandler {
   }
 
   // 发射中文输入
-  private fireChineseInput(monsters: MonsterEntity[]): boolean {
-    if (!this.chineseBuffer) return false;
+  private fireChineseInput(monsters: MonsterEntity[]): InputOutcome {
+    if (!this.chineseBuffer) return 'ignore';
 
     const result = this.processInput(this.chineseBuffer, monsters);
     this.chineseBuffer = '';
@@ -115,17 +114,16 @@ export class InputHandler {
   }
 
   // 处理输入
-  private processInput(char: string, monsters: MonsterEntity[]): boolean {
+  private processInput(char: string, monsters: MonsterEntity[]): InputOutcome {
     // 如果有锁定的怪兽，直接攻击
     if (this.lockedMonster) {
-      return this.attackMonster(this.lockedMonster, char);
+      return this.attackMonster(this.lockedMonster, char) ? 'correct' : 'wrong';
     }
 
-    // 否则，根据首字符锁定怪兽
     const target = this.findTargetMonster(char, monsters);
     if (target) {
       this.lockMonster(target);
-      return this.attackMonster(target, char);
+      return this.attackMonster(target, char) ? 'correct' : 'wrong';
     }
 
     // 没有匹配的怪兽
@@ -134,7 +132,7 @@ export class InputHandler {
       char,
       expected: '',
     });
-    return false;
+    return 'wrong';
   }
 
   // 查找目标怪兽

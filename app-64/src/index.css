@@ -3,13 +3,21 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../node_modules/@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff2') format('woff2');
+}
+
 @layer base {
   :root,
   .dark {
-    --radius: 0.125rem;
+    --radius: 1.25rem;
 
-    --background: 216 18% 7%;
-    --foreground: 214 18% 78%;
+    --background: 164 42% 6%;
+    --foreground: 160 30% 88%;
 
     --card: 216 15% 12%;
     --card-foreground: 214 18% 82%;
@@ -17,9 +25,9 @@
     --popover: 216 16% 10%;
     --popover-foreground: 214 18% 82%;
 
-    --primary: 198 42% 62%;
-    --primary-foreground: 214 25% 8%;
-    --primary-glow: 194 55% 72%;
+    --primary: 168 100% 62%;
+    --primary-foreground: 168 40% 8%;
+    --primary-glow: 168 100% 74%;
 
     --secondary: 221 15% 24%;
     --secondary-foreground: 211 19% 78%;
@@ -27,8 +35,8 @@
     --muted: 216 13% 17%;
     --muted-foreground: 214 9% 56%;
 
-    --accent: 190 38% 46%;
-    --accent-foreground: 210 22% 88%;
+    --accent: 326 100% 66%;
+    --accent-foreground: 326 40% 10%;
 
     --destructive: 3 34% 45%;
     --destructive-foreground: 214 18% 86%;
@@ -52,11 +60,11 @@
     --sidebar-border: 210 14% 25%;
     --sidebar-ring: 195 48% 62%;
 
-    --game-bg: 216 22% 6%;
-    --monster-normal: 201 36% 58%;
-    --monster-attacker: 4 27% 42%;
-    --monster-evasive: 232 24% 53%;
-    --monster-smart: 190 33% 47%;
+    --game-bg: 164 48% 5%;
+    --monster-normal: 168 100% 62%;
+    --monster-attacker: 326 100% 66%;
+    --monster-evasive: 168 80% 74%;
+    --monster-smart: 38 100% 67%;
 
     --steel-900: 216 21% 5%;
     --steel-800: 219 18% 9%;
@@ -78,6 +86,7 @@
     --shadow-hover: 0 0 0 1px hsl(194 55% 72% / 0.28), 0 18px 46px hsl(198 42% 30% / 0.16);
     --shadow-glow: 0 0 26px hsl(194 55% 72% / 0.22);
     --transition-smooth: all 160ms cubic-bezier(0.2, 0, 0.1, 1);
+    --amber: 38 100% 67%;
   }
 
   * {
@@ -93,7 +102,7 @@
     @apply bg-background text-foreground;
     min-height: 100vh;
     overflow-x: hidden;
-    font-family: "Rajdhani", "Barlow Condensed", "Bahnschrift", "DIN Condensed", "Microsoft YaHei UI", sans-serif;
+    font-family: "DM Sans", "Microsoft YaHei UI", sans-serif;
     letter-spacing: 0.015em;
     background: var(--gradient-background);
   }
@@ -271,5 +280,13 @@
 
   .animate-data-flicker {
     animation: data-flicker 2.8s steps(1, end) infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
