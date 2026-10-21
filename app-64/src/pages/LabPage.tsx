@@ -18,6 +18,7 @@ import {
 
 const WIDTH = 800;
 const HEIGHT = 480;
+let bootQueue: Promise<void> = Promise.resolve();
 
 export default function LabPage() {
   const { algorithmId = 'boids' } = useParams();
@@ -30,17 +31,22 @@ export default function LabPage() {
   const [sharePublic, setSharePublic] = useState(true);
   const [notice, setNotice] = useState('');
   const [presets, setPresets] = useState<LabPresetDto[]>([]);
-  const [metrics, setMetrics] = useState<BoidMetrics>({ averageSpeed: 0, polarization: 0, clusters: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const metricsNode = useRef<HTMLParagraphElement>(null);
+  const presetQuery = searchParams.get('preset');
   const stateRef = useRef({
     params,
     paused,
+    seed,
+    valid: true,
     flock: [] as Boid[],
     field: createField(7, WIDTH, HEIGHT),
   });
+  const parsed = useMemo(() => boidsSchema.safeParse(params), [params]);
   stateRef.current.params = params;
   stateRef.current.paused = paused;
-  const parsed = useMemo(() => boidsSchema.safeParse(params), [params]);
+  stateRef.current.seed = seed;
+  stateRef.current.valid = parsed.success;
 
   useEffect(() => {
     let cancelled = false;
@@ -51,33 +57,41 @@ export default function LabPage() {
       const merged = new Map<number, LabPresetDto>();
       [...visible, ...mine].forEach((preset) => merged.set(preset.id, preset));
       setPresets([...merged.values()]);
-      const requested = Number(searchParams.get('preset'));
-      const match = merged.get(requested);
-      if (match) applyPreset(match.params);
+      const match = merged.get(Number(presetQuery));
+      if (match) {
+        const checked = boidsSchema.safeParse(match.params);
+        if (checked.success) {
+          setParams(checked.data);
+          stateRef.current.params = checked.data;
+        }
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [algorithm.id, searchParams]);
+  }, [algorithm.id, presetQuery]);
 
   useEffect(() => {
     if (stateRef.current.flock.length === params.count) return;
-    stateRef.current.flock = createFlock(params, seed, WIDTH, HEIGHT);
-  }, [params, params.count, seed]);
+    stateRef.current.flock = createFlock(stateRef.current.params, seed, WIDTH, HEIGHT);
+  }, [params.count, seed]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     let stopped = false;
     let app: Application | null = null;
+    let frameId = 0;
     const graphics = new Graphics();
     stateRef.current.flock = createFlock(stateRef.current.params, seed, WIDTH, HEIGHT);
     stateRef.current.field = createField(seed, WIDTH, HEIGHT);
-    const boot = async () => {
+    bootQueue = bootQueue.then(async () => {
+      if (stopped) return;
       const view = new Application();
-      await view.init({ canvas, width: WIDTH, height: HEIGHT, background: 0x071612, antialias: true });
+      await view.init({ canvas, width: WIDTH, height: HEIGHT, background: 0x071612, antialias: false, preference: 'webgl' });
+      view.ticker.stop();
       if (stopped) {
-        view.destroy();
+        view.destroy({ removeView: false });
         return;
       }
       app = view;
@@ -89,24 +103,29 @@ export default function LabPage() {
         const step = Math.min(32, now - last);
         last = now;
         const current = stateRef.current;
-        if (!current.paused && step > 0 && boidsSchema.safeParse(current.params).success) {
-          const nextMetrics = stepBoids(current.flock, current.params, WIDTH, HEIGHT, current.field);
-          if (now - reported > 250) {
-            reported = now;
-            setMetrics(nextMetrics);
-          }
+        let nextMetrics: BoidMetrics | null = null;
+        if (!current.paused && step > 0 && current.valid) {
+          nextMetrics = stepBoids(current.flock, current.params, WIDTH, HEIGHT, current.field);
         }
         draw(graphics, current.flock, current.field);
-        requestAnimationFrame(frame);
+        view.render();
+        if (nextMetrics && now - reported > 250 && metricsNode.current) {
+          reported = now;
+          metricsNode.current.textContent = `种子 ${current.seed} · 平均速度 ${nextMetrics.averageSpeed.toFixed(2)} · 极化度 ${nextMetrics.polarization.toFixed(2)} · 聚簇 ${nextMetrics.clusters}`;
+        }
+        frameId = requestAnimationFrame(frame);
       };
-      requestAnimationFrame(frame);
-    };
-    void boot();
+      frameId = requestAnimationFrame(frame);
+    }).catch(() => undefined);
     return () => {
       stopped = true;
-      app?.destroy();
+      cancelAnimationFrame(frameId);
+      if (app) {
+        app.ticker.stop();
+        app.destroy({ removeView: false });
+      }
     };
-  }, [seed]);
+  }, []);
 
   function applyPreset(next: BoidParams) {
     const checked = boidsSchema.safeParse(next);
@@ -120,6 +139,12 @@ export default function LabPage() {
 
   function reset(nextSeed = seed) {
     setSeed(nextSeed);
+    stateRef.current.seed = nextSeed;
+    stateRef.current.flock = createFlock(stateRef.current.params, nextSeed, WIDTH, HEIGHT);
+    stateRef.current.field = createField(nextSeed, WIDTH, HEIGHT);
+    if (metricsNode.current) {
+      metricsNode.current.textContent = `种子 ${nextSeed} · 平均速度 0.00 · 极化度 0.00 · 聚簇 0`;
+    }
   }
 
   async function savePreset() {
@@ -178,7 +203,9 @@ export default function LabPage() {
           <CardContent className="space-y-3 p-4">
             <canvas
               ref={canvasRef}
-              className="w-full rounded-[1.5rem] border border-primary/30"
+              width={WIDTH}
+              height={HEIGHT}
+              className="h-auto w-full rounded-[1.5rem] border border-primary/30"
               onContextMenu={(event) => event.preventDefault()}
               onPointerDown={(event) => {
                 const point = canvasPoint(event.currentTarget, event.clientX, event.clientY);
@@ -201,13 +228,16 @@ export default function LabPage() {
               <Button variant="outline" onClick={() => {
                 stateRef.current.paused = true;
                 setPaused(true);
-                setMetrics(stepBoids(stateRef.current.flock, params, WIDTH, HEIGHT, stateRef.current.field));
+                const nextMetrics = stepBoids(stateRef.current.flock, params, WIDTH, HEIGHT, stateRef.current.field);
+                if (metricsNode.current) {
+                  metricsNode.current.textContent = `种子 ${seed} · 平均速度 ${nextMetrics.averageSpeed.toFixed(2)} · 极化度 ${nextMetrics.polarization.toFixed(2)} · 聚簇 ${nextMetrics.clusters}`;
+                }
               }}>单步</Button>
               <Button variant="outline" onClick={() => reset()}>重置</Button>
               <Button variant="outline" onClick={() => reset(Math.floor(Math.random() * 10000))}>随机种子</Button>
               <Button variant="outline" onClick={() => canvasRef.current?.requestFullscreen()}>全屏</Button>
             </div>
-            <p className="text-sm">种子 {seed} · 平均速度 {metrics.averageSpeed.toFixed(2)} · 极化度 {metrics.polarization.toFixed(2)} · 聚簇 {metrics.clusters}</p>
+            <p ref={metricsNode} className="text-sm">种子 {seed} · 平均速度 0.00 · 极化度 0.00 · 聚簇 0</p>
             <p className="text-sm text-muted-foreground">左键吸引，右键驱散。青圈是障碍，洋红点是捕食者。</p>
             {!parsed.success && <p className="text-sm text-destructive">参数超出范围</p>}
             {notice && <p className="text-sm text-primary">{notice}</p>}
