@@ -46,10 +46,18 @@ export default function Header() {
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-3">
             <span className="status-light" />
-            <img src="../../../public/favicon.png" alt="Logo" className="h-8 w-8 border border-border bg-muted/50 p-1" />
+            <img src="/favicon.png" alt="Logo" className="h-8 w-8 rounded-full border border-primary/40 bg-muted/50 p-1" />
             <span className="industrial-heading text-2xl gradient-text">打字进化</span>
           </Link>
           
+          <details className="relative md:hidden">
+            <summary className="cursor-pointer list-none rounded-full border border-border px-3 py-1 text-sm">菜单</summary>
+            <div className="absolute left-0 z-50 mt-2 flex w-48 flex-col gap-1 rounded-2xl border bg-background p-2 shadow-lg">
+              {visibleRoutes.map(route => (
+                <Link key={route.path} to={route.path} className="rounded-xl px-3 py-2 text-sm hover:bg-muted">{route.name}</Link>
+              ))}
+            </div>
+          </details>
           <nav className="hidden md:flex items-center gap-2">
             {visibleRoutes.map(route => (
               <Link key={route.path} to={route.path}>

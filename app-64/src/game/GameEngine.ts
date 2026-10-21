@@ -130,6 +130,7 @@ export class GameEngine {
       errorChars: 0,
       accuracy: 100,
       speed: 0,
+      peakSpeed: 0,
       startTime: Date.now(),
       currentTime: Date.now(),
       monstersKilled: 0,
@@ -514,6 +515,7 @@ export class GameEngine {
     // 计算速度（字符/分钟）
     const elapsedMinutes = (this.stats.currentTime - this.stats.startTime) / 60000;
     this.stats.speed = elapsedMinutes > 0 ? this.stats.correctChars / elapsedMinutes : 0;
+    this.stats.peakSpeed = Math.max(this.stats.peakSpeed || 0, this.stats.speed);
   }
 
   // 检查轮次结束
@@ -571,10 +573,11 @@ export class GameEngine {
   handleKeyDown(event: KeyboardEvent): void {
     if (this.state !== 'PLAYING') return;
 
-    const success = this.inputHandler.handleKeyDown(event, this.monsters);
-    
+    const outcome = this.inputHandler.handleKeyDown(event, this.monsters);
+    if (outcome === 'ignore') return;
+
     // 更新统计
-    if (success) {
+    if (outcome === 'correct') {
       this.stats.correctChars++;
       this.stats.currentStreak++;
       this.stats.longestStreak = Math.max(this.stats.longestStreak, this.stats.currentStreak);
