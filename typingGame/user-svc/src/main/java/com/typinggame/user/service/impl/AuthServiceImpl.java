@@ -22,6 +22,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
+
 @Service
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class AuthServiceImpl implements AuthService {
@@ -52,6 +54,7 @@ public class AuthServiceImpl implements AuthService {
         userInfo.setPassword(passwordEncoder.encode(userRegisterDTO.getPassword()));
         userInfo.setNickname(userRegisterDTO.getNickname());
         userInfo.setRole("user");
+        userInfo.setStatus(UserInfo.STATUS_ACTIVE);
 
         UserInfo savedUser;
         try {
@@ -85,7 +88,12 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(userLoginDTO.getPassword(), userInfo.getPassword())) {
             throw BusinessException.unauthorized("用户名或密码错误");
         }
+        if (userInfo.isDisabled()) {
+            throw BusinessException.forbidden("账号已被禁用，请联系管理员");
+        }
 
+        userInfo.setLastLoginTime(new Date());
+        userInfoRepository.save(userInfo);
         return generateTokenResponse(userInfo);
     }
 
@@ -106,6 +114,9 @@ public class AuthServiceImpl implements AuthService {
 
         UserInfo userInfo = userInfoRepository.findById(userId)
                 .orElseThrow(() -> BusinessException.notFound("用户不存在"));
+        if (userInfo.isDisabled()) {
+            throw BusinessException.forbidden("账号已被禁用，请联系管理员");
+        }
 
         return generateTokenResponse(userInfo);
     }

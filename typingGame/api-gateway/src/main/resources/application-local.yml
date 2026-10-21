@@ -1,0 +1,64 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Allow-Methods Access-Control-Allow-Headers Access-Control-Expose-Headers Access-Control-Max-Age, RETAIN_FIRST
+      routes:
+        - id: user-service
+          uri: lb://user-svc
+          predicates:
+            - Path=/api/v1/auth/**,/api/v1/user/**,/api/v1/profiles/**,/api/v1/friends/**,/uploads/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/user-svc
+        - id: game-service
+          uri: lb://game-core-svc
+          predicates:
+            - Path=/api/v1/game/**,/api/v1/model/**,/api/v1/stats/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/game-core-svc
+        - id: admin-service
+          uri: lb://admin-svc
+          predicates:
+            - Path=/api/v1/admin/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/admin-svc
+        - id: ai-service
+          uri: lb://ai-svc
+          predicates:
+            - Path=/api/v1/ai/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/ai-svc
+        - id: chat-im-ws
+          uri: lb:ws://chat-svc
+          predicates:
+            - Path=/ws/**
+          filters:
+            - PrefixPath=/chat-svc
+        - id: chat-service
+          uri: lb://chat-svc
+          predicates:
+            - Path=/api/v1/messages/**,/api/v1/leaderboard/**,/api/v1/dictionary/**,/api/v1/dictionaries/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/chat-svc
+      discovery:
+        locator:
+          enabled: true
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: false
+            maxAge: 3600

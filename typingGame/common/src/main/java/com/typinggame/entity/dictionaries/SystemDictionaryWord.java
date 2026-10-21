@@ -1,5 +1,6 @@
 package com.typinggame.entity.dictionaries;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -22,10 +23,14 @@ public class SystemDictionaryWord {
     private Integer wordId; // 单词ID（自增）
     private Integer dictId; // 关联词库ID
     private String word; // 单词
-    private Integer total_count; // 该单词的总练习次数
-    private Integer error_count; // 错误次数
+    @Column(name = "total_count")
+    private Integer totalCount; // 该单词的总练习次数
+    @Column(name = "error_count")
+    private Integer errorCount; // 错误次数
     private Integer difficultyLevel; // 难度等级（1-5）
-    private BigDecimal error_rate; // 该单词的总用户错误率（%）
-    private Long user_avg_input_time; // 用户平均输入时长（毫秒）
+    @Column(name = "error_rate")
+    private BigDecimal errorRate; // 该单词的总用户错误率（%）
+    @Column(name = "user_avg_input_time")
+    private Long userAvgInputTime; // 用户平均输入时长（毫秒）
     private BigDecimal frequency; // 使用频率
 }

@@ -7,11 +7,11 @@
  * - 消息列表展示
  * - 发送消息
  * - 自动滚动到底部
- * - 标记消息为已读
- * - 实时更新（轮询）
+ * - 标记消息为已读，展示对方已读回执
+ * - 实时更新（WebSocket 推送，断线时回退为轮询）
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useImSocket } from '@/hooks/use-im-socket';
+import type { ImEvent, ImStatus } from '@/services/imSocket';
 import type { MessageDTO, Profile } from '@/types/database';
 import { 
   getProfile, 
@@ -28,6 +30,26 @@ import {
   sendMessage, 
   markAsReadByFriend 
 } from '@/db/api';
+
+const POLL_INTERVAL_MS = 3000;
+
+const STATUS_TEXT: Record<ImStatus, string> = {
+  idle: '好友',
+  connecting: '连接中…',
+  open: '实时连接',
+  closed: '连接断开，轮询中',
+};
+
+function byTime(a: MessageDTO, b: MessageDTO) {
+  return new Date(a.sendTime).getTime() - new Date(b.sendTime).getTime();
+}
+
+function mergeMessages(current: MessageDTO[], incoming: MessageDTO[]): MessageDTO[] {
+  const map = new Map<number, MessageDTO>();
+  current.forEach((m) => map.set(m.id, m));
+  incoming.forEach((m) => map.set(m.id, m));
+  return Array.from(map.values()).sort(byTime);
+}
 
 export default function ChatPage() {
   const { friendId } = useParams<{ friendId: string }>();
@@ -41,15 +63,47 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fId = friendId ? parseInt(friendId, 10) : 0;
+
+  const handleImEvent = useCallback(
+    (event: ImEvent) => {
+      if (!user || !fId) return;
+      if (event.type === 'MESSAGE') {
+        const m = event.message;
+        const fromFriend = m.senderId === fId && m.receiverId === user.userId;
+        const fromMe = m.senderId === user.userId && m.receiverId === fId;
+        if (!fromFriend && !fromMe) return;
+        setMessages((prev) => mergeMessages(prev, [m]));
+        if (fromFriend) {
+          markAsReadByFriend(fId).catch((e) => console.error('标记已读失败:', e));
+        }
+      } else if (event.type === 'READ' && event.readerId === fId) {
+        setMessages((prev) =>
+          prev.map((m) => (m.senderId === user.userId && !m.isRead ? { ...m, isRead: true } : m))
+        );
+      }
+    },
+    [user, fId]
+  );
+
+  const imStatus = useImSocket(handleImEvent, !!user);
 
   useEffect(() => {
     if (user && friendId) {
       loadData();
-      // 轮询新消息
-      const interval = setInterval(loadMessages, 3000);
-      return () => clearInterval(interval);
     }
   }, [user, friendId]);
+
+  // 长连接可用时靠推送；不可用时回退为轮询。连上后补拉一次，弥补断线期间漏掉的消息
+  useEffect(() => {
+    if (!user || !friendId) return;
+    if (imStatus === 'open') {
+      loadMessages();
+      return;
+    }
+    const interval = setInterval(loadMessages, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [user, friendId, imStatus]);
 
   // 自动滚动到底部
   useEffect(() => {
@@ -70,7 +124,6 @@ export default function ChatPage() {
     try {
       await loadFriend();
       // 进入聊天时先把该会话内自己收到的未读全部标记为已读（不依赖分页，避免只标第一页导致未读不消失）
-      const fId = friendId ? parseInt(friendId, 10) : 0;
       if (fId) await markAsReadByFriend(fId);
       await loadMessages();
     } catch (error) {
@@ -91,13 +144,11 @@ export default function ChatPage() {
   }
 
   async function loadMessages() {
-    if (!user || !friendId) return;
+    if (!user || !fId) return;
     try {
-      const fId = parseInt(friendId, 10);
       const msgs = await getMessagesByFriend(fId, 0);
       // 后端按 sendTime 倒序，前端按时间正序展示
-      msgs.sort((a, b) => new Date(a.sendTime).getTime() - new Date(b.sendTime).getTime());
-      setMessages(msgs);
+      setMessages(msgs.sort(byTime));
       // 已读状态由进入聊天时的 markAsReadByFriend 统一处理，此处不再按条标记
     } catch (error) {
       console.error('Failed to load messages', error);
@@ -112,10 +163,9 @@ export default function ChatPage() {
     setSending(true);
 
     try {
-      await sendMessage(parseInt(friendId), content);
-      
-      // 重新加载消息
-      await loadMessages();
+      const sent = await sendMessage(fId, content);
+      // 推送可能先于响应到达，按 id 合并去重
+      setMessages((prev) => mergeMessages(prev, [sent]));
     } catch (error) {
       console.error('发送消息失败:', error);
       toast({
@@ -175,7 +225,7 @@ export default function ChatPage() {
             </Avatar>
             <div>
               <h3 className="font-semibold">{friend.username}</h3>
-              <p className="text-sm text-muted-foreground">好友</p>
+              <p className="text-sm text-muted-foreground">{STATUS_TEXT[imStatus]}</p>
             </div>
           </div>
         </CardHeader>
@@ -233,6 +283,7 @@ export default function ChatPage() {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
+                          {isMe && <span className="ml-2">{message.isRead ? '已读' : '未读'}</span>}
                         </p>
                       </div>
                     </div>

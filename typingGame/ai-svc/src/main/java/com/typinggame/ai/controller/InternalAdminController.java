@@ -19,6 +19,15 @@ public class InternalAdminController {
         this.internalAdminService = internalAdminService;
     }
 
-    @GetMapping("/ai-conversations") public ResponseEntity<ResultMessage<Map<String, Object>>> conversations(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ResponseEntity.ok(ResultMessage.success(internalAdminService.getAiConversations(page, pageSize))); }
-    @GetMapping("/ai-chat-messages") public ResponseEntity<ResultMessage<Map<String, Object>>> messages(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ResponseEntity.ok(ResultMessage.success(internalAdminService.getAiChatMessages(page, pageSize))); }
+    @GetMapping("/ai-conversations")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> conversations(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize,
+                                                                            @RequestParam(required = false) Integer userId, @RequestParam(required = false) Integer aiRobotId) {
+        return ResponseEntity.ok(ResultMessage.success(internalAdminService.getAiConversations(page, pageSize, userId, aiRobotId)));
+    }
+
+    @GetMapping("/ai-chat-messages")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> messages(@RequestParam Integer conversationId,
+                                                                       @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) {
+        return ResponseEntity.ok(ResultMessage.success(internalAdminService.getAiChatMessages(page, pageSize, conversationId)));
+    }
 }

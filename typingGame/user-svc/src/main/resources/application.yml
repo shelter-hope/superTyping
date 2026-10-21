@@ -6,53 +6,9 @@ server:
 spring:
   application:
     name: user-svc
-  cloud:
-    nacos:
-      discovery:
-        server-addr: 127.0.0.1:8848
-        namespace: public
-        ip: 127.0.0.1
-  datasource:
-    url: jdbc:mysql://127.0.0.1:3306/typing_word_game?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-     username: ${MYSQL_USER:root}
-     password: ${MYSQL_PASSWORD:123456}
-    type: com.alibaba.druid.pool.DruidDataSource
-    druid:
-      initial-size: 10
-      min-idle: 10
-      max-active: 50
-      max-wait: 60000
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
-  data:
-    redis:
-      host: 127.0.0.1
-      port: 6379
-       password: ${REDIS_PASSWORD:123456}
-      database: 0
-  security:
-    csrf:
-      enabled: false
-
-jwt:
-  secret: ${JWT_SECRET:H5FQLg1tDHnqxGXoNhAKDvSwQfkQLDa4W+I72dPruXE=}
-  expiration: 86400000
-  refresh-expiration: 604800000
-
-management:
-  endpoints:
-    web:
-      exposure:
-         include: health,info
-  endpoint:
-    health:
-       show-details: never
-
-logging:
-  level:
-    com.typinggame.user: DEBUG
+  profiles:
+    default: local
+  config:
+    import:
+      - optional:classpath:config/config.properties
+      - optional:classpath:config/jdbc.properties

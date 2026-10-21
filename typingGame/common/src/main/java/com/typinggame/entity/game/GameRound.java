@@ -4,7 +4,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -37,6 +39,8 @@ public class GameRound {
     private Integer attackerRatio;
     private Integer evasiveRatio;
     private Integer smartRatio;
+    @Lob
+    @Column(name = "plan_payload", columnDefinition = "LONGTEXT")
     private String planPayload;
     private String status;
     private Date createdAt;

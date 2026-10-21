@@ -15,4 +15,5 @@ public interface MessageService {
     boolean deleteMessage(Integer userId, Integer messageId);
     Integer getUnreadCount(Integer userId);
     List<MessageDTO> getSystemMessages(Integer userId);
+    boolean markNotificationAsRead(Integer userId, Integer notificationId);
 }

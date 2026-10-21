@@ -1,11 +1,14 @@
 package com.typinggame.chat.service.impl;
 
+import com.typinggame.chat.im.ImNotifier;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
+import com.typinggame.chat.repository.SystemNotificationRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
 import com.typinggame.chat.repository.UserInfoRepository;
 import com.typinggame.chat.service.MessageService;
 import com.typinggame.dto.message.MessageDTO;
 import com.typinggame.entity.message.FriendChatMessage;
+import com.typinggame.entity.message.SystemNotification;
 import com.typinggame.entity.message.UserConversation;
 import com.typinggame.entity.user.UserInfo;
 import com.typinggame.enums.ReadStatus;
@@ -17,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,8 +40,16 @@ public class MessageServiceImpl implements MessageService {
     @Autowired
     private UserInfoRepository userInfoRepository;
 
+    @Autowired
+    private ImNotifier imNotifier;
+
+    @Autowired
+    private SystemNotificationRepository systemNotificationRepository;
+
     private static final int TYPE_FRIEND = 1;
     private static final int TYPE_SYSTEM = 2;
+    /** 前端据此区分 system_notification 记录，标记已读走单独接口 */
+    static final String NOTIFICATION_TYPE = "notification";
 
     @Override
     public List<MessageDTO> getConversations(Integer userId) {
@@ -119,7 +132,11 @@ public class MessageServiceImpl implements MessageService {
         receiverMessage.setConversationId(receiverConv.getId());
         friendChatMessageRepository.save(receiverMessage);
 
-        return convertToDTO(message);
+        MessageDTO senderView = convertToDTO(message);
+        imNotifier.pushMessage(receiverId, convertToDTO(receiverMessage));
+        // 发送者的其他标签页同步；当前页按 id 去重
+        imNotifier.pushMessage(senderId, senderView);
+        return senderView;
     }
 
     private UserConversation getOrCreateConversation(Integer userId, Integer targetUserId) {
@@ -209,8 +226,13 @@ public class MessageServiceImpl implements MessageService {
             return;
         }
         Integer conversationId = convOpt.get().getId();
+        // 每条消息收发双方各存一份；对方那份也要置已读，否则对方刷新后仍显示未读
+        Integer friendConversationId = userConversationRepository.findByUserIdAndTargetUserId(friendId, userId)
+                .map(UserConversation::getId)
+                .orElse(null);
         List<FriendChatMessage> unread = friendChatMessageRepository.findByReceiverIdAndReadStatus(userId, ReadStatus.UNREAD.getCode()).stream()
-                .filter(m -> conversationId.equals(m.getConversationId()))
+                .filter(m -> conversationId.equals(m.getConversationId())
+                        || (friendConversationId != null && friendConversationId.equals(m.getConversationId())))
                 .collect(Collectors.toList());
 
         if (!unread.isEmpty()) {
@@ -227,6 +249,10 @@ public class MessageServiceImpl implements MessageService {
         UserConversation conv = convOpt.get();
         conv.setUnreadCount(unreadCount);
         userConversationRepository.save(conv);
+
+        if (!unread.isEmpty()) {
+            imNotifier.pushRead(friendId, userId);
+        }
     }
 
     @Override
@@ -245,13 +271,53 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public Integer getUnreadCount(Integer userId) {
-        return friendChatMessageRepository.countByReceiverIdAndReadStatus(userId, ReadStatus.UNREAD.getCode());
+        // 每条消息在收发双方各存一份，按收件人统计消息表会重复计数；会话表的 unread_count 只记录在收件人一侧
+        int conversationUnread = userConversationRepository.findByUserId(userId).stream()
+                .map(UserConversation::getUnreadCount)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+        long notificationUnread = systemNotificationRepository.countByUserIdAndIsRead(userId, false);
+        return conversationUnread + (int) notificationUnread;
     }
 
     @Override
     public List<MessageDTO> getSystemMessages(Integer userId) {
-        List<FriendChatMessage> messages = friendChatMessageRepository.findByReceiverIdAndMessageTypeOrderBySendTimeDesc(userId, TYPE_SYSTEM);
-        return messages.stream().map(this::convertToDTO).collect(Collectors.toList());
+        List<MessageDTO> result = new ArrayList<>();
+        friendChatMessageRepository.findByReceiverIdAndMessageTypeOrderBySendTimeDesc(userId, TYPE_SYSTEM)
+                .forEach(m -> result.add(convertToDTO(m)));
+        LocalDateTime now = LocalDateTime.now();
+        systemNotificationRepository.findByUserIdOrderBySendTimeDesc(userId).stream()
+                .filter(n -> n.getExpireTime() == null || n.getExpireTime().isAfter(now))
+                .forEach(n -> result.add(notificationToDTO(n)));
+        result.sort(Comparator.comparing(MessageDTO::getSendTime, Comparator.nullsLast(Comparator.reverseOrder())));
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public boolean markNotificationAsRead(Integer userId, Integer notificationId) {
+        return systemNotificationRepository.findByIdAndUserId(notificationId, userId).map(n -> {
+            if (!Boolean.TRUE.equals(n.getIsRead())) {
+                n.setIsRead(true);
+                n.setReadTime(LocalDateTime.now());
+                systemNotificationRepository.save(n);
+            }
+            return true;
+        }).orElse(false);
+    }
+
+    private MessageDTO notificationToDTO(SystemNotification n) {
+        MessageDTO dto = new MessageDTO();
+        dto.setId(n.getId());
+        dto.setSenderId(0);
+        dto.setSenderName("系统");
+        dto.setReceiverId(n.getUserId());
+        dto.setContent(n.getNotificationTitle() + "：" + n.getNotificationContent());
+        dto.setSendTime(n.getSendTime());
+        dto.setIsRead(Boolean.TRUE.equals(n.getIsRead()));
+        dto.setType(NOTIFICATION_TYPE);
+        return dto;
     }
 
     private MessageDTO convertToDTO(FriendChatMessage message) {

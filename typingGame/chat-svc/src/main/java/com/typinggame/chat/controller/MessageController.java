@@ -94,6 +94,12 @@ public class MessageController {
         return ResponseEntity.ok(ResultMessage.success(messages));
     }
 
+    @PatchMapping("/notifications/{notificationId}/read")
+    public ResponseEntity<ResultMessage<Boolean>> markNotificationAsRead(@PathVariable Integer notificationId) {
+        boolean result = messageService.markNotificationAsRead(getCurrentUserId(), notificationId);
+        return ResponseEntity.ok(ResultMessage.success(result));
+    }
+
     private Integer getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return Integer.parseInt(authentication.getName());

@@ -58,6 +58,13 @@ export function createQueryString(
   return newSearchParams.toString();
 }
 
+/** 后端数值可能为 null/字符串（BigDecimal），统一安全格式化，无效值显示 '-' */
+export function formatNum(value: unknown, digits = 1): string {
+  if (value === null || value === undefined || value === '') return '-';
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(digits) : '-';
+}
+
 export function formatDate(
   date: Date | string | number,
   opts: Intl.DateTimeFormatOptions = {}

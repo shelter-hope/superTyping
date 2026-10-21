@@ -584,15 +584,16 @@ export const websocketService = new WebSocketService();
 前端流程：
 1. 用户进入准备页 (PreparePage)
 2. 选择游戏模式和字符类型
-3. 点击「开始游戏」，调用 POST /api/v1/game/config/next-round
-4. 获取到参数后初始化游戏引擎和自适应系统
-5. 启动游戏，开始接收用户输入
+3. 点击「开始游戏」，调用 POST /api/v1/game/config/sessions 创建游戏会话
+4. 携带 sessionId 调用 GET /api/v1/game/config/next-round
+5. 获取服务端 RoundPlan 后初始化游戏引擎
+6. 启动游戏，开始接收用户输入
 
 后端流程（game-core-svc）：
 1. 接收 next-round 请求 (GameConfigController)
 2. 构建调节参数，根据用户历史数据计算难度
-3. 调用 EvolutionService.generateNextRoundMonsters 生成首轮怪物
-4. 根据游戏模式获取外部词源（词库模式）
+3. 根据游戏模式获取外部词源（词库模式）
+4. 生成并持久化本轮 RoundPlan
 5. 生成怪物列表并返回给前端
 ```
 
@@ -601,9 +602,9 @@ export const websocketService = new WebSocketService();
 ```
 前端流程：
 1. 处理用户键盘输入，更新游戏状态
-2. AdaptiveSystem 根据用户表现实时调整难度
-3. 每轮结束时，调用 POST /api/v1/game/config/next-round 获取下一轮参数
-4. 应用新的难度参数到游戏引擎
+2. 只执行服务端 RoundPlan，不在前端独立调整难度
+3. 每轮结束时，携带 sessionId 调用 GET /api/v1/game/config/next-round
+4. 应用服务端返回的新 RoundPlan
 5. 实时更新游戏统计数据
 
 后端流程（game-core-svc）：

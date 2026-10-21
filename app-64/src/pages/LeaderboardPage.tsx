@@ -1,4 +1,5 @@
 // 排行榜页面
+import { formatNum } from '@/utils';
 import { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -125,8 +126,8 @@ export default function LeaderboardPage() {
                   {entry.username}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  轮数: {entry.roundNum} | 准确率: {entry.avgAccuracy.toFixed(1)}% | 
-                  速度: {entry.avgSpeed.toFixed(0)} 字符/分钟
+                  轮数: {entry.roundNum} | 准确率: {formatNum(entry.avgAccuracy)}% | 
+                  速度: {formatNum(entry.avgSpeed, 0)} 字符/分钟
                 </div>
               </div>
               <div className={`text-2xl font-bold ${isHighlighted ? 'text-primary' : 'text-primary'}`}>

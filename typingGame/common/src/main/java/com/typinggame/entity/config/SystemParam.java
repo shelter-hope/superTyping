@@ -19,6 +19,7 @@ import java.util.Date;
 @AllArgsConstructor
 public class SystemParam {
     @Id
+    @jakarta.persistence.GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
     private Integer paramId; // 参数ID
     private String paramName; // 参数名称
     private String paramValue; // 参数值

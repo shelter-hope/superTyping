@@ -40,7 +40,7 @@
 前端: 用户填写注册表单 → 点击注册按钮
        │
        ▼
-     POST /api/auth/register
+      POST /api/v1/auth/signup
        │
 后端: 验证用户名是否已存在
        │
@@ -52,7 +52,7 @@
 | 步骤 | 前端操作 | 后端处理 | 关键接口 |
 | :--- | :--- | :--- | :--- |
 | 1 | 填写用户名、密码、昵称 | - | - |
-| 2 | 调用注册API | 验证用户名唯一性 | `POST /api/auth/register` |
+| 2 | 调用注册API | 验证用户名唯一性 | `POST /api/v1/auth/signup` |
 | 3 | 接收响应 | 加密密码并创建用户 | 返回 `UserResponseDTO` |
 | 4 | 自动登录或跳转登录页 | - | - |
 
@@ -62,7 +62,7 @@
 前端: 用户填写登录表单 → 点击登录按钮
        │
        ▼
-     POST /api/auth/login
+      POST /api/v1/auth/login
        │
 后端: 验证用户名和密码
        │
@@ -74,7 +74,7 @@
 | 步骤 | 前端操作 | 后端处理 | 关键接口 |
 | :--- | :--- | :--- | :--- |
 | 1 | 填写用户名、密码 | - | - |
-| 2 | 调用登录API | 验证用户凭据 | `POST /api/auth/login` |
+| 2 | 调用登录API | 验证用户凭据 | `POST /api/v1/auth/login` |
 | 3 | 接收响应 | 生成accessToken和refreshToken | 返回 `TokenResponseDTO` |
 | 4 | 存储令牌到localStorage | - | - |
 | 5 | 设置Token自动刷新定时器 | - | - |
@@ -86,7 +86,7 @@
 前端: 每45分钟自动调用刷新API
        │
        ▼
-     POST /api/auth/refresh
+      POST /api/v1/auth/refresh
        │
 后端: 验证refreshToken
        │
@@ -143,8 +143,8 @@
 
 | 阶段 | 接口 | 说明 |
 | :--- | :--- | :--- |
-| 开始游戏 | `POST /api/game/config/next-round` | 获取首轮配置（roundNum=1） |
-| 每轮结束 | `POST /api/game/config/next-round` | 获取下一轮配置（携带当前难度） |
+| 开始游戏 | `GET /api/v1/game/config/next-round` | 获取首轮配置（roundNum=1） |
+| 每轮结束 | `GET /api/v1/game/config/next-round` | 获取下一轮配置（携带当前难度） |
 | 游戏结束 | `POST /api/game/records` | 保存游戏记录 |
 | 更新统计 | `POST /api/stats/character` | 更新字符统计 |
 
@@ -172,10 +172,10 @@
 
 | 阶段 | 接口 | 说明 |
 | :--- | :--- | :--- |
-| 获取系统词库 | `GET /api/dictionary/system` | 获取系统词库列表 |
-| 获取自定义词库 | `GET /api/dictionary/custom/user/{userId}` | 获取用户自定义词库 |
-| 创建自定义词库 | `POST /api/dictionary/custom` | 创建新的自定义词库 |
-| 开始游戏 | `POST /api/game/config/next-round` | 获取首轮配置（携带词库ID） |
+| 获取系统词库 | `GET /api/v1/dictionaries/system` | 获取系统词库列表 |
+| 获取自定义词库 | `GET /api/v1/dictionaries/custom` | 获取当前用户自定义词库 |
+| 创建自定义词库 | `POST /api/v1/dictionaries/custom` | 创建新的自定义词库（multipart/form-data） |
+| 开始游戏 | `GET /api/v1/game/config/next-round` | 获取首轮配置（携带词库ID） |
 | 游戏结束 | `POST /api/game/records` | 保存游戏记录 |
 
 ### 3.3 限时冲刺模式 (Limit Mode)
@@ -203,8 +203,8 @@
 
 | 阶段 | 接口 | 说明 |
 | :--- | :--- | :--- |
-| 开始游戏 | `POST /api/game/config/next-round` | 获取首轮配置 |
-| 每轮结束 | `POST /api/game/config/next-round` | 获取下一轮配置 |
+| 开始游戏 | `GET /api/v1/game/config/next-round` | 获取首轮配置 |
+| 每轮结束 | `GET /api/v1/game/config/next-round` | 获取下一轮配置 |
 | 游戏结束 | `POST /api/game/records` | 保存游戏记录 |
 | 获取排行榜 | `GET /api/leaderboard/limit` | 获取限时模式排行榜 |
 

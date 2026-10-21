@@ -1,4 +1,5 @@
 // 排行榜条目管理
+import { formatNum } from '@/utils';
 import { useEffect, useState } from 'react';
 import { adminGetLeaderboardEntries } from '@/db/api';
 import type { LeaderboardEntry } from '@/types/database';
@@ -137,8 +138,8 @@ export default function LeaderboardManagement() {
                       <TableCell>{e.gameMode}</TableCell>
                       <TableCell className="font-medium">{e.totalScore}</TableCell>
                       <TableCell>{e.roundNum}</TableCell>
-                      <TableCell>{e.avgSpeed.toFixed(1)}</TableCell>
-                      <TableCell>{e.avgAccuracy.toFixed(1)}%</TableCell>
+                      <TableCell>{formatNum(e.avgSpeed)}</TableCell>
+                      <TableCell>{formatNum(e.avgAccuracy)}%</TableCell>
                       <TableCell>{e.rank}</TableCell>
                       <TableCell>
                         {e.createTime ? new Date(e.createTime).toLocaleString() : '-'}

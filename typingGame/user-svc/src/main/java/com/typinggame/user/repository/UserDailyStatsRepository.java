@@ -2,6 +2,7 @@ package com.typinggame.user.repository;
 
 import com.typinggame.entity.user.UserDailyStats;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -9,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserDailyStatsRepository extends JpaRepository<UserDailyStats, Integer> {
+public interface UserDailyStatsRepository extends JpaRepository<UserDailyStats, Integer>, JpaSpecificationExecutor<UserDailyStats> {
 
     Optional<UserDailyStats> findByUserIdAndStatDate(Integer userId, LocalDate statDate);
 

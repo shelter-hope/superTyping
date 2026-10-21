@@ -8,26 +8,33 @@ import java.util.List;
 import java.util.Map;
 
 public interface InternalAdminService {
-    Map<String, Object> getGameRecords(int page, int pageSize, Integer userId);
+    Map<String, Object> getGameRecords(int page, int pageSize, Integer userId, String gameMode);
     boolean updateGameRecord(Integer recordId, GameRecord updates);
     void deleteGameRecord(Integer recordId);
     void deleteUserGameData(Integer userId);
-    Map<String, Object> getCharacterStats(int page, int pageSize);
+    Map<String, Object> getCharacterStats(int page, int pageSize, Integer userId, String charType, String charValue);
     Map<String, Object> getMonsterData(Integer recordId, int page, int pageSize);
-    Map<String, Object> getStringParents(int page, int pageSize);
-    Map<String, Object> getSystemParams(int page, int pageSize);
+    Map<String, Object> getStringParents(int page, int pageSize, Integer userId);
+    Map<String, Object> getSystemParams(int page, int pageSize, String paramName);
     List<?> getSystemMonsterTypeConfigs();
     List<?> getSystemMonsterCommonConfigs();
     List<?> getMonsterConfigs();
+    /** 按怪物类型修改积分/初始速度/初始长度/描述，类型不存在抛 400 */
+    void updateMonsterConfig(String type, Map<String, Object> updates);
     Map<String, Object> getModelConstants(int page, int pageSize);
     Map<String, Object> getModelInitParams(int page, int pageSize);
     List<ModelInitParams> getModelInitParamsByMode(String gameMode);
     boolean updateModelConstant(Integer id, ModelConstant body);
     boolean updateModelInitParam(Integer id, ModelInitParams body);
     Map<String, Object> getGameModeConfigs(int page, int pageSize);
-    Map<String, Object> getAdaptLogs(int page, int pageSize);
-    List<Map<String, Object>> getAdaptLogTrend(String startDate, String endDate);
-    Map<String, Object> getCharacterRules();
-    Map<String, Object> getMovementRules();
-    Map<String, Object> getDifficultyParams();
+    void updateGameModeConfig(Integer id, Map<String, Object> updates);
+    Map<String, Object> getAdaptLogs(int page, int pageSize, Integer userId, String gameMode, String startDate, String endDate);
+    List<Map<String, Object>> getAdaptLogTrend(Integer userId, String gameMode, String startDate, String endDate);
+    Map<String, Object> getRules(String ruleKey);
+    Map<String, Object> saveRules(String ruleKey, Map<String, Object> rules);
+    List<Map<String, Object>> getConfigTemplates();
+    Map<String, Object> getConfigTemplate(Integer id);
+    Map<String, Object> saveConfigTemplate(String name, Object config, Integer operatorId);
+    void deleteConfigTemplate(Integer id);
+    Map<String, Object> getOverview();
 }

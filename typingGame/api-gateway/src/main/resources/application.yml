@@ -4,77 +4,8 @@ server:
 spring:
   application:
     name: api-gateway
-  cloud:
-    nacos:
-      discovery:
-        server-addr: 127.0.0.1:8848
-        namespace: public
-        ip: 127.0.0.1
-    loadbalancer:
-      nacos:
-        enabled: true
-    gateway:
-      default-filters:
-        # 下游服务若仍返回 CORS 头，与网关 globalcors 叠加会导致浏览器拒读响应（Network 仍显示 200）
-        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Allow-Methods Access-Control-Allow-Headers Access-Control-Expose-Headers Access-Control-Max-Age, RETAIN_FIRST
-      routes:
-        - id: user-service
-          uri: lb://user-svc
-          predicates:
-            - Path=/api/v1/auth/**,/api/v1/user/**,/api/v1/profiles/**,/api/v1/friends/**,/uploads/**
-          filters:
-            - StripPrefix=0
-            - PrefixPath=/user-svc
-        - id: game-service
-          uri: lb://game-core-svc
-          predicates:
-            - Path=/api/v1/game/**,/api/v1/model/**,/api/v1/stats/**
-          filters:
-            - StripPrefix=0
-            - PrefixPath=/game-core-svc
-        - id: admin-service
-          uri: lb://admin-svc
-          predicates:
-            - Path=/api/v1/admin/**
-          filters:
-            - StripPrefix=0
-            - PrefixPath=/admin-svc
-        - id: ai-service
-          uri: lb://ai-svc
-          predicates:
-            - Path=/api/v1/ai/**
-          filters:
-            - StripPrefix=0
-            - PrefixPath=/ai-svc
-        - id: chat-service
-          uri: lb://chat-svc
-          predicates:
-            - Path=/api/v1/messages/**,/api/v1/leaderboard/**,/api/v1/dictionary/**,/api/v1/dictionaries/**
-          filters:
-            - StripPrefix=0
-            - PrefixPath=/chat-svc
-      discovery:
-        locator:
-          enabled: true
-      globalcors:
-        cors-configurations:
-          '[/**]':
-             allowedOriginPatterns: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
-            allowedMethods: "*"
-            allowedHeaders: "*"
-            allowCredentials: false
-            maxAge: 3600
-
-management:
-  endpoints:
-    web:
-      exposure:
-         include: health,info
-  endpoint:
-    health:
-       show-details: never
-
-logging:
-  level:
-    org.springframework.cloud.gateway: INFO
-    org.springframework.web.reactive: INFO
+  profiles:
+    default: local
+  config:
+    import:
+      - optional:classpath:config/config.properties

@@ -2,11 +2,12 @@ package com.typinggame.chat.repository;
 
 import com.typinggame.entity.dictionaries.SystemDictionary;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
-public interface SystemDictionaryRepository extends JpaRepository<SystemDictionary, Integer> {
+public interface SystemDictionaryRepository extends JpaRepository<SystemDictionary, Integer>, JpaSpecificationExecutor<SystemDictionary> {
     List<SystemDictionary> findByIsActiveTrue();
 }

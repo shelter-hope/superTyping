@@ -54,11 +54,45 @@ CREATE TABLE IF NOT EXISTS monster_parent_relation (
     CONSTRAINT fk_parent_relation_b FOREIGN KEY (parent_b_attempt_id) REFERENCES monster_attempt(attempt_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='怪物遗传父子关系';
 
+-- Hibernate 默认命名策略可能将 parentAAttemptId/parentBAttemptId 建成
+-- parentaattempt_id/parentbattempt_id。兼容已由 ddl-auto 创建的旧列，不删除数据。
+SET @has_old_parent_a = (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = @db_name AND table_name = 'monster_parent_relation' AND column_name = 'parentaattempt_id');
+SET @has_parent_a = (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = @db_name AND table_name = 'monster_parent_relation' AND column_name = 'parent_a_attempt_id');
+SET @sql = IF(@has_old_parent_a > 0 AND @has_parent_a = 0,
+    'ALTER TABLE monster_parent_relation CHANGE COLUMN parentaattempt_id parent_a_attempt_id BIGINT NULL',
+    IF(@has_parent_a = 0, 'ALTER TABLE monster_parent_relation ADD COLUMN parent_a_attempt_id BIGINT NULL', 'SELECT 1'));
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @has_old_parent_b = (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = @db_name AND table_name = 'monster_parent_relation' AND column_name = 'parentbattempt_id');
+SET @has_parent_b = (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = @db_name AND table_name = 'monster_parent_relation' AND column_name = 'parent_b_attempt_id');
+SET @sql = IF(@has_old_parent_b > 0 AND @has_parent_b = 0,
+    'ALTER TABLE monster_parent_relation CHANGE COLUMN parentbattempt_id parent_b_attempt_id BIGINT NULL',
+    IF(@has_parent_b = 0, 'ALTER TABLE monster_parent_relation ADD COLUMN parent_b_attempt_id BIGINT NULL', 'SELECT 1'));
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = @db_name AND table_name = 'monster_parent_relation' AND index_name = 'uk_parent_relation_child') = 0,
+    'CREATE UNIQUE INDEX uk_parent_relation_child ON monster_parent_relation(child_attempt_id)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 SET @sql = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = @db_name AND table_name = 'monster_parent_relation' AND index_name = 'idx_parent_relation_parent_a') = 0,
     'CREATE INDEX idx_parent_relation_parent_a ON monster_parent_relation(parent_a_attempt_id)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @sql = IF((SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = @db_name AND table_name = 'monster_parent_relation' AND index_name = 'idx_parent_relation_parent_b') = 0,
     'CREATE INDEX idx_parent_relation_parent_b ON monster_parent_relation(parent_b_attempt_id)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema = @db_name AND table_name = 'monster_parent_relation' AND constraint_name = 'fk_parent_relation_child') = 0,
+    'ALTER TABLE monster_parent_relation ADD CONSTRAINT fk_parent_relation_child FOREIGN KEY (child_attempt_id) REFERENCES monster_attempt(attempt_id)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema = @db_name AND table_name = 'monster_parent_relation' AND constraint_name = 'fk_parent_relation_a') = 0,
+    'ALTER TABLE monster_parent_relation ADD CONSTRAINT fk_parent_relation_a FOREIGN KEY (parent_a_attempt_id) REFERENCES monster_attempt(attempt_id)', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql = IF((SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema = @db_name AND table_name = 'monster_parent_relation' AND constraint_name = 'fk_parent_relation_b') = 0,
+    'ALTER TABLE monster_parent_relation ADD CONSTRAINT fk_parent_relation_b FOREIGN KEY (parent_b_attempt_id) REFERENCES monster_attempt(attempt_id)', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 验证

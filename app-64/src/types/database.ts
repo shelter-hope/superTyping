@@ -11,6 +11,10 @@ export interface Profile {
   nickname: string | null;
   avatar: string;
   role: UserRole;
+  /** 1 正常 / 0 禁用；历史数据可能为 null，视为正常 */
+  status?: number | null;
+  lastLoginTime?: string | null;
+  signature?: string | null;
   createTime?: string;
 }
 

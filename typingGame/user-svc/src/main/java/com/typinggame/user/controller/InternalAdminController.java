@@ -19,8 +19,10 @@ public class InternalAdminController {
     @GetMapping("/users")
     public ResponseEntity<ResultMessage<Map<String, Object>>> users(@RequestParam(defaultValue = "1") int page,
                                                                     @RequestParam(defaultValue = "20") int pageSize,
-                                                                    @RequestParam(required = false) String searchTerm) {
-        return ResponseEntity.ok(ResultMessage.success(internalAdminService.getUsers(page, pageSize, searchTerm)));
+                                                                    @RequestParam(required = false) String searchTerm,
+                                                                    @RequestParam(required = false) String role,
+                                                                    @RequestParam(required = false) Integer status) {
+        return ok(internalAdminService.getUsers(page, pageSize, searchTerm, role, status));
     }
 
     @PatchMapping("/users/{userId}/role")
@@ -30,11 +32,67 @@ public class InternalAdminController {
                 : ResponseEntity.badRequest().body(ResultMessage.error("用户不存在"));
     }
 
-    @GetMapping("/friend-relations") public ResponseEntity<ResultMessage<Map<String, Object>>> friendRelations(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ResponseEntity.ok(ResultMessage.success(internalAdminService.getFriendRelations(page, pageSize))); }
-    @GetMapping("/user-app-configs") public ResponseEntity<ResultMessage<Map<String, Object>>> userAppConfigs(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ResponseEntity.ok(ResultMessage.success(internalAdminService.getUserAppConfigs(page, pageSize))); }
-    @GetMapping("/user-game-mode-configs") public ResponseEntity<ResultMessage<Map<String, Object>>> userGameModeConfigs(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ResponseEntity.ok(ResultMessage.success(internalAdminService.getUserGameModeConfigs(page, pageSize))); }
-    @GetMapping("/user-monster-configs") public ResponseEntity<ResultMessage<Map<String, Object>>> userMonsterConfigs(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ResponseEntity.ok(ResultMessage.success(internalAdminService.getUserMonsterConfigs(page, pageSize))); }
-    @GetMapping("/user-model-params") public ResponseEntity<ResultMessage<Map<String, Object>>> userModelParams(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ResponseEntity.ok(ResultMessage.success(internalAdminService.getUserModelParams(page, pageSize))); }
-    @GetMapping("/user-daily-stats") public ResponseEntity<ResultMessage<Map<String, Object>>> userDailyStats(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ResponseEntity.ok(ResultMessage.success(internalAdminService.getUserDailyStats(page, pageSize))); }
-    @GetMapping("/user-info-snapshots") public ResponseEntity<ResultMessage<Map<String, Object>>> userInfoSnapshots(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ResponseEntity.ok(ResultMessage.success(internalAdminService.getUserInfoSnapshots(page, pageSize))); }
+    @PatchMapping("/users/{userId}/status")
+    public ResponseEntity<ResultMessage<Void>> updateStatus(@PathVariable Integer userId, @RequestBody Map<String, Integer> body) {
+        internalAdminService.updateUserStatus(userId, body.get("status"));
+        return ResponseEntity.ok(ResultMessage.success());
+    }
+
+    @PatchMapping("/users/{userId}/profile")
+    public ResponseEntity<ResultMessage<Void>> updateProfile(@PathVariable Integer userId, @RequestBody Map<String, String> body) {
+        internalAdminService.updateUserProfile(userId, body.get("nickname"), body.get("signature"));
+        return ResponseEntity.ok(ResultMessage.success());
+    }
+
+    @GetMapping("/overview/users")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> overview() {
+        return ok(internalAdminService.getOverview());
+    }
+
+    @GetMapping("/friend-relations")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> friendRelations(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize,
+                                                                              @RequestParam(required = false) Integer userId, @RequestParam(required = false) Integer friendUserId,
+                                                                              @RequestParam(required = false) Integer relationStatus) {
+        return ok(internalAdminService.getFriendRelations(page, pageSize, userId, friendUserId, relationStatus));
+    }
+
+    @GetMapping("/user-app-configs")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> userAppConfigs(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize,
+                                                                             @RequestParam(required = false) Integer userId) {
+        return ok(internalAdminService.getUserAppConfigs(page, pageSize, userId));
+    }
+
+    @GetMapping("/user-game-mode-configs")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> userGameModeConfigs(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize,
+                                                                                  @RequestParam(required = false) Integer userId, @RequestParam(required = false) String modeName) {
+        return ok(internalAdminService.getUserGameModeConfigs(page, pageSize, userId, modeName));
+    }
+
+    @GetMapping("/user-monster-configs")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> userMonsterConfigs(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize,
+                                                                                 @RequestParam(required = false) Integer userId, @RequestParam(required = false) String type) {
+        return ok(internalAdminService.getUserMonsterConfigs(page, pageSize, userId, type));
+    }
+
+    @GetMapping("/user-model-params")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> userModelParams(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize,
+                                                                              @RequestParam(required = false) Integer userId, @RequestParam(required = false) String gameMode) {
+        return ok(internalAdminService.getUserModelParams(page, pageSize, userId, gameMode));
+    }
+
+    @GetMapping("/user-daily-stats")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> userDailyStats(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize,
+                                                                             @RequestParam(required = false) Integer userId) {
+        return ok(internalAdminService.getUserDailyStats(page, pageSize, userId));
+    }
+
+    @GetMapping("/user-info-snapshots")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> userInfoSnapshots(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize,
+                                                                                @RequestParam(required = false) Integer userId) {
+        return ok(internalAdminService.getUserInfoSnapshots(page, pageSize, userId));
+    }
+
+    private ResponseEntity<ResultMessage<Map<String, Object>>> ok(Map<String, Object> data) {
+        return ResponseEntity.ok(ResultMessage.success(data));
+    }
 }

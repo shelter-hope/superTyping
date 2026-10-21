@@ -1,6 +1,6 @@
 // 用户管理组件
 import { useState, useEffect } from 'react';
-import { adminGetUsers, adminUpdateUserRole, adminDeleteUserGameData, updateProfile } from '@/db/api';
+import { adminGetUsers, adminUpdateUserRole, adminUpdateUserStatus, adminUpdateUserProfile, adminDeleteUserGameData } from '@/db/api';
 import type { Profile, UserRole } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Edit, Trash2, Shield, ShieldOff, Loader2 } from 'lucide-react';
+import { Search, Edit, Trash2, Shield, ShieldOff, Loader2, Ban, CircleCheck } from 'lucide-react';
 import UserAvatar from '@/components/profile/UserAvatar';
 
 export default function UserManagement() {
@@ -41,17 +41,20 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
-  const [editForm, setEditForm] = useState({ username: '', nickname: '', role: 'user' as UserRole });
+  const [statusFilter, setStatusFilter] = useState<'all' | '1' | '0'>('all');
+  const [editForm, setEditForm] = useState({ nickname: '', signature: '', role: 'user' as UserRole });
   const { toast } = useToast();
 
   useEffect(() => {
     loadUsers();
-  }, [page, searchTerm]);
+  }, [page, statusFilter]);
 
   async function loadUsers() {
     setLoading(true);
     try {
-      const result = await adminGetUsers(page, pageSize, searchTerm || undefined);
+      const result = await adminGetUsers(page, pageSize, searchTerm || undefined, {
+        status: statusFilter === 'all' ? undefined : Number(statusFilter),
+      });
       setUsers(result.users);
       setTotal(result.total);
     } catch (error) {
@@ -73,8 +76,8 @@ export default function UserManagement() {
   function openEditDialog(user: Profile) {
     setEditingUser(user);
     setEditForm({
-      username: user.username,
       nickname: user.nickname || '',
+      signature: user.signature || '',
       role: user.role,
     });
   }
@@ -83,9 +86,9 @@ export default function UserManagement() {
     if (!editingUser) return;
 
     try {
-      await updateProfile(editingUser.userId, {
-        username: editForm.username,
-        nickname: editForm.nickname || undefined,
+      await adminUpdateUserProfile(editingUser.userId, {
+        nickname: editForm.nickname,
+        signature: editForm.signature,
       });
 
       if (editForm.role !== editingUser.role) {
@@ -119,6 +122,27 @@ export default function UserManagement() {
     } catch (error) {
       toast({
         title: '更新失败',
+        description: error instanceof Error ? error.message : '未知错误',
+        variant: 'destructive',
+      });
+    }
+  }
+
+  async function handleToggleStatus(user: Profile) {
+    const disabled = user.status === 0;
+    if (!disabled && !confirm(`确定要禁用用户 ${user.username} 吗？禁用后该账号将无法登录。`)) {
+      return;
+    }
+    try {
+      await adminUpdateUserStatus(user.userId, disabled ? 1 : 0);
+      toast({
+        title: disabled ? '已启用' : '已禁用',
+        description: `用户 ${user.username} 已${disabled ? '恢复正常' : '被禁用'}`,
+      });
+      loadUsers();
+    } catch (error) {
+      toast({
+        title: '操作失败',
         description: error instanceof Error ? error.message : '未知错误',
         variant: 'destructive',
       });
@@ -160,6 +184,22 @@ export default function UserManagement() {
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setPage(1);
+              setStatusFilter(value as 'all' | '1' | '0');
+            }}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部状态</SelectItem>
+              <SelectItem value="1">正常</SelectItem>
+              <SelectItem value="0">已禁用</SelectItem>
+            </SelectContent>
+          </Select>
           <Button onClick={handleSearch}>
             <Search className="w-4 h-4 mr-2" />
             搜索
@@ -180,6 +220,8 @@ export default function UserManagement() {
                     <TableHead>用户名</TableHead>
                     <TableHead>昵称</TableHead>
                     <TableHead>角色</TableHead>
+                    <TableHead>状态</TableHead>
+                    <TableHead>最近登录</TableHead>
                     <TableHead>注册时间</TableHead>
                     <TableHead className="text-right">操作</TableHead>
                   </TableRow>
@@ -197,6 +239,14 @@ export default function UserManagement() {
                           {user.role === 'admin' ? '管理员' : '普通用户'}
                         </span>
                       </TableCell>
+                      <TableCell>
+                        {user.status === 0 ? (
+                          <span className="text-destructive font-medium">已禁用</span>
+                        ) : (
+                          <span className="text-muted-foreground">正常</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{user.lastLoginTime ? new Date(user.lastLoginTime).toLocaleString() : '-'}</TableCell>
                       <TableCell>{user.createTime ? new Date(user.createTime).toLocaleDateString() : '-'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -221,6 +271,20 @@ export default function UserManagement() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            title={user.status === 0 ? '启用账号' : '禁用账号'}
+                            disabled={user.role === 'admin' && user.status !== 0}
+                            onClick={() => handleToggleStatus(user)}
+                          >
+                            {user.status === 0 ? (
+                              <CircleCheck className="w-4 h-4" />
+                            ) : (
+                              <Ban className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="清空游戏数据"
                             onClick={() => handleClearGameData(user)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -267,19 +331,25 @@ export default function UserManagement() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">用户名</Label>
-                <Input
-                  id="username"
-                  value={editForm.username}
-                  onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                />
+                <Label htmlFor="username">用户名（登录账号，不可修改）</Label>
+                <Input id="username" value={editingUser?.username ?? ''} disabled />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="nickname">昵称</Label>
                 <Input
                   id="nickname"
                   value={editForm.nickname}
+                  maxLength={50}
                   onChange={(e) => setEditForm({ ...editForm, nickname: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signature">个性签名</Label>
+                <Input
+                  id="signature"
+                  value={editForm.signature}
+                  maxLength={200}
+                  onChange={(e) => setEditForm({ ...editForm, signature: e.target.value })}
                   placeholder="可选"
                 />
               </div>

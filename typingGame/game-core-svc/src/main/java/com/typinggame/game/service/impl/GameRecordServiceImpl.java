@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.math.BigDecimal;
@@ -221,6 +222,13 @@ public class GameRecordServiceImpl implements GameRecordService {
         }
         Integer score = record.getTotalScore() == null ? 0 : record.getTotalScore();
         LeaderboardEntry entry = leaderboardEntryRepository.findByUserIdAndGameMode(record.getUserId(), record.getGameMode())
+                .stream()
+                .max(Comparator.comparing(LeaderboardEntry::getTotalScore,
+                                Comparator.nullsFirst(Integer::compareTo))
+                        .thenComparing(LeaderboardEntry::getCreateTime,
+                                Comparator.nullsFirst(Date::compareTo))
+                        .thenComparing(LeaderboardEntry::getEntryId,
+                                Comparator.nullsFirst(Integer::compareTo)))
                 .orElseGet(LeaderboardEntry::new);
         boolean shouldUpdateEntry = entry.getEntryId() == null || entry.getTotalScore() == null || score >= entry.getTotalScore();
         if (shouldUpdateEntry) {

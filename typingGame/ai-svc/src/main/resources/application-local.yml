@@ -1,0 +1,27 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/typing_word_game?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:123456}
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:123456}
+
+ai:
+  llm:
+    url: ${AI_LLM_URL:https://api.coze.cn/v1/workflow/run}
+    api-key: ${AI_LLM_API_KEY:}
+    workflow-id: ${AI_LLM_WORKFLOW_ID:7593204689836998708}
+    connect-timeout-ms: ${AI_LLM_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${AI_LLM_READ_TIMEOUT_MS:15000}
+  default-robot-id: ${AI_DEFAULT_ROBOT_ID:1}
+  default-conversation-title: ${AI_DEFAULT_CONVERSATION_TITLE:默认}

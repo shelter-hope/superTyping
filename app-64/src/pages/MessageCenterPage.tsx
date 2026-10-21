@@ -22,13 +22,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell, MessageCircle, UserPlus, Check, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useImSocket } from '@/hooks/use-im-socket';
 import type { MessageDTO, FriendRequestDTO } from '@/types/database';
 import { 
   getSystemMessages, 
   getConversations, 
   getFriendRequests, 
   handleFriendRequest, 
-  markMessageAsRead 
+  markMessageAsRead,
+  markNotificationAsRead,
 } from '@/db/api';
 
 /** 会话列表项：后端 getConversations 返回 MessageDTO[]，其中 senderId/senderName 为对方用户 */
@@ -49,6 +51,10 @@ export default function MessageCenterPage() {
       loadData();
     }
   }, [user, location.pathname]);
+
+  useImSocket((event) => {
+    if (event.type === 'MESSAGE') loadConversations();
+  }, !!user);
 
   async function loadData() {
     setLoading(true);
@@ -127,9 +133,13 @@ export default function MessageCenterPage() {
     }
   }
 
-  async function onMarkAsRead(messageId: number) {
+  async function onMarkAsRead(message: MessageDTO) {
     try {
-      await markMessageAsRead(messageId);
+      if (message.type === 'notification') {
+        await markNotificationAsRead(message.id);
+      } else {
+        await markMessageAsRead(message.id);
+      }
       loadSystemMessages();
     } catch (error) {
       console.error('标记已读失败:', error);
@@ -312,7 +322,7 @@ export default function MessageCenterPage() {
                   <div className="space-y-2">
                     {systemMessages.map((message) => (
                       <div
-                        key={message.id}
+                        key={`${message.type}-${message.id}`}
                         className={`p-4 rounded-lg border ${
                           message.isRead ? 'bg-muted/30' : 'bg-primary/5 border-primary/20'
                         }`}
@@ -328,7 +338,7 @@ export default function MessageCenterPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => onMarkAsRead(message.id)}
+                              onClick={() => onMarkAsRead(message)}
                             >
                               标记已读
                             </Button>

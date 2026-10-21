@@ -37,6 +37,16 @@ public class UserInfo {
     private BigDecimal peakAccuracy; // 峰值准确率（%）
     private Integer gameNum; // 游戏总场数
     private String role; // 角色（user/admin）
+    private Integer status; // 账号状态（1正常/0禁用），null 视为正常
+    private Date lastLoginTime; // 最近登录时间
     private Date createTime; // 创建时间
-    private Date updateTime; // 更新时间,同样作为上次登录时间
+    private Date updateTime; // 更新时间
+
+    public static final int STATUS_DISABLED = 0;
+    public static final int STATUS_ACTIVE = 1;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean isDisabled() {
+        return status != null && status == STATUS_DISABLED;
+    }
 }

@@ -3,13 +3,14 @@ package com.typinggame.chat.repository;
 import com.typinggame.entity.message.FriendChatMessage;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface FriendChatMessageRepository extends JpaRepository<FriendChatMessage, Integer> {
+public interface FriendChatMessageRepository extends JpaRepository<FriendChatMessage, Integer>, JpaSpecificationExecutor<FriendChatMessage> {
     List<FriendChatMessage> findByConversationIdOrderBySendTimeDesc(Integer conversationId, Pageable pageable);
     List<FriendChatMessage> findByReceiverIdAndReadStatus(Integer receiverId, Integer readStatus);
     List<FriendChatMessage> findByReceiverIdAndMessageTypeOrderBySendTimeDesc(Integer receiverId, Integer messageType);

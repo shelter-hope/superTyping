@@ -1,0 +1,30 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR}
+  datasource:
+    url: ${MYSQL_URL}
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+
+jwt:
+  secret: ${JWT_SECRET}
+
+ai:
+  llm:
+    url: ${AI_LLM_URL}
+    api-key: ${AI_LLM_API_KEY}
+    workflow-id: ${AI_LLM_WORKFLOW_ID}
+    connect-timeout-ms: ${AI_LLM_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${AI_LLM_READ_TIMEOUT_MS:15000}
+  default-robot-id: ${AI_DEFAULT_ROBOT_ID:1}
+  default-conversation-title: ${AI_DEFAULT_CONVERSATION_TITLE:默认}

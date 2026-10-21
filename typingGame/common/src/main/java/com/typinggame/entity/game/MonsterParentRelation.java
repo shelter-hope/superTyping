@@ -1,6 +1,7 @@
 package com.typinggame.entity.game;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -22,7 +23,9 @@ public class MonsterParentRelation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long relationId;
     private Long childAttemptId;
+    @Column(name = "parent_a_attempt_id")
     private Long parentAAttemptId;
+    @Column(name = "parent_b_attempt_id")
     private Long parentBAttemptId;
     private Integer crossoverPoint;
     private BigDecimal mutationRate;

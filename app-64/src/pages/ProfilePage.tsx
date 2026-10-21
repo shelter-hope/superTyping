@@ -1,4 +1,5 @@
 // 个人信息页面
+import { formatNum } from '@/utils';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -252,7 +253,7 @@ export default function ProfilePage() {
                   <div>
                     <div className="font-medium">积分: {record.totalScore}</div>
                     <div className="text-sm text-muted-foreground">
-                      轮数: {record.roundNum} | 准确率: {record.avgAccuracy.toFixed(1)}%
+                      轮数: {record.roundNum} | 准确率: {formatNum(record.avgAccuracy)}%
                     </div>
                   </div>
                   <div className="text-sm text-muted-foreground">

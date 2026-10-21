@@ -1,4 +1,5 @@
 // 游戏记录管理组件
+import { formatNum } from '@/utils';
 import { useState, useEffect } from 'react';
 import { adminGetGameRecords, adminUpdateGameRecord, adminDeleteGameRecord } from '@/db/api';
 import type { GameRecord, GameMode } from '@/types/database';
@@ -204,8 +205,8 @@ export default function GameRecordManagement() {
                       </TableCell>
                       <TableCell className="font-medium">{record.totalScore}</TableCell>
                       <TableCell>{record.roundNum}</TableCell>
-                      <TableCell>{record.avgSpeed.toFixed(1)}</TableCell>
-                      <TableCell>{record.avgAccuracy.toFixed(1)}%</TableCell>
+                      <TableCell>{formatNum(record.avgSpeed)}</TableCell>
+                      <TableCell>{formatNum(record.avgAccuracy)}%</TableCell>
                       <TableCell>{record.createTime ? new Date(record.createTime).toLocaleString() : '-'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

@@ -12,7 +12,8 @@ import java.util.Date;
  * 排行榜条目实体 （对应leaderboard_entry表）
  */
 @Entity
-@Table(name = "leaderboard_entry")
+@Table(name = "leaderboard_entry",
+        uniqueConstraints = @UniqueConstraint(name = "uk_leaderboard_user_mode", columnNames = {"user_id", "game_mode"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

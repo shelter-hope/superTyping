@@ -239,13 +239,85 @@ export async function adminGetAiChatMessages(params: {
   return response.data.data;
 }
 
-export async function adminGetUsers(page = 1, pageSize = 20, searchTerm?: string): Promise<{ users: Profile[], total: number }> {
-  const response = await apiClient.get('/admin/users', { params: { page, pageSize, searchTerm } });
+export async function adminGetUsers(
+  page = 1,
+  pageSize = 20,
+  searchTerm?: string,
+  filters: { role?: UserRole; status?: number } = {}
+): Promise<{ users: Profile[], total: number }> {
+  const response = await apiClient.get('/admin/users', { params: { page, pageSize, searchTerm, ...filters } });
   return response.data.data || { users: [], total: 0 };
 }
 
 export async function adminUpdateUserRole(userId: number, role: UserRole): Promise<void> {
   await apiClient.patch(`/admin/users/${userId}/role`, { role });
+}
+
+/** status: 1 正常 / 0 禁用；管理员账号不允许禁用 */
+export async function adminUpdateUserStatus(userId: number, status: 0 | 1): Promise<void> {
+  await apiClient.patch(`/admin/users/${userId}/status`, { status });
+}
+
+export async function adminUpdateUserProfile(userId: number, updates: { nickname?: string; signature?: string }): Promise<void> {
+  await apiClient.patch(`/admin/users/${userId}/profile`, updates);
+}
+
+export interface AdminOverview {
+  users: { userCount: number; newUsersToday: number; activeUsersToday: number; disabledUsers: number } | null;
+  games: { recordCount: number; recordsToday: number; playersToday: number } | null;
+  chat: {
+    messageCount: number;
+    messagesToday: number;
+    systemDictionaryCount: number;
+    customDictionaryCount: number;
+    notificationCount: number;
+  } | null;
+}
+
+export async function adminGetOverview(): Promise<AdminOverview> {
+  const response = await apiClient.get('/admin/overview');
+  return response.data.data ?? { users: null, games: null, chat: null };
+}
+
+export interface AdminOperationLogEntry {
+  id: number;
+  operatorId: number | null;
+  method: string;
+  path: string;
+  queryString: string | null;
+  requestBody: string | null;
+  responseStatus: number | null;
+  success: boolean;
+  ip: string | null;
+  durationMs: number | null;
+  createTime: string;
+}
+
+export async function adminGetOperationLogs(params: {
+  page?: number;
+  pageSize?: number;
+  operatorId?: number;
+  method?: string;
+  path?: string;
+  success?: boolean;
+}): Promise<AdminPageResult<AdminOperationLogEntry>> {
+  const response = await apiClient.get('/admin/operation-logs', { params });
+  return response.data.data;
+}
+
+/** userId 为空表示发给全部用户；返回实际写入的通知条数 */
+export async function adminPublishNotification(params: {
+  title: string;
+  content: string;
+  userId?: number;
+  notificationType?: number;
+}): Promise<number> {
+  const response = await apiClient.post('/admin/system-notifications', params);
+  return response.data.data?.count ?? 0;
+}
+
+export async function adminDeleteNotification(id: number): Promise<void> {
+  await apiClient.delete(`/admin/system-notifications/${id}`);
 }
 
 export async function adminDeleteUserGameData(userId: number): Promise<void> {
@@ -308,11 +380,6 @@ export async function adminGetAdaptLogsTrend(params: {
   return response.data.data ?? [];
 }
 
-export async function getHelpContent(): Promise<any> {
-  const response = await apiClient.get('/help');
-  return response.data.data;
-}
-
 export async function getMonsterConfigs(): Promise<MonsterConfig[]> {
   const response = await apiClient.get('/admin/monster-configs');
   return response.data.data || [];
@@ -322,47 +389,46 @@ export async function updateMonsterConfig(type: string, updates: Partial<Monster
   await apiClient.patch(`/admin/monster-configs/${type}`, updates);
 }
 
-export async function getCharacterGenerationRules(): Promise<any> {
-  const response = await apiClient.get('/admin/character-rules');
-  return response.data.data || [];
+/** 后台规则配置，保存在 system_params（JSON），未配置时后端返回默认值 */
+export type AdminRuleKey = 'character-rules' | 'movement-rules' | 'difficulty-params';
+
+export async function adminGetRules(key: AdminRuleKey): Promise<Record<string, unknown>> {
+  const response = await apiClient.get(`/admin/${key}`);
+  return response.data.data ?? {};
 }
 
-export async function updateCharacterGenerationRules(rules: any): Promise<boolean> {
-  const response = await apiClient.patch('/admin/character-rules', rules);
-  return response.data.data;
+export async function adminSaveRules(key: AdminRuleKey, rules: Record<string, unknown>): Promise<void> {
+  await apiClient.patch(`/admin/${key}`, rules);
 }
 
-export async function getMovementRules(): Promise<any> {
-  const response = await apiClient.get('/admin/movement-rules');
-  return response.data.data || [];
+export interface ConfigTemplateSummary {
+  id: number;
+  name: string;
+  createdBy: number | null;
+  createTime: string | null;
+  updateTime: string | null;
 }
 
-export async function updateMovementRules(rules: any): Promise<boolean> {
-  const response = await apiClient.patch('/admin/movement-rules', rules);
-  return response.data.data;
+export interface ConfigTemplateDetail extends ConfigTemplateSummary {
+  config: unknown;
 }
 
-export async function getDifficultyParams(): Promise<any> {
-  const response = await apiClient.get('/admin/difficulty-params');
-  return response.data.data;
-}
-
-export async function updateDifficultyParams(params: any): Promise<boolean> {
-  const response = await apiClient.patch('/admin/difficulty-params', params);
-  return response.data.data;
-}
-
-export async function saveConfigTemplate(name: string, config: any): Promise<boolean> {
-  const response = await apiClient.post('/admin/config-templates', { name, config });
-  return response.data.data;
-}
-
-export async function getConfigTemplates(): Promise<any[]> {
+export async function adminGetConfigTemplates(): Promise<ConfigTemplateSummary[]> {
   const response = await apiClient.get('/admin/config-templates');
-  return response.data.data || [];
+  return response.data.data ?? [];
 }
 
-export async function loadConfigTemplate(templateId: number): Promise<any> {
-  const response = await apiClient.get(`/admin/config-templates/${templateId}`);
+export async function adminGetConfigTemplate(id: number): Promise<ConfigTemplateDetail> {
+  const response = await apiClient.get(`/admin/config-templates/${id}`);
   return response.data.data;
 }
+
+/** 同名模板会被覆盖 */
+export async function adminSaveConfigTemplate(name: string, config: unknown): Promise<void> {
+  await apiClient.post('/admin/config-templates', { name, config });
+}
+
+export async function adminDeleteConfigTemplate(id: number): Promise<void> {
+  await apiClient.delete(`/admin/config-templates/${id}`);
+}
+

@@ -1,13 +1,18 @@
 package com.typinggame.admin.controller;
 
+import com.typinggame.admin.service.OperationLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
@@ -19,22 +24,24 @@ import java.util.Enumeration;
 public class AdminProxyController {
 
     private final RestTemplate restTemplate;
+    private final OperationLogService operationLogService;
 
-    public AdminProxyController(RestTemplate adminRestTemplate) {
+    public AdminProxyController(RestTemplate adminRestTemplate, OperationLogService operationLogService) {
         this.restTemplate = adminRestTemplate;
+        this.operationLogService = operationLogService;
     }
 
     @RequestMapping("/**")
     public ResponseEntity<String> proxy(HttpServletRequest request) throws IOException {
+        long start = System.currentTimeMillis();
         String path = request.getRequestURI();
         String adminPrefix = request.getContextPath() + "/api/v1/admin";
         String adminPath = path.startsWith(adminPrefix) ? path.substring(adminPrefix.length()) : path;
         if (adminPath.isEmpty()) adminPath = "/";
 
-        String target = resolveTargetService(adminPath);
+        String target = AdminRoutes.resolveTargetService(adminPath);
         String query = request.getQueryString();
-        String targetContextPath = resolveTargetContextPath(target);
-        String url = "http://" + target + targetContextPath + "/api/v1/internal/admin" + adminPath
+        String url = "http://" + target + AdminRoutes.contextPath(target) + "/api/v1/internal/admin" + adminPath
                 + (query == null ? "" : "?" + query);
 
         HttpHeaders headers = new HttpHeaders();
@@ -47,46 +54,41 @@ public class AdminProxyController {
         }
         String body = StreamUtils.copyToString(request.getInputStream(), StandardCharsets.UTF_8);
         HttpMethod method = HttpMethod.valueOf(request.getMethod());
-        return restTemplate.exchange(url, method, new HttpEntity<>(body.isEmpty() ? null : body, headers), String.class);
+
+        ResponseEntity<String> response;
+        try {
+            response = restTemplate.exchange(url, method, new HttpEntity<>(body.isEmpty() ? null : body, headers), String.class);
+        } catch (HttpStatusCodeException e) {
+            // 透传下游的业务错误（400/403/404 等）及其 message，而不是统一变成 500
+            response = ResponseEntity.status(e.getStatusCode())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(e.getResponseBodyAsString());
+        }
+
+        if (method != HttpMethod.GET && method != HttpMethod.OPTIONS && method != HttpMethod.HEAD) {
+            operationLogService.record(currentUserId(), method.name(), "/api/v1/admin" + adminPath, query, body,
+                    response.getStatusCode().value(), clientIp(request), System.currentTimeMillis() - start);
+        }
+        return ResponseEntity.status(response.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response.getBody());
     }
 
-    private String resolveTargetContextPath(String service) {
-        return switch (service) {
-            case "user-svc" -> "/user-svc";
-            case "game-core-svc" -> "/game-core-svc";
-            case "chat-svc" -> "/chat-svc";
-            case "ai-svc" -> "/ai-svc";
-            default -> throw new IllegalArgumentException("不支持的后台目标服务: " + service);
-        };
+    private static Integer currentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return null;
+        try {
+            return Integer.parseInt(auth.getName());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
-    private String resolveTargetService(String path) {
-        if (path.matches("/users/\\d+/game-data")) {
-            return "game-core-svc";
+    private static String clientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
         }
-        if (path.startsWith("/users")
-                || path.startsWith("/friend-relations")
-                || path.startsWith("/user-app-configs")
-                || path.startsWith("/user-game-mode-configs")
-                || path.startsWith("/user-monster-configs")
-                || path.startsWith("/user-model-params")
-                || path.startsWith("/user-daily-stats")
-                || path.startsWith("/user-info-snapshots")) {
-            return "user-svc";
-        }
-        if (path.startsWith("/system-dictionaries")
-                || path.startsWith("/system-dictionary-words")
-                || path.startsWith("/custom-dictionaries")
-                || path.startsWith("/custom-dictionary-words")
-                || path.startsWith("/leaderboard-entries")
-                || path.startsWith("/user-conversations")
-                || path.startsWith("/friend-chat-messages")
-                || path.startsWith("/system-notifications")) {
-            return "chat-svc";
-        }
-        if (path.startsWith("/ai-conversations") || path.startsWith("/ai-chat-messages")) {
-            return "ai-svc";
-        }
-        return "game-core-svc";
+        return request.getRemoteAddr();
     }
 }

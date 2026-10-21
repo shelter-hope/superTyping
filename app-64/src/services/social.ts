@@ -68,6 +68,11 @@ export async function markMessageAsRead(messageId: number): Promise<boolean> {
   return response.data.data;
 }
 
+export async function markNotificationAsRead(notificationId: number): Promise<boolean> {
+  const response = await apiClient.patch(`/messages/notifications/${notificationId}/read`);
+  return response.data.data;
+}
+
 export async function markAsReadByFriend(friendId: number): Promise<boolean> {
   const response = await apiClient.post('/messages/read-by-friend', null, {
     params: { friendId },
