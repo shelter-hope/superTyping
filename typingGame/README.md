@@ -315,6 +315,10 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 - **Maven 3.6+**：项目构建工具
 - **Docker & Docker Compose**：容器化部署（可选）
 
+服务配置不再内置数据库密码和 JWT 密钥。启动前设置 `JWT_SECRET`、`MYSQL_PASSWORD`、`REDIS_PASSWORD`。使用 Compose 时再设置 `MYSQL_ROOT_PASSWORD` 和 `NACOS_AUTH_TOKEN`。网关默认每个 IP 每秒 30 次、每个访问令牌每秒 20 次，`/internal/` 路径不会被转发。Prometheus 指标在各服务的 `/actuator/prometheus`。
+
+这条基线没有带上 Testcontainers。本环境没有 Docker，规则、词库和即时通讯的集成测试留在各自阶段的单元测试里。
+
 ### 快速启动（推荐）
 
 使用 Docker Compose 启动基础设施：
