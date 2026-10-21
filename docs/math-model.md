@@ -230,23 +230,11 @@ Ps,t = 10% + ⌊Tt×30⌋%
 
 ## 八、代码实现参考
 
-### 8.1 综合难度系数计算
+生效实现在 `game-core-svc` 的规则引擎，不再使用已删除的 `DifficultyCalculationUtil`、`GameCoreUtil`、`ParamAdjustUtil`。
 
-**文件位置**：`typingGame/src/main/java/com/typinggame/util/DifficultyCalculationUtil.java`
-
-核心方法：`calculateCurrentDifficulty(BigDecimal lastDifficulty, GamePlayerPerformanceDTO perf, ModelConstant constant, UserModelParams params)`
-
-### 8.2 难度参数更新
-
-**文件位置**：`typingGame/src/main/java/com/typinggame/util/GameCoreUtil.java`
-
-核心方法：`updateGameParam(...)` - 根据难度系数计算并更新所有游戏参数
-
-### 8.3 参数调节工具
-
-**文件位置**：`typingGame/src/main/java/com/typinggame/util/ParamAdjustUtil.java`
-
-核心方法：`adjustMonsterSpeed(...)`、`adjustMonsterCount(...)`、`adjustStringLength(...)`
+- `com.typinggame.game.rule.DifficultyEngine`：按 `DifficultyRule` 计算下一难度、速度、词长和怪物配比。准确率大于 1 时按百分数换算成 0–1。
+- `com.typinggame.game.rule.RuleConfigService`：从 `game_rule_config` 读取已发布规则，Caffeine 缓存，缺失时回退代码默认值并记录版本 0。
+- 局内闭环：`GameRoundServiceImpl.completeRound` 写入 `difficulty_before` / `difficulty_after`；下一轮 `GameConfigServiceImpl.getNextRound` 读取上一轮 `actual_accuracy`。
 
 ---
 

@@ -10,6 +10,9 @@ import com.typinggame.game.repository.ModelConstantRepository;
 import com.typinggame.game.repository.ModelInitParamsRepository;
 import com.typinggame.game.repository.SystemMonsterCommoConfigRepository;
 import com.typinggame.game.repository.UserModelParamsRepository;
+import com.typinggame.game.rule.DifficultyEngine;
+import com.typinggame.game.rule.DifficultyRule;
+import com.typinggame.game.rule.RuleConfigProvider;
 import com.typinggame.game.service.DifficultyModelService;
 import org.springframework.stereotype.Service;
 
@@ -26,59 +29,94 @@ public class DifficultyModelServiceImpl implements DifficultyModelService {
     private final ModelConstantRepository modelConstantRepository;
     private final SystemMonsterCommoConfigRepository monsterCommoConfigRepository;
     private final UserModelParamsRepository userModelParamsRepository;
+    private final RuleConfigProvider ruleConfigProvider;
 
     public DifficultyModelServiceImpl(ModelInitParamsRepository modelInitParamsRepository,
                                       ModelConstantRepository modelConstantRepository,
                                       SystemMonsterCommoConfigRepository monsterCommoConfigRepository,
-                                      UserModelParamsRepository userModelParamsRepository) {
+                                      UserModelParamsRepository userModelParamsRepository,
+                                      RuleConfigProvider ruleConfigProvider) {
         this.modelInitParamsRepository = modelInitParamsRepository;
         this.modelConstantRepository = modelConstantRepository;
         this.monsterCommoConfigRepository = monsterCommoConfigRepository;
         this.userModelParamsRepository = userModelParamsRepository;
+        this.ruleConfigProvider = ruleConfigProvider;
     }
 
     @Override
     public GameAdjustParam calculate(Integer userId, GameMode gameMode, int roundNum, Double recentAccuracy, Double recentSpeed, int weakCharCount) {
+        return calculate(userId, gameMode, roundNum, recentAccuracy, recentSpeed, weakCharCount, null);
+    }
+
+    @Override
+    public GameAdjustParam calculate(Integer userId, GameMode gameMode, int roundNum, Double recentAccuracy, Double recentSpeed, int weakCharCount, Double previousDifficulty) {
+        DifficultyRule rule = copyRule(ruleConfigProvider.activeDifficulty());
         ModelInitParams weights = loadInitParams(gameMode);
         UserModelParams userParams = userModelParamsRepository.findByUserIdAndGameMode(userId, gameMode.name()).orElse(null);
         ModelConstant constants = modelConstantRepository.findAll().stream().findFirst().orElse(null);
         SystemMonsterCommoConfig bounds = monsterCommoConfigRepository.findAll().stream().findFirst().orElse(null);
+        if (constants != null && constants.getMaxSpeed() != null) rule.setMaxReferenceSpeed(constants.getMaxSpeed().doubleValue());
+        if (constants != null && constants.getRefPeakSpeed() != null) rule.setRefPeakSpeed(constants.getRefPeakSpeed().doubleValue());
 
-        double accuracy = normalizeAccuracy(recentAccuracy);
-        double speed = Math.max(0, recentSpeed == null ? 0 : recentSpeed);
-        double maxSpeed = constants != null && constants.getMaxSpeed() != null ? constants.getMaxSpeed().doubleValue() : 150.0;
-        double refPeakSpeed = constants != null && constants.getRefPeakSpeed() != null ? constants.getRefPeakSpeed().doubleValue() : 120.0;
-        double weakRatio = Math.min(1.0, Math.max(0.0, weakCharCount / 10.0));
-        int safeRound = Math.max(1, roundNum);
-
-        double previous = weight(firstNonNull(userParams == null ? null : userParams.getLastDifficulty(), weights.getInitDifficulty()), 0.30);
-        double normalizedSpeed = Math.min(1.0, speed / Math.max(1.0, maxSpeed));
-        double historySpeed = Math.min(1.0, speed / Math.max(1.0, refPeakSpeed));
-        double performance = 0.45 * accuracy
-                + 0.20 * normalizedSpeed
-                + 0.10 * historySpeed
-                + 0.10 * (1.0 - weakRatio)
-                + 0.15 * Math.min(1.0, Math.log(safeRound + 1) / Math.log(32));
-        double rawDifficulty = previous + 0.35 * (performance - 0.85);
-        double difficulty = clamp(previous + clamp(rawDifficulty - previous, -0.05, 0.05), 0.15, 0.95);
+        double previous = previousDifficulty != null
+                ? previousDifficulty
+                : weight(firstNonNull(userParams == null ? null : userParams.getLastDifficulty(), weights.getInitDifficulty()), rule.getInitialDifficulty());
+        double difficulty = DifficultyEngine.nextDifficulty(rule, previous, recentAccuracy, recentSpeed, roundNum, weakCharCount);
 
         BigDecimal minSpeed = bounds != null && bounds.getMinSpeed() != null ? bounds.getMinSpeed() : DEFAULT_MIN_SPEED;
         BigDecimal maxMonsterSpeed = bounds != null && bounds.getMaxSpeed() != null ? bounds.getMaxSpeed() : DEFAULT_MAX_SPEED;
         int minLength = bounds != null && bounds.getMinStrLength() != null ? bounds.getMinStrLength() : 1;
         int maxLength = bounds != null && bounds.getMaxStrLength() != null ? bounds.getMaxStrLength() : 15;
+        DifficultyEngine.Outcome outcome = DifficultyEngine.outcome(rule, difficulty, minSpeed.doubleValue(), maxMonsterSpeed.doubleValue(), minLength, maxLength);
 
         GameAdjustParam param = new GameAdjustParam();
-        param.setCurrentDifficulty(scale(difficulty));
-        param.setMonsterSpeed(scale(clamp(minSpeed.doubleValue() + difficulty * 1.8, minSpeed.doubleValue(), maxMonsterSpeed.doubleValue())));
-        param.setMonsterCount((int) clamp(Math.round(4 + safeRound * 0.8 + difficulty * 12), 3, 25));
-        param.setAvgStringLength((int) clamp(Math.round(minLength + difficulty * (maxLength - minLength)), minLength, maxLength));
-
-        int pressure = (int) Math.round(difficulty * 100);
-        param.setNormalRatio((int) clamp(80 - pressure * 0.30, 50, 80));
-        param.setAttackRatio((int) clamp(5 + pressure * 0.10, 5, 15));
-        param.setEvasiveRatio((int) clamp(10 + pressure * 0.10, 10, 20));
-        param.setSmartRatio(100 - param.getNormalRatio() - param.getAttackRatio() - param.getEvasiveRatio());
+        param.setCurrentDifficulty(scale(outcome.difficulty()));
+        param.setMonsterSpeed(scale(outcome.speed()));
+        param.setMonsterCount(DifficultyEngine.monsterCount(rule, outcome.difficulty(), roundNum));
+        param.setAvgStringLength(outcome.length());
+        param.setNormalRatio(outcome.normalRatio());
+        param.setAttackRatio(outcome.attackRatio());
+        param.setEvasiveRatio(outcome.evasiveRatio());
+        param.setSmartRatio(outcome.smartRatio());
         return param;
+    }
+
+    private DifficultyRule copyRule(DifficultyRule source) {
+        DifficultyRule copy = new DifficultyRule();
+        copy.setWeightAccuracy(source.getWeightAccuracy());
+        copy.setWeightNormalizedSpeed(source.getWeightNormalizedSpeed());
+        copy.setWeightHistorySpeed(source.getWeightHistorySpeed());
+        copy.setWeightComposure(source.getWeightComposure());
+        copy.setWeightRound(source.getWeightRound());
+        copy.setTargetAccuracy(source.getTargetAccuracy());
+        copy.setGain(source.getGain());
+        copy.setStep(source.getStep());
+        copy.setMinDifficulty(source.getMinDifficulty());
+        copy.setMaxDifficulty(source.getMaxDifficulty());
+        copy.setInitialDifficulty(source.getInitialDifficulty());
+        copy.setMaxReferenceSpeed(source.getMaxReferenceSpeed());
+        copy.setRefPeakSpeed(source.getRefPeakSpeed());
+        copy.setWeakCharDivisor(source.getWeakCharDivisor());
+        copy.setSpeedSpan(source.getSpeedSpan());
+        copy.setCountBase(source.getCountBase());
+        copy.setCountRoundFactor(source.getCountRoundFactor());
+        copy.setCountDifficultyFactor(source.getCountDifficultyFactor());
+        copy.setCountMin(source.getCountMin());
+        copy.setCountMax(source.getCountMax());
+        copy.setNormalBase(source.getNormalBase());
+        copy.setNormalSlope(source.getNormalSlope());
+        copy.setNormalMin(source.getNormalMin());
+        copy.setNormalMax(source.getNormalMax());
+        copy.setAttackBase(source.getAttackBase());
+        copy.setAttackSlope(source.getAttackSlope());
+        copy.setAttackMin(source.getAttackMin());
+        copy.setAttackMax(source.getAttackMax());
+        copy.setEvasiveBase(source.getEvasiveBase());
+        copy.setEvasiveSlope(source.getEvasiveSlope());
+        copy.setEvasiveMin(source.getEvasiveMin());
+        copy.setEvasiveMax(source.getEvasiveMax());
+        copy.setRoundLogBase(source.getRoundLogBase());
+        return copy;
     }
 
     private ModelInitParams loadInitParams(GameMode gameMode) {

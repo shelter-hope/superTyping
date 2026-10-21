@@ -3,6 +3,9 @@ package com.typinggame.game.service.word;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.MonsterDataRepository;
 import com.typinggame.game.repository.StringParentRepository;
+import com.typinggame.game.rule.GeneticEngine;
+import com.typinggame.game.rule.GeneticRule;
+import com.typinggame.game.rule.RuleConfigProvider;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -12,6 +15,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 @Component
@@ -27,10 +31,14 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
 
     private final StringParentRepository stringParentRepository;
     private final MonsterDataRepository monsterDataRepository;
+    private final RuleConfigProvider ruleConfigProvider;
 
-    public EndlessAdaptiveWordSourceStrategy(StringParentRepository stringParentRepository, MonsterDataRepository monsterDataRepository) {
+    public EndlessAdaptiveWordSourceStrategy(StringParentRepository stringParentRepository,
+                                             MonsterDataRepository monsterDataRepository,
+                                             RuleConfigProvider ruleConfigProvider) {
         this.stringParentRepository = stringParentRepository;
         this.monsterDataRepository = monsterDataRepository;
+        this.ruleConfigProvider = ruleConfigProvider;
     }
 
     @Override
@@ -51,27 +59,24 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
         if (pool.isEmpty()) {
             pool.addAll(LOWER);
         }
-        if (context.getGameMode() == GameMode.ENDLESS_ADAPT && parentStrings.size() >= 2) {
-            return generateEvolvedWords(parentStrings, context.getFocusChars(), context.getCount(), context.getLength(), new ArrayList<>(pool));
+        GeneticRule genetic = ruleConfigProvider.activeGenetic();
+        List<String> limitedParents = GeneticEngine.limitParents(parentStrings, genetic.getCrossRoundParentLimit());
+        if (context.getGameMode() == GameMode.ENDLESS_ADAPT && limitedParents.size() >= 2) {
+            List<String> evolved = GeneticEngine.evolve(limitedParents, context.getFocusChars(), context.getCount(), context.getLength(), genetic.getCrossRoundMutationRate(), ThreadLocalRandom.current());
+            if (evolved.size() >= context.getCount()) {
+                return evolved.subList(0, context.getCount());
+            }
+            return generateEvolvedWords(limitedParents, context.getFocusChars(), context.getCount(), context.getLength(), new ArrayList<>(pool), genetic);
         }
         return buildFromPool(new ArrayList<>(pool), context.getCount(), context.getLength());
     }
 
     private List<String> generateEvolvedWords(List<String> parents, List<String> weakChars,
-                                               int count, int length, List<String> fallbackPool) {
+                                               int count, int length, List<String> fallbackPool, GeneticRule genetic) {
         int safeCount = Math.max(3, Math.min(25, count));
         int safeLength = Math.max(1, Math.min(15, length));
-        Set<String> result = new LinkedHashSet<>();
-        int attempts = 0;
-        while (result.size() < safeCount && attempts++ < safeCount * 8) {
-            String first = parents.get(ThreadLocalRandom.current().nextInt(parents.size()));
-            String second = parents.get(ThreadLocalRandom.current().nextInt(parents.size()));
-            String child = crossover(first, second, safeLength);
-            if (!weakChars.isEmpty() && ThreadLocalRandom.current().nextDouble() < 0.25) {
-                child = mutateWeakCharacter(child, weakChars);
-            }
-            result.add(child);
-        }
+        Random random = ThreadLocalRandom.current();
+        Set<String> result = new LinkedHashSet<>(GeneticEngine.evolve(parents, weakChars, safeCount, safeLength, genetic.getCrossRoundMutationRate(), random));
         int index = 0;
         while (result.size() < safeCount) {
             result.add(buildFromPool(fallbackPool, index + 1, safeLength).get(index));

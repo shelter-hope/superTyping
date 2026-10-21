@@ -13,6 +13,10 @@ import com.typinggame.game.repository.GameRoundRepository;
 import com.typinggame.game.repository.GameSessionRepository;
 import com.typinggame.game.repository.MonsterAttemptRepository;
 import com.typinggame.game.repository.MonsterParentRelationRepository;
+import com.typinggame.game.rule.DifficultyEngine;
+import com.typinggame.game.rule.DifficultyRule;
+import com.typinggame.game.rule.GeneticRule;
+import com.typinggame.game.rule.RuleConfigProvider;
 import com.typinggame.game.service.GameRoundService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,17 +36,20 @@ public class GameRoundServiceImpl implements GameRoundService {
     private final MonsterAttemptRepository monsterAttemptRepository;
     private final MonsterParentRelationRepository parentRelationRepository;
     private final ObjectMapper objectMapper;
+    private final RuleConfigProvider ruleConfigProvider;
 
     public GameRoundServiceImpl(GameSessionRepository gameSessionRepository,
                                 GameRoundRepository gameRoundRepository,
                                 MonsterAttemptRepository monsterAttemptRepository,
                                 MonsterParentRelationRepository parentRelationRepository,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                RuleConfigProvider ruleConfigProvider) {
         this.gameSessionRepository = gameSessionRepository;
         this.gameRoundRepository = gameRoundRepository;
         this.monsterAttemptRepository = monsterAttemptRepository;
         this.parentRelationRepository = parentRelationRepository;
         this.objectMapper = objectMapper;
+        this.ruleConfigProvider = ruleConfigProvider;
     }
 
     @Override
@@ -121,6 +128,12 @@ public class GameRoundServiceImpl implements GameRoundService {
         long killedCount = attempts.stream().filter(item -> "KILLED".equals(item.getResult())).count();
         BigDecimal killRate = ratio(killedCount, planned.size());
         int verifiedScore = attempts.stream().mapToInt(item -> nonNegative(item.getVerifiedScore())).sum();
+        DifficultyRule rule = ruleConfigProvider.activeDifficulty();
+        double before = round.getDifficultyBefore() == null ? rule.getInitialDifficulty() : round.getDifficultyBefore().doubleValue();
+        double after = DifficultyEngine.nextDifficulty(rule, before, accuracy.doubleValue(), round.getAvgSpeed() == null ? 0 : round.getAvgSpeed().doubleValue(), round.getRoundNum(), 0);
+        round.setDifficultyBefore(BigDecimal.valueOf(before).setScale(4, RoundingMode.HALF_UP));
+        round.setDifficultyAfter(BigDecimal.valueOf(after).setScale(4, RoundingMode.HALF_UP));
+        round.setFormulaVersion("difficulty-v" + ruleConfigProvider.difficultyVersion());
         round.setActualAccuracy(accuracy);
         round.setStatus("COMPLETED");
         round.setCompletedAt(new Date());
@@ -200,10 +213,11 @@ public class GameRoundServiceImpl implements GameRoundService {
     }
 
     private BigDecimal calculateFitness(int correctCount, int errorCount, int inputCount, int verifiedScore) {
+        GeneticRule genetic = ruleConfigProvider.activeGenetic();
         BigDecimal accuracy = ratio(correctCount, inputCount);
-        return BigDecimal.valueOf(verifiedScore)
-                .add(accuracy.multiply(BigDecimal.valueOf(100)))
-                .subtract(BigDecimal.valueOf(errorCount * 2L))
+        return BigDecimal.valueOf(verifiedScore).multiply(BigDecimal.valueOf(genetic.getFitnessScoreWeight()))
+                .add(accuracy.multiply(BigDecimal.valueOf(genetic.getFitnessAccuracyWeight())))
+                .subtract(BigDecimal.valueOf(errorCount).multiply(BigDecimal.valueOf(genetic.getFitnessErrorPenalty())))
                 .max(BigDecimal.ZERO);
     }
 
