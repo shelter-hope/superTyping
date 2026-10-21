@@ -23,4 +23,6 @@ public class MessageDTO {
     // For conversation list
     private Integer conversationId;
     private Integer unreadCount;
+    private String clientMsgId;
+    private Integer serverSeq;
 }

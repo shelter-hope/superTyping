@@ -34,6 +34,12 @@ public class FriendChatMessage {
     @Column(name = "message_content", length = 1000, nullable = false)
     private String messageContent;
 
+    @Column(name = "client_msg_id", length = 64)
+    private String clientMsgId;
+
+    @Column(name = "server_seq")
+    private Integer serverSeq;
+
     @Column(name = "send_time", nullable = false)
     private LocalDateTime sendTime;
 

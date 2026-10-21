@@ -28,6 +28,7 @@ import {
   sendMessage, 
   markAsReadByFriend 
 } from '@/db/api';
+import { sendTyping } from '@/features/im/imClient';
 
 export default function ChatPage() {
   const { friendId } = useParams<{ friendId: string }>();
@@ -112,7 +113,8 @@ export default function ChatPage() {
     setSending(true);
 
     try {
-      await sendMessage(parseInt(friendId), content);
+      const clientMsgId = crypto.randomUUID();
+      await sendMessage(parseInt(friendId), content, 'text', clientMsgId);
       
       // 重新加载消息
       await loadMessages();
@@ -248,7 +250,10 @@ export default function ChatPage() {
               <Textarea
                 ref={textareaRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  if (friendId) sendTyping(parseInt(friendId, 10), e.target.value.length > 0);
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="输入消息... (Shift+Enter换行，Enter发送)"
                 className="min-h-[80px] max-h-[160px] resize-none bg-background shadow-sm"

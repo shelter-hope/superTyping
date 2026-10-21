@@ -1,4 +1,5 @@
 // 头部导航组件
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,12 +15,27 @@ import { useToast } from '@/hooks/use-toast';
 import routes from '@/routes';
 import UserAvatar from '@/components/profile/UserAvatar';
 import { getDisplayName } from '@/lib/avatars';
+import { getUnreadCount } from '@/services/social';
+import { connectIm, subscribeIm } from '@/features/im/imClient';
 
 export default function Header() {
   const { user, profile, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    getUnreadCount().then(setUnread).catch(() => setUnread(0));
+    connectIm().catch(() => undefined);
+    return subscribeIm((event) => {
+      if (event.event === 'unread' && typeof event.count === 'number') setUnread(event.count);
+      if (event.event === 'friend_request' || event.event === 'notification') {
+        getUnreadCount().then(setUnread).catch(() => undefined);
+      }
+    });
+  }, [user]);
 
   async function handleSignOut() {
     try {
@@ -50,7 +66,7 @@ export default function Header() {
             <span className="industrial-heading text-2xl gradient-text">打字进化</span>
           </Link>
           
-          <nav className="hidden md:flex items-center gap-2">
+          <nav className="hidden items-center gap-2 md:flex">
             {visibleRoutes.map(route => (
               <Link key={route.path} to={route.path}>
                 <Button
@@ -65,6 +81,12 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+          {user ? (
+            <Link to="/messages" className="relative">
+              <Button variant="ghost" size="sm">消息{unread > 0 ? ` ${unread}` : ''}</Button>
+              {unread > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{unread}</span>}
+            </Link>
+          ) : null}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
