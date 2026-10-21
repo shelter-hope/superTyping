@@ -49,18 +49,21 @@ export async function getConversationMessages(conversationId: number, page = 0, 
   return response.data.data || [];
 }
 
-export async function getMessagesByFriend(friendId: number, offset = 0): Promise<MessageDTO[]> {
+export async function getMessagesByFriend(friendId: number, offset = 0, beforeId?: number): Promise<MessageDTO[]> {
   const response = await apiClient.get('/messages', {
-    params: { friendId, offset }
+    params: beforeId ? { friendId, beforeId, limit: 20 } : { friendId, offset }
   });
   return response.data.data || [];
 }
 
-export async function sendMessage(receiverId: number, content: string, type = 'text'): Promise<MessageDTO> {
-  const response = await apiClient.post('/messages', null, {
-    params: { receiverId, content, type }
-  });
+export async function sendMessage(receiverId: number, content: string, type = 'text', clientMsgId?: string): Promise<MessageDTO> {
+  const response = await apiClient.post('/messages', { receiverId, content, type, clientMsgId });
   return response.data.data;
+}
+
+export async function issueWsTicket(): Promise<string> {
+  const response = await apiClient.post('/messages/ws-ticket');
+  return response.data.data.ticket as string;
 }
 
 export async function markMessageAsRead(messageId: number): Promise<boolean> {

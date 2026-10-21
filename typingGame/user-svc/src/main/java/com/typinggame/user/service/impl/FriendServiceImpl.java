@@ -5,6 +5,7 @@ import com.typinggame.dto.friend.FriendResponseDTO;
 import com.typinggame.entity.message.FriendRelation;
 import com.typinggame.entity.user.UserInfo;
 import com.typinggame.enums.FriendRelationStatus;
+import com.typinggame.user.im.FriendEventPublisher;
 import com.typinggame.user.repository.FriendRelationRepository;
 import com.typinggame.user.repository.UserInfoRepository;
 import com.typinggame.user.service.FriendService;
@@ -28,6 +29,9 @@ public class FriendServiceImpl implements FriendService {
 
     @Autowired
     private UserInfoRepository userInfoRepository;
+
+    @Autowired
+    private FriendEventPublisher friendEventPublisher;
 
     @Override
     public List<FriendResponseDTO> getFriendList(Integer userId) {
@@ -86,6 +90,7 @@ public class FriendServiceImpl implements FriendService {
         friendRelation.setApplyTime(now);
         friendRelation.setCreateTime(now);
         friendRelationRepository.save(friendRelation);
+        friendEventPublisher.friendRequest(senderId, receiverId, friendRelation.getId());
 
         Optional<UserInfo> senderOptional = userInfoRepository.findById(senderId);
         Optional<UserInfo> receiverOptional = userInfoRepository.findById(receiverId);

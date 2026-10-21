@@ -37,6 +37,7 @@ public class UserInfo {
     private BigDecimal peakAccuracy; // 峰值准确率（%）
     private Integer gameNum; // 游戏总场数
     private String role; // 角色（user/admin）
+    private Boolean enabled = true; // 禁用后拒绝登录和即时连接
     private Date createTime; // 创建时间
     private Date updateTime; // 更新时间,同样作为上次登录时间
 }
