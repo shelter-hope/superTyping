@@ -1,5 +1,7 @@
 package com.typinggame.game.controller;
 
+import com.typinggame.entity.config.SystemMonsterCommoConfig;
+import com.typinggame.entity.config.SystemMonsterTypeConfig;
 import com.typinggame.entity.game.GameRecord;
 import com.typinggame.entity.model.ModelConstant;
 import com.typinggame.entity.model.ModelInitParams;
@@ -36,6 +38,8 @@ public class InternalAdminController {
     @GetMapping("/model-init-params/mode/{gameMode}") public ResponseEntity<ResultMessage<List<ModelInitParams>>> modelInitParamsByMode(@PathVariable String gameMode) { return ResponseEntity.ok(ResultMessage.success(internalAdminService.getModelInitParamsByMode(gameMode))); }
     @PatchMapping("/model-constants/{id}") public ResponseEntity<ResultMessage<Void>> updateModelConstant(@PathVariable Integer id, @RequestBody ModelConstant body) { return internalAdminService.updateModelConstant(id, body) ? ResponseEntity.ok(ResultMessage.success()) : ResponseEntity.badRequest().body(ResultMessage.error("数据不存在")); }
     @PatchMapping("/model-init-params/{id}") public ResponseEntity<ResultMessage<Void>> updateModelInit(@PathVariable Integer id, @RequestBody ModelInitParams body) { return internalAdminService.updateModelInitParam(id, body) ? ResponseEntity.ok(ResultMessage.success()) : ResponseEntity.badRequest().body(ResultMessage.error("数据不存在")); }
+    @PatchMapping("/system-monster-type-configs/{id}") public ResponseEntity<ResultMessage<Void>> updateMonsterType(@PathVariable Integer id, @RequestBody SystemMonsterTypeConfig body) { return internalAdminService.updateMonsterTypeConfig(id, body) ? ResponseEntity.ok(ResultMessage.success()) : ResponseEntity.badRequest().body(ResultMessage.error("数据不存在")); }
+    @PatchMapping("/system-monster-common-configs/{id}") public ResponseEntity<ResultMessage<Void>> updateMonsterCommon(@PathVariable Integer id, @RequestBody SystemMonsterCommoConfig body) { return internalAdminService.updateMonsterCommonConfig(id, body) ? ResponseEntity.ok(ResultMessage.success()) : ResponseEntity.badRequest().body(ResultMessage.error("数据不存在")); }
     @GetMapping("/game-mode-configs") public ResponseEntity<ResultMessage<Map<String, Object>>> gameModeConfigs(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ok(internalAdminService.getGameModeConfigs(page, pageSize)); }
     @PatchMapping("/game-mode-configs/{id}") public ResponseEntity<ResultMessage<Void>> updateGameModeConfig(@PathVariable Integer id, @RequestBody Map<String, Object> body) { return ResponseEntity.ok(ResultMessage.success()); }
     @GetMapping("/user-model-adapt-logs") public ResponseEntity<ResultMessage<Map<String, Object>>> adaptLogs(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ok(internalAdminService.getAdaptLogs(page, pageSize)); }

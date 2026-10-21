@@ -44,7 +44,11 @@ public class InternalAdminServiceImpl implements InternalAdminService {
         this.systemNotificationRepository = systemNotificationRepository;
     }
 
-    @Override public Map<String, Object> getSystemDictionaries(int page, int pageSize) { return AdminPageSupport.pageMap("items", systemDictionaryRepository.findAll(pageable(page, pageSize))); }
+    @Override public Map<String, Object> getSystemDictionaries(int page, int pageSize, String name, String category) {
+        String nameFilter = name == null || name.isBlank() ? null : name.trim();
+        String categoryFilter = category == null || category.isBlank() ? null : category.trim();
+        return AdminPageSupport.pageMap("items", systemDictionaryRepository.search(nameFilter, categoryFilter, pageable(page, pageSize)));
+    }
     @Override public Map<String, Object> getCustomDictionaries(int page, int pageSize) { return AdminPageSupport.pageMap("items", customDictionaryRepository.findAll(pageable(page, pageSize))); }
     @Override public Map<String, Object> getLeaderboardEntries(int page, int pageSize) { return AdminPageSupport.pageMap("items", leaderboardEntryRepository.findAll(pageable(page, pageSize))); }
     @Override public Map<String, Object> getUserConversations(int page, int pageSize) { return AdminPageSupport.pageMap("items", userConversationRepository.findAll(pageable(page, pageSize))); }

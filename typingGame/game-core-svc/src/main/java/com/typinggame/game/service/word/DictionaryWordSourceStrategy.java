@@ -2,19 +2,20 @@ package com.typinggame.game.service.word;
 
 import com.typinggame.entity.dictionaries.CustomDictionary;
 import com.typinggame.entity.dictionaries.DictionaryWord;
+import com.typinggame.entity.dictionaries.SystemDictionary;
 import com.typinggame.entity.dictionaries.SystemDictionaryWord;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.GameCustomDictionaryRepository;
 import com.typinggame.game.repository.GameDictionaryWordRepository;
+import com.typinggame.game.repository.GameSystemDictionaryRepository;
 import com.typinggame.game.repository.GameSystemDictionaryWordRepository;
+import com.typinggame.game.word.WordDraw;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Component
@@ -23,15 +24,18 @@ public class DictionaryWordSourceStrategy implements WordSourceStrategy {
     private final GameCustomDictionaryRepository customDictionaryRepository;
     private final GameDictionaryWordRepository dictionaryWordRepository;
     private final GameSystemDictionaryWordRepository systemDictionaryWordRepository;
+    private final GameSystemDictionaryRepository systemDictionaryRepository;
     private final EndlessAdaptiveWordSourceStrategy fallbackStrategy;
 
     public DictionaryWordSourceStrategy(GameCustomDictionaryRepository customDictionaryRepository,
                                         GameDictionaryWordRepository dictionaryWordRepository,
                                         GameSystemDictionaryWordRepository systemDictionaryWordRepository,
+                                        GameSystemDictionaryRepository systemDictionaryRepository,
                                         EndlessAdaptiveWordSourceStrategy fallbackStrategy) {
         this.customDictionaryRepository = customDictionaryRepository;
         this.dictionaryWordRepository = dictionaryWordRepository;
         this.systemDictionaryWordRepository = systemDictionaryWordRepository;
+        this.systemDictionaryRepository = systemDictionaryRepository;
         this.fallbackStrategy = fallbackStrategy;
     }
 
@@ -42,24 +46,35 @@ public class DictionaryWordSourceStrategy implements WordSourceStrategy {
 
     @Override
     public List<String> generateWords(WordSourceContext context) {
-        Set<String> words = new LinkedHashSet<>();
+        List<WordDraw.Entry> pool = new ArrayList<>();
         List<Integer> allowedCustomIds = loadAllowedCustomDictIds(context);
         if (!allowedCustomIds.isEmpty()) {
-            words.addAll(dictionaryWordRepository.findByDictIdIn(allowedCustomIds, page(context.getCount() * 3)).stream()
-                    .map(DictionaryWord::getWord)
-                    .filter(this::validWord)
-                    .collect(Collectors.toList()));
+            dictionaryWordRepository.findByDictIdIn(allowedCustomIds, page()).stream()
+                    .filter(word -> validWord(word.getWord()))
+                    .forEach(word -> pool.add(new WordDraw.Entry(word.getWord(), weight(word.getDifficultyLevel()))));
         }
-        if (!context.getSystemDictIds().isEmpty()) {
-            words.addAll(systemDictionaryWordRepository.findByDictIdIn(context.getSystemDictIds(), page(context.getCount() * 3)).stream()
-                    .map(SystemDictionaryWord::getWord)
-                    .filter(this::validWord)
-                    .collect(Collectors.toList()));
+        List<Integer> activeSystemIds = activeSystemIds(context.getSystemDictIds());
+        if (!activeSystemIds.isEmpty()) {
+            systemDictionaryWordRepository.findByDictIdIn(activeSystemIds, page()).stream()
+                    .filter(word -> validWord(word.getWord()))
+                    .forEach(word -> pool.add(new WordDraw.Entry(word.getWord(), weight(word.getDifficultyLevel()))));
         }
-        if (words.isEmpty()) {
+        if (pool.isEmpty()) {
             return fallbackStrategy.generateWords(context);
         }
-        return normalizeCount(new ArrayList<>(words), context.getCount());
+        return WordDraw.draw(pool, context.getCount(), ThreadLocalRandom.current());
+    }
+
+    private List<Integer> activeSystemIds(List<Integer> requested) {
+        if (requested == null || requested.isEmpty()) return List.of();
+        List<Integer> active = systemDictionaryRepository.findByDictIdInAndIsActiveTrue(requested).stream()
+                .map(SystemDictionary::getDictId)
+                .collect(Collectors.toList());
+        return WordDraw.activeOnly(requested, active);
+    }
+
+    private int weight(Integer difficultyLevel) {
+        return difficultyLevel == null ? 1 : difficultyLevel;
     }
 
     private List<Integer> loadAllowedCustomDictIds(WordSourceContext context) {
@@ -69,20 +84,12 @@ public class DictionaryWordSourceStrategy implements WordSourceStrategy {
                 .collect(Collectors.toList());
     }
 
-    private PageRequest page(int size) {
-        return PageRequest.of(0, Math.max(10, Math.min(200, size)), Sort.by(Sort.Direction.ASC, "wordId"));
+    private PageRequest page() {
+        return PageRequest.of(0, 500);
     }
 
     private boolean validWord(String word) {
         return word != null && !word.isBlank() && word.length() <= 50;
     }
 
-    private List<String> normalizeCount(List<String> source, int count) {
-        int safeCount = Math.max(3, Math.min(25, count));
-        List<String> result = new ArrayList<>();
-        for (int i = 0; i < safeCount; i++) {
-            result.add(source.get(i % source.size()));
-        }
-        return result;
-    }
 }
