@@ -59,7 +59,7 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-             allowedOriginPatterns: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
             allowedMethods: "*"
             allowedHeaders: "*"
             allowCredentials: false
@@ -69,10 +69,10 @@ management:
   endpoints:
     web:
       exposure:
-         include: health,info
+        include: health,info
   endpoint:
     health:
-       show-details: never
+      show-details: never
 
 logging:
   level:
