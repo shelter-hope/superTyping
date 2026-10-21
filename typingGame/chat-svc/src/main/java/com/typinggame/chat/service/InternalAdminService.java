@@ -3,7 +3,7 @@ package com.typinggame.chat.service;
 import java.util.Map;
 
 public interface InternalAdminService {
-    Map<String, Object> getSystemDictionaries(int page, int pageSize);
+    Map<String, Object> getSystemDictionaries(int page, int pageSize, String name, String category);
     Map<String, Object> getCustomDictionaries(int page, int pageSize);
     Map<String, Object> getLeaderboardEntries(int page, int pageSize);
     Map<String, Object> getUserConversations(int page, int pageSize);

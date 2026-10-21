@@ -22,6 +22,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -126,10 +137,6 @@ export default function UserManagement() {
   }
 
   async function handleClearGameData(user: Profile) {
-    if (!confirm(`确定要清空用户 ${user.username} 的所有游戏数据吗？此操作不可恢复！`)) {
-      return;
-    }
-
     try {
       await adminDeleteUserGameData(user.userId);
       toast({
@@ -218,13 +225,23 @@ export default function UserManagement() {
                               <Shield className="w-4 h-4" />
                             )}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleClearGameData(user)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>清空游戏数据</AlertDialogTitle>
+                                <AlertDialogDescription>确定要清空用户 {user.username} 的所有游戏数据吗？此操作不可恢复。</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => void handleClearGameData(user)}>清空</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>

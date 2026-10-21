@@ -1,11 +1,15 @@
 package com.typinggame.chat.controller;
 
+import com.typinggame.chat.dictionary.DictionaryFileStore;
 import com.typinggame.chat.service.DictionaryService;
 import com.typinggame.dto.dictionary.DictionaryCreateDTO;
 import com.typinggame.entity.dictionaries.CustomDictionary;
 import com.typinggame.entity.dictionaries.SystemDictionary;
 import com.typinggame.vo.ResultMessage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -21,6 +25,18 @@ public class DictionaryController {
 
     @Autowired
     private DictionaryService dictionaryService;
+
+    @Autowired
+    private DictionaryFileStore dictionaryFileStore;
+
+    @GetMapping("/files/{name}")
+    public ResponseEntity<Resource> file(@PathVariable String name) {
+        FileSystemResource resource = new FileSystemResource(dictionaryFileStore.resolve(name));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + name + "\"")
+                .contentType(name.endsWith(".csv") ? MediaType.parseMediaType("text/csv") : MediaType.TEXT_PLAIN)
+                .body(resource);
+    }
 
     @GetMapping("/system")
     public ResponseEntity<ResultMessage<List<SystemDictionary>>> getSystemDictionaries() {

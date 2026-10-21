@@ -19,7 +19,7 @@ public class InternalAdminController {
         this.internalAdminService = internalAdminService;
     }
 
-    @GetMapping("/system-dictionaries") public ResponseEntity<ResultMessage<Map<String, Object>>> systemDictionaries(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ok(internalAdminService.getSystemDictionaries(page, pageSize)); }
+    @GetMapping("/system-dictionaries") public ResponseEntity<ResultMessage<Map<String, Object>>> systemDictionaries(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize, @RequestParam(required = false) String name, @RequestParam(required = false) String category) { return ok(internalAdminService.getSystemDictionaries(page, pageSize, name, category)); }
     @GetMapping("/custom-dictionaries") public ResponseEntity<ResultMessage<Map<String, Object>>> customDictionaries(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ok(internalAdminService.getCustomDictionaries(page, pageSize)); }
     @GetMapping("/leaderboard-entries") public ResponseEntity<ResultMessage<Map<String, Object>>> leaderboardEntries(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ok(internalAdminService.getLeaderboardEntries(page, pageSize)); }
     @GetMapping("/user-conversations") public ResponseEntity<ResultMessage<Map<String, Object>>> conversations(@RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int pageSize) { return ok(internalAdminService.getUserConversations(page, pageSize)); }

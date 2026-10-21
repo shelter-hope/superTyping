@@ -1,8 +1,9 @@
 // 管理员页面
-import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, FileText, Bug, LayoutDashboard, TrendingUp, SlidersHorizontal, BookOpen, BarChart3 } from 'lucide-react';
+import { Users, FileText, Bug, LayoutDashboard, TrendingUp, SlidersHorizontal, BookOpen, BarChart3, FlaskConical } from 'lucide-react';
+import GameRuleManagement from '@/components/admin/GameRuleManagement';
 import UserManagement from '@/components/admin/UserManagement';
 import GameRecordManagement from '@/components/admin/GameRecordManagement';
 import MonsterConfigManagement from '@/components/admin/MonsterConfigManagement';
@@ -21,10 +22,18 @@ type TabType =
   | 'systemParams'
   | 'systemDicts'
   | 'leaderboard'
-  | 'charStats';
+  | 'charStats'
+  | 'rules';
+
+const TAB_IDS: TabType[] = ['dashboard', 'users', 'records', 'monsters', 'trend', 'systemParams', 'systemDicts', 'leaderboard', 'charStats', 'rules'];
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [params, setParams] = useSearchParams();
+  const requested = params.get('tab') as TabType | null;
+  const activeTab: TabType = requested && TAB_IDS.includes(requested) ? requested : 'dashboard';
+  function setActiveTab(tab: TabType) {
+    setParams({ tab });
+  }
 
   const tabs = [
     { id: 'dashboard' as TabType, name: '数据概览', icon: LayoutDashboard },
@@ -36,25 +45,25 @@ export default function AdminPage() {
     { id: 'systemDicts' as TabType, name: '系统词库', icon: BookOpen },
     { id: 'leaderboard' as TabType, name: '排行榜条目', icon: BarChart3 },
     { id: 'charStats' as TabType, name: '字符统计', icon: BarChart3 },
+    { id: 'rules' as TabType, name: '规则引擎', icon: FlaskConical },
   ];
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
-      {/* 侧边栏 */}
-      <aside className="w-64 border-r bg-muted/30">
-        <div className="p-6">
-          <h2 className="text-lg font-bold mb-4">管理后台</h2>
-          <nav className="space-y-2">
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col md:flex-row">
+      <aside className="border-b bg-muted/30 md:w-64 md:border-b-0 md:border-r">
+        <div className="p-4 md:p-6">
+          <h2 className="mb-4 text-lg font-bold">管理后台</h2>
+          <nav className="flex gap-2 overflow-x-auto md:flex-col">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <Button
                   key={tab.id}
                   variant={activeTab === tab.id ? 'default' : 'ghost'}
-                  className="w-full justify-start"
+                  className="shrink-0 justify-start md:w-full"
                   onClick={() => setActiveTab(tab.id)}
                 >
-                  <Icon className="w-4 h-4 mr-2" />
+                  <Icon className="mr-2 h-4 w-4" />
                   {tab.name}
                 </Button>
               );
@@ -63,8 +72,7 @@ export default function AdminPage() {
         </div>
       </aside>
 
-      {/* 主内容区 */}
-      <main className="flex-1 p-8">
+      <main className="min-w-0 flex-1 p-4 md:p-8">
         {activeTab === 'dashboard' && <DashboardView />}
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'records' && <GameRecordManagement />}
@@ -74,6 +82,7 @@ export default function AdminPage() {
         {activeTab === 'systemDicts' && <SystemDictionaryManagement />}
         {activeTab === 'leaderboard' && <LeaderboardManagement />}
         {activeTab === 'charStats' && <CharacterStatsOverview />}
+        {activeTab === 'rules' && <GameRuleManagement />}
       </main>
     </div>
   );

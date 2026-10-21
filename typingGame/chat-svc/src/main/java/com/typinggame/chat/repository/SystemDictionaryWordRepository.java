@@ -9,4 +9,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface SystemDictionaryWordRepository extends JpaRepository<SystemDictionaryWord, Integer> {
     Page<SystemDictionaryWord> findByDictId(Integer dictId, Pageable pageable);
+
+    int countByDictId(Integer dictId);
+
+    void deleteByDictId(Integer dictId);
 }
