@@ -46,6 +46,13 @@ spring:
           filters:
             - StripPrefix=0
             - PrefixPath=/ai-svc
+        - id: lab-service
+          uri: lb://lab-svc
+          predicates:
+            - Path=/api/v1/lab/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/lab-svc
         - id: chat-service
           uri: lb://chat-svc
           predicates:

@@ -56,6 +56,7 @@ public class AdminProxyController {
             case "game-core-svc" -> "/game-core-svc";
             case "chat-svc" -> "/chat-svc";
             case "ai-svc" -> "/ai-svc";
+            case "lab-svc" -> "/lab-svc";
             default -> throw new IllegalArgumentException("不支持的后台目标服务: " + service);
         };
     }
@@ -86,6 +87,9 @@ public class AdminProxyController {
         }
         if (path.startsWith("/ai-conversations") || path.startsWith("/ai-chat-messages")) {
             return "ai-svc";
+        }
+        if (path.startsWith("/lab")) {
+            return "lab-svc";
         }
         return "game-core-svc";
     }
