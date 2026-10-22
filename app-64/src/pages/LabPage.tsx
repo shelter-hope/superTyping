@@ -16,7 +16,12 @@ export default function LabPage() {
   const { algorithmId = 'boids' } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const algorithm = labRegistry.find((item) => item.id === algorithmId) ?? labRegistry[0];
+  const [boundId, setBoundId] = useState(algorithm.id);
   const [params, setParams] = useState<Record<string, number>>(algorithm.defaults);
+  if (boundId !== algorithm.id) {
+    setBoundId(algorithm.id);
+    setParams({ ...algorithm.defaults });
+  }
   const [seed, setSeed] = useState(7);
   const [paused, setPaused] = useState(false);
   const [presetName, setPresetName] = useState('我的预设');
@@ -32,14 +37,19 @@ export default function LabPage() {
     paused,
     seed,
     valid: true,
+    bound: algorithm.id,
     sim: algorithm.create(algorithm.defaults, 7, WIDTH, HEIGHT) as unknown,
   });
   const parsed = useMemo(() => algorithm.schema.safeParse(params), [algorithm, params]);
   stateRef.current.plugin = algorithm as LabPlugin<Record<string, number>, unknown>;
-  stateRef.current.params = params;
+  stateRef.current.params = boundId === algorithm.id ? params : { ...algorithm.defaults };
   stateRef.current.paused = paused;
   stateRef.current.seed = seed;
-  stateRef.current.valid = parsed.success;
+  stateRef.current.valid = boundId === algorithm.id ? parsed.success : true;
+  if (stateRef.current.bound !== algorithm.id) {
+    stateRef.current.bound = algorithm.id;
+    stateRef.current.sim = algorithm.create(stateRef.current.params, stateRef.current.seed, WIDTH, HEIGHT);
+  }
 
   useEffect(() => {
     let cancelled = false;

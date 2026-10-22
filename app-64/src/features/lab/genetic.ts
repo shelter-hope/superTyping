@@ -40,7 +40,8 @@ function score(genes: number[], target: number[]): number {
 export function createGenetic(params: GeneticParams, seed: number): GeneticState {
   const random = createRng(seed);
   const target = Array.from({ length: GENE_LENGTH }, () => (random() > 0.5 ? 1 : 0));
-  const people = Array.from({ length: params.population }, () => {
+  const count = Number.isFinite(params.population) ? params.population : 60;
+  const people = Array.from({ length: count }, () => {
     const genes = Array.from({ length: GENE_LENGTH }, () => (random() > 0.5 ? 1 : 0));
     return { genes, fitness: score(genes, target) };
   });
