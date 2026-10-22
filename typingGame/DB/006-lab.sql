@@ -55,3 +55,34 @@ SELECT NULL, 'boids', '课堂演示',
 WHERE NOT EXISTS (
   SELECT 1 FROM lab_preset WHERE user_id IS NULL AND algorithm_id = 'boids' AND name = '课堂演示'
 );
+
+INSERT INTO lab_algorithm (id, name, description, enabled, sort_order, default_params, schema_version)
+SELECT 'pso', 'PSO 粒子群', '粒子记住自己和群体去过的最好位置，在多峰地形上聚拢。', 1, 2,
+       JSON_OBJECT('count', 80, 'inertia', 0.7, 'cognitive', 1.4, 'social', 1.4, 'maxSpeed', 3), 1
+WHERE NOT EXISTS (SELECT 1 FROM lab_algorithm WHERE id = 'pso');
+
+INSERT INTO lab_preset (user_id, algorithm_id, name, params, is_public)
+SELECT NULL, 'pso', '课堂演示',
+       JSON_OBJECT('count', 120, 'inertia', 0.6, 'cognitive', 1.6, 'social', 1.2, 'maxSpeed', 2.5), 1
+WHERE NOT EXISTS (SELECT 1 FROM lab_preset WHERE user_id IS NULL AND algorithm_id = 'pso' AND name = '课堂演示');
+
+INSERT INTO lab_algorithm (id, name, description, enabled, sort_order, default_params, schema_version)
+SELECT 'ant-colony', '蚁群', '蚂蚁把走过的路留下信息素，短回路会逐渐变亮。', 1, 3,
+       JSON_OBJECT('ants', 40, 'alpha', 1, 'beta', 2, 'evaporation', 0.2, 'deposit', 2), 1
+WHERE NOT EXISTS (SELECT 1 FROM lab_algorithm WHERE id = 'ant-colony');
+
+INSERT INTO lab_preset (user_id, algorithm_id, name, params, is_public)
+SELECT NULL, 'ant-colony', '课堂演示',
+       JSON_OBJECT('ants', 60, 'alpha', 1, 'beta', 3, 'evaporation', 0.15, 'deposit', 2), 1
+WHERE NOT EXISTS (SELECT 1 FROM lab_preset WHERE user_id IS NULL AND algorithm_id = 'ant-colony' AND name = '课堂演示');
+
+INSERT INTO lab_algorithm (id, name, description, enabled, sort_order, default_params, schema_version)
+SELECT 'genetic', '遗传算法', '种群通过选择、交叉和变异靠近一条隐藏的目标基因组。', 1, 4,
+       JSON_OBJECT('population', 60, 'mutationRate', 0.05, 'crossoverRate', 0.8, 'elitism', 2), 1
+WHERE NOT EXISTS (SELECT 1 FROM lab_algorithm WHERE id = 'genetic');
+
+INSERT INTO lab_preset (user_id, algorithm_id, name, params, is_public)
+SELECT NULL, 'genetic', '课堂演示',
+       JSON_OBJECT('population', 80, 'mutationRate', 0.04, 'crossoverRate', 0.9, 'elitism', 4), 1
+WHERE NOT EXISTS (SELECT 1 FROM lab_preset WHERE user_id IS NULL AND algorithm_id = 'genetic' AND name = '课堂演示');
+

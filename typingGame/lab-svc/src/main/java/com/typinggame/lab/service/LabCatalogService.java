@@ -2,7 +2,7 @@ package com.typinggame.lab.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.typinggame.lab.boids.BoidsLimits;
+import com.typinggame.lab.boids.ParamLimits;
 import com.typinggame.lab.config.LabNotFoundException;
 import com.typinggame.lab.dto.AlgorithmUpdateRequest;
 import com.typinggame.lab.dto.AlgorithmView;
@@ -38,26 +38,38 @@ public class LabCatalogService {
 
     @Transactional
     public void ensureSeed() {
-        algorithms.findById("boids").orElseGet(() -> {
+        seed("boids", "Boids 鸟群", "分离、对齐和凝聚三条局部规则产生全局涌现。", 1, BOIDS_DEFAULTS.trim(), "课堂演示",
+                "{\"count\":160,\"visionRadius\":48,\"visionAngle\":3.141592653589793,\"maxSpeed\":2.4,\"maxForce\":0.06,\"separation\":1.2,\"alignment\":1.1,\"cohesion\":0.8}");
+        seed("pso", "PSO 粒子群", "粒子记住自己和群体去过的最好位置，在多峰地形上聚拢。", 2,
+                "{\"count\":80,\"inertia\":0.7,\"cognitive\":1.4,\"social\":1.4,\"maxSpeed\":3}",
+                "课堂演示", "{\"count\":120,\"inertia\":0.6,\"cognitive\":1.6,\"social\":1.2,\"maxSpeed\":2.5}");
+        seed("ant-colony", "蚁群", "蚂蚁把走过的路留下信息素，短回路会逐渐变亮。", 3,
+                "{\"ants\":40,\"alpha\":1,\"beta\":2,\"evaporation\":0.2,\"deposit\":2}",
+                "课堂演示", "{\"ants\":60,\"alpha\":1,\"beta\":3,\"evaporation\":0.15,\"deposit\":2}");
+        seed("genetic", "遗传算法", "种群通过选择、交叉和变异靠近一条隐藏的目标基因组。", 4,
+                "{\"population\":60,\"mutationRate\":0.05,\"crossoverRate\":0.8,\"elitism\":2}",
+                "课堂演示", "{\"population\":80,\"mutationRate\":0.04,\"crossoverRate\":0.9,\"elitism\":4}");
+    }
+
+    private void seed(String id, String name, String description, int sort, String defaults, String presetName, String presetParams) {
+        algorithms.findById(id).orElseGet(() -> {
             LabAlgorithm algorithm = new LabAlgorithm();
-            algorithm.setId("boids");
-            algorithm.setName("Boids 鸟群");
-            algorithm.setDescription("分离、对齐和凝聚三条局部规则产生全局涌现。");
+            algorithm.setId(id);
+            algorithm.setName(name);
+            algorithm.setDescription(description);
             algorithm.setEnabled(true);
-            algorithm.setSortOrder(1);
-            algorithm.setDefaultParams(BOIDS_DEFAULTS.trim());
+            algorithm.setSortOrder(sort);
+            algorithm.setDefaultParams(defaults);
             algorithm.setSchemaVersion(1);
             return algorithms.save(algorithm);
         });
-        if (!presets.existsByUserIdIsNullAndAlgorithmIdAndName("boids", "课堂演示")) {
+        if (!presets.existsByUserIdIsNullAndAlgorithmIdAndName(id, presetName)) {
             LabPreset preset = new LabPreset();
             preset.setUserId(null);
-            preset.setAlgorithmId("boids");
-            preset.setName("课堂演示");
+            preset.setAlgorithmId(id);
+            preset.setName(presetName);
             preset.setIsPublic(true);
-            preset.setParams("""
-                    {"count":160,"visionRadius":48,"visionAngle":3.141592653589793,"maxSpeed":2.4,"maxForce":0.06,"separation":1.2,"alignment":1.1,"cohesion":0.8}
-                    """.trim());
+            preset.setParams(presetParams);
             presets.save(preset);
         }
     }
@@ -171,11 +183,7 @@ public class LabCatalogService {
     }
 
     private void validate(String algorithmId, Map<String, Object> params) {
-        if ("boids".equals(algorithmId)) {
-            BoidsLimits.check(params);
-            return;
-        }
-        throw new IllegalArgumentException("暂不支持该算法的参数校验");
+        ParamLimits.check(algorithmId, params);
     }
 
     private AlgorithmView toView(LabAlgorithm algorithm) {

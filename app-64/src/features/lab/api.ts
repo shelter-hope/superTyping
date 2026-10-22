@@ -1,5 +1,4 @@
 import { apiClient } from '@/db/client';
-import type { BoidParams } from './boids';
 
 export interface LabAlgorithmDto {
   id: string;
@@ -7,7 +6,7 @@ export interface LabAlgorithmDto {
   description: string;
   enabled: boolean;
   sortOrder: number;
-  defaultParams: BoidParams;
+  defaultParams: Record<string, number>;
   schemaVersion: number;
 }
 
@@ -16,7 +15,7 @@ export interface LabPresetDto {
   userId: number | null;
   algorithmId: string;
   name: string;
-  params: BoidParams;
+  params: Record<string, number>;
   isPublic: boolean;
   system: boolean;
 }
@@ -39,7 +38,7 @@ export async function fetchMyLabPresets(algorithmId: string): Promise<LabPresetD
 export async function saveLabPreset(body: {
   algorithmId: string;
   name: string;
-  params: BoidParams;
+  params: Record<string, number>;
   isPublic: boolean;
 }): Promise<LabPresetDto> {
   const response = await apiClient.post('/lab/presets', body);
