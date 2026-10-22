@@ -80,6 +80,8 @@ export default function GamePage() {
                   inputMode={session.gameEngine.getInputHandler().getInputMode()}
                   chineseBuffer={session.gameEngine.getInputHandler().getChineseBuffer()}
                   lockedMonsterId={session.gameEngine.getInputHandler().getLockedMonster()?.id || null}
+                  progress01={session.gameEngine.getProgress01()}
+                  lastCorrect={session.lastCorrect}
                 />
                 <ErrorFeedback lastError={session.lastError} lastCorrect={session.lastCorrect} />
               </>

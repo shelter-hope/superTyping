@@ -172,7 +172,7 @@ export default function PreparePage() {
     <div className="container max-w-4xl py-8">
       <div className="space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">游戏配置</h1>
+          <h1 className="text-3xl font-bold gradient-text">游戏配置</h1>
           <p className="text-muted-foreground">选择游戏模式和字符类型</p>
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
             <GameTutorial />

@@ -103,7 +103,7 @@ export default function TrendsPage() {
     <div className="container max-w-7xl py-8">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">历史趋势分析</h1>
+          <h1 className="text-3xl font-bold gradient-text">历史趋势分析</h1>
           <p className="text-muted-foreground mt-2">
             查看你的打字能力随时间的变化趋势
           </p>

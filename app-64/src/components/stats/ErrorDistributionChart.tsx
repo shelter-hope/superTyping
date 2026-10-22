@@ -32,7 +32,7 @@ export default function ErrorDistributionChart({ characterStats }: ErrorDistribu
   // 根据准确率设置颜色
   const getColor = (accuracy: number) => {
     if (accuracy < 50) return 'hsl(var(--destructive))';
-    if (accuracy < 80) return 'hsl(36 100% 50%)'; // 橙色
+    if (accuracy < 80) return 'hsl(var(--amber))';
     return 'hsl(var(--primary))';
   };
 
