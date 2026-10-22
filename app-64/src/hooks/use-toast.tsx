@@ -3,7 +3,8 @@ import * as React from "react";
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
 const TOAST_LIMIT = 1;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_REMOVE_DELAY = 4000;
+const TOAST_DEDUPE_MS = 2000;
 
 type ToasterToast = ToastProps & {
   id: string;
@@ -136,7 +137,28 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">;
 
+const recentToastAt = new Map<string, number>();
+
+export function toastIdentity(title?: React.ReactNode, description?: React.ReactNode): string {
+  return `${typeof title === 'string' ? title : ''}\n${typeof description === 'string' ? description : ''}`;
+}
+
+export function shouldSuppressToast(previousAt: number | undefined, now: number): boolean {
+  return previousAt !== undefined && now - previousAt < TOAST_DEDUPE_MS;
+}
+
 function toast({ ...props }: Toast) {
+  const key = toastIdentity(props.title, props.description);
+  const now = Date.now();
+  if (shouldSuppressToast(recentToastAt.get(key), now)) {
+    const existing = memoryState.toasts[0];
+    return {
+      id: existing?.id ?? '',
+      dismiss: () => existing && dispatch({ type: 'DISMISS_TOAST', toastId: existing.id }),
+      update: () => undefined,
+    };
+  }
+  recentToastAt.set(key, now);
   const id = genId();
 
   const update = (props: ToasterToast) =>

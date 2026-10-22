@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import EvolutionDemo from '@/components/home/EvolutionDemo';
 import { Zap, Target, TrendingUp, Trophy } from 'lucide-react';
 
 export default function HomePage() {
@@ -15,10 +16,11 @@ export default function HomePage() {
         <h1 className="text-4xl xl:text-6xl font-bold gradient-text">
           打字进化游戏
         </h1>
-        <p className="text-lg xl:text-xl text-muted-foreground max-w-2xl mx-auto">
+        <p className="mx-auto max-w-2xl text-lg text-muted-foreground xl:text-xl">
           通过智能算法分析你的打字习惯，让字符怪兽自适应进化，<br />
           迫使你跳出舒适区，全面提升打字水平
         </p>
+        <EvolutionDemo />
         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
           {user ? (
             <Link to="/prepare">
@@ -136,7 +138,7 @@ export default function HomePage() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-center space-y-2">
-                <div className="text-3xl font-bold text-destructive">攻击型</div>
+                <div className="text-3xl font-bold text-accent">攻击型</div>
                 <p className="text-sm text-muted-foreground">定期生成新怪物，3积分</p>
               </div>
             </CardContent>
@@ -145,7 +147,7 @@ export default function HomePage() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-center space-y-2">
-                <div className="text-3xl font-bold" style={{ color: 'hsl(280, 65%, 60%)' }}>回避型</div>
+                <div className="text-3xl font-bold text-accent">回避型</div>
                 <p className="text-sm text-muted-foreground">30%概率规避攻击，2积分</p>
               </div>
             </CardContent>
@@ -154,7 +156,7 @@ export default function HomePage() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-center space-y-2">
-                <div className="text-3xl font-bold text-secondary">智慧型</div>
+                <div className="text-3xl font-bold text-[hsl(var(--amber))]">智慧型</div>
                 <p className="text-sm text-muted-foreground">吸引周围怪物，3积分</p>
               </div>
             </CardContent>

@@ -39,19 +39,18 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
-      {/* 侧边栏 */}
-      <aside className="w-64 border-r bg-muted/30">
-        <div className="p-6">
-          <h2 className="text-lg font-bold mb-4">管理后台</h2>
-          <nav className="space-y-2">
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col md:flex-row">
+      <aside className="border-b bg-muted/30 md:w-64 md:border-b-0 md:border-r">
+        <div className="p-4 md:p-6">
+          <h2 className="mb-4 text-lg font-bold">管理后台</h2>
+          <nav className="flex gap-2 overflow-x-auto md:block md:space-y-2">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <Button
                   key={tab.id}
                   variant={activeTab === tab.id ? 'default' : 'ghost'}
-                  className="w-full justify-start"
+                  className="shrink-0 justify-start md:w-full"
                   onClick={() => setActiveTab(tab.id)}
                 >
                   <Icon className="w-4 h-4 mr-2" />
@@ -64,7 +63,7 @@ export default function AdminPage() {
       </aside>
 
       {/* 主内容区 */}
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 md:p-8">
         {activeTab === 'dashboard' && <DashboardView />}
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'records' && <GameRecordManagement />}

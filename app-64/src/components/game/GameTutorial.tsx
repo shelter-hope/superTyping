@@ -61,7 +61,7 @@ export default function GameTutorial() {
                 <span className="text-muted-foreground">- 定期生成新怪物，3积分</span>
               </div>
               <div className="flex items-start gap-2">
-                <span style={{ color: 'hsl(280, 65%, 60%)' }} className="font-bold">回避型</span>
+                <span className="font-bold text-accent">回避型</span>
                 <span className="text-muted-foreground">- 30%概率规避攻击，2积分</span>
               </div>
               <div className="flex items-start gap-2">
@@ -85,7 +85,7 @@ export default function GameTutorial() {
             <h3 className="text-lg font-semibold mb-2">💡 游戏技巧</h3>
             <ul className="space-y-2 text-muted-foreground">
               <li>• 优先消灭<span className="text-destructive font-bold">攻击型</span>怪物，防止怪物数量失控</li>
-              <li>• 注意<span style={{ color: 'hsl(280, 65%, 60%)' }} className="font-bold">回避型</span>怪物可能会躲避你的攻击</li>
+              <li>• 注意<span className="font-bold text-accent">回避型</span>怪物可能会躲避你的攻击</li>
               <li>• 使用Tab键灵活切换目标，优先处理接近底部的怪物</li>
               <li>• 保持高准确率比追求速度更重要</li>
               <li>• 定期查看个人数据，了解自己的弱点字符</li>

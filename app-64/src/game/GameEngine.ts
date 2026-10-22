@@ -693,6 +693,18 @@ export class GameEngine {
     return { ...this.stats };
   }
 
+  getProgress01(): number {
+    const locked = this.inputHandler.getLockedMonster();
+    if (locked && locked.isAlive && locked.text.length > 0) {
+      return Math.min(1, locked.currentIndex / locked.text.length);
+    }
+    const spawned = this.roundMonstersSpawned;
+    if (spawned <= 0) return 0;
+    const alive = this.monsters.filter((monster) => monster.isAlive && monster.isRoundMonster).length;
+    const eliminated = Math.max(0, spawned - alive);
+    return Math.min(1, eliminated / spawned);
+  }
+
   // 获取输入处理器
   getInputHandler(): InputHandler {
     return this.inputHandler;

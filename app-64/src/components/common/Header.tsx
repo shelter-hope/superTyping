@@ -41,7 +41,7 @@ export default function Header() {
   const visibleRoutes = routes.filter(route => route.visible && (!route.requireAuth || user));
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-[linear-gradient(180deg,hsl(216_21%_6%/0.98),hsl(216_18%_9%/0.92))] shadow-[0_18px_34px_hsl(216_35%_2%/0.42)] backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background/80 shadow-card backdrop-blur">
       <div className="container relative flex h-16 items-center justify-between before:absolute before:bottom-0 before:left-8 before:h-px before:w-40 before:bg-primary/50 before:shadow-[0_0_12px_hsl(var(--primary)/0.35)]">
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-3">
