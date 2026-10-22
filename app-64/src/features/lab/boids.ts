@@ -1,3 +1,5 @@
+import type { Graphics } from 'pixi.js';
+
 export interface BoidParams {
   count: number;
   visionRadius: number;
@@ -249,4 +251,17 @@ function metrics(boids: Boid[], cell: number): BoidMetrics {
     polarization: Math.hypot(vx, vy) / count,
     clusters: occupied.size,
   };
+}
+
+export function drawBoids(graphics: Graphics, flock: Boid[], field: BoidField) {
+  graphics.clear();
+  for (const obstacle of field.obstacles) {
+    graphics.circle(obstacle.x, obstacle.y, obstacle.radius).stroke({ color: 0x3dffe0, width: 2, alpha: 0.7 });
+  }
+  for (const predator of field.predators) {
+    graphics.circle(predator.x, predator.y, 6).fill({ color: 0xff4fd8 });
+  }
+  for (const boid of flock) {
+    graphics.circle(boid.x, boid.y, 2.5).fill({ color: 0x3dffe0 });
+  }
 }

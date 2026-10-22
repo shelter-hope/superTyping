@@ -311,7 +311,7 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/lab/algorithms` | 已启用算法，含默认参数 |
+| GET | `/lab/algorithms` | 已启用算法。目前有 `boids`、`pso`、`ant-colony`、`genetic` |
 | GET | `/lab/presets` | 系统预设和公开预设，查询参数 `algorithmId` |
 
 需要登录：

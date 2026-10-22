@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { defaultBoidParams, type BoidParams } from './boids';
+import { createField, createFlock, defaultBoidParams, drawBoids, stepBoids, type BoidParams } from './boids';
+import type { LabPlugin } from './plugin';
+import { acoPlugin } from './aco';
+import { geneticPlugin } from './genetic';
+import { psoPlugin } from './pso';
 
 export const boidsSchema = z.object({
   count: z.number().int().min(1).max(2000),
@@ -12,15 +16,7 @@ export const boidsSchema = z.object({
   cohesion: z.number().min(0).max(4),
 });
 
-export interface ParamField {
-  key: keyof BoidParams;
-  label: string;
-  min: number;
-  max: number;
-  step: number;
-}
-
-export const boidFields: ParamField[] = [
+export const boidFields = [
   { key: 'count', label: '群体规模', min: 1, max: 2000, step: 1 },
   { key: 'visionRadius', label: '视野半径', min: 1, max: 200, step: 1 },
   { key: 'visionAngle', label: '视野角度', min: 0.2, max: Math.PI * 2, step: 0.1 },
@@ -31,20 +27,38 @@ export const boidFields: ParamField[] = [
   { key: 'cohesion', label: '凝聚', min: 0, max: 4, step: 0.1 },
 ];
 
-export interface LabAlgorithm<TParams extends Record<string, number>> {
-  id: string;
-  name: string;
-  description: string;
-  defaults: TParams;
-  fields: ParamField[];
+export const boidsPlugin: LabPlugin<BoidParams, ReturnType<typeof createBoidState>> = {
+  id: 'boids',
+  name: 'Boids 鸟群',
+  description: '分离、对齐和凝聚三条局部规则产生全局涌现。',
+  schema: boidsSchema,
+  fields: boidFields,
+  defaults: defaultBoidParams,
+  metricLabels: { averageSpeed: '平均速度', polarization: '极化度', clusters: '聚簇' },
+  explain: [
+    '分离让个体躲开过近的邻居。',
+    '对齐让个体朝邻居的平均方向转。',
+    '凝聚让个体靠近邻居的中心。没有一只鸟知道群体的形状。',
+  ],
+  pointerHint: '左键吸引，右键驱散。青圈是障碍，洋红点是捕食者。',
+  create: createBoidState,
+  step(state, params, width, height) {
+    const metrics = stepBoids(state.flock, params, width, height, state.field);
+    return { averageSpeed: metrics.averageSpeed, polarization: metrics.polarization, clusters: metrics.clusters };
+  },
+  draw(graphics, state) {
+    drawBoids(graphics, state.flock, state.field);
+  },
+  onPointer(state, pointer) {
+    state.field.pointer = pointer;
+  },
+};
+
+function createBoidState(params: BoidParams, seed: number, width: number, height: number) {
+  return {
+    flock: createFlock(params, seed, width, height),
+    field: createField(seed, width, height),
+  };
 }
 
-export const labRegistry: LabAlgorithm<BoidParams>[] = [
-  {
-    id: 'boids',
-    name: 'Boids 鸟群',
-    description: '分离、对齐和凝聚三条局部规则产生全局涌现。',
-    defaults: defaultBoidParams,
-    fields: boidFields,
-  },
-];
+export const labRegistry = [boidsPlugin, psoPlugin, acoPlugin, geneticPlugin];

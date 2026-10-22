@@ -1,20 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Application, Graphics } from 'pixi.js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { deleteLabPreset, fetchLabPresets, fetchMyLabPresets, saveLabPreset, type LabPresetDto } from '@/features/lab/api';
-import { boidsSchema, labRegistry } from '@/features/lab/registry';
-import {
-  createField,
-  createFlock,
-  stepBoids,
-  type Boid,
-  type BoidField,
-  type BoidMetrics,
-  type BoidParams,
-} from '@/features/lab/boids';
+import { labRegistry } from '@/features/lab/registry';
+import type { LabPlugin, ParamField, PointerForce } from '@/features/lab/plugin';
 
 const WIDTH = 800;
 const HEIGHT = 480;
@@ -24,10 +16,10 @@ export default function LabPage() {
   const { algorithmId = 'boids' } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const algorithm = labRegistry.find((item) => item.id === algorithmId) ?? labRegistry[0];
-  const [params, setParams] = useState<BoidParams>(algorithm.defaults);
+  const [params, setParams] = useState<Record<string, number>>(algorithm.defaults);
   const [seed, setSeed] = useState(7);
   const [paused, setPaused] = useState(false);
-  const [presetName, setPresetName] = useState('我的鸟群');
+  const [presetName, setPresetName] = useState('我的预设');
   const [sharePublic, setSharePublic] = useState(true);
   const [notice, setNotice] = useState('');
   const [presets, setPresets] = useState<LabPresetDto[]>([]);
@@ -35,14 +27,15 @@ export default function LabPage() {
   const metricsNode = useRef<HTMLParagraphElement>(null);
   const presetQuery = searchParams.get('preset');
   const stateRef = useRef({
+    plugin: algorithm as LabPlugin<Record<string, number>, unknown>,
     params,
     paused,
     seed,
     valid: true,
-    flock: [] as Boid[],
-    field: createField(7, WIDTH, HEIGHT),
+    sim: algorithm.create(algorithm.defaults, 7, WIDTH, HEIGHT) as unknown,
   });
-  const parsed = useMemo(() => boidsSchema.safeParse(params), [params]);
+  const parsed = useMemo(() => algorithm.schema.safeParse(params), [algorithm, params]);
+  stateRef.current.plugin = algorithm as LabPlugin<Record<string, number>, unknown>;
   stateRef.current.params = params;
   stateRef.current.paused = paused;
   stateRef.current.seed = seed;
@@ -58,13 +51,7 @@ export default function LabPage() {
       [...visible, ...mine].forEach((preset) => merged.set(preset.id, preset));
       setPresets([...merged.values()]);
       const match = merged.get(Number(presetQuery));
-      if (match) {
-        const checked = boidsSchema.safeParse(match.params);
-        if (checked.success) {
-          setParams(checked.data);
-          stateRef.current.params = checked.data;
-        }
-      }
+      if (match) applyPreset(match.params);
     });
     return () => {
       cancelled = true;
@@ -72,9 +59,9 @@ export default function LabPage() {
   }, [algorithm.id, presetQuery]);
 
   useEffect(() => {
-    if (stateRef.current.flock.length === params.count) return;
-    stateRef.current.flock = createFlock(stateRef.current.params, seed, WIDTH, HEIGHT);
-  }, [params.count, seed]);
+    const plugin = stateRef.current.plugin;
+    stateRef.current.sim = plugin.create(stateRef.current.params, seed, WIDTH, HEIGHT);
+  }, [algorithm.id, seed, params.count, params.ants, params.population]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -83,9 +70,7 @@ export default function LabPage() {
     let app: Application | null = null;
     let frameId = 0;
     const graphics = new Graphics();
-    stateRef.current.flock = createFlock(stateRef.current.params, seed, WIDTH, HEIGHT);
-    stateRef.current.field = createField(seed, WIDTH, HEIGHT);
-    bootQueue = bootQueue.then(async () => {
+    const boot = bootQueue.then(async () => {
       if (stopped) return;
       const view = new Application();
       await view.init({ canvas, width: WIDTH, height: HEIGHT, background: 0x071612, antialias: false, preference: 'webgl' });
@@ -103,20 +88,21 @@ export default function LabPage() {
         const step = Math.min(32, now - last);
         last = now;
         const current = stateRef.current;
-        let nextMetrics: BoidMetrics | null = null;
+        let nextMetrics: Record<string, number> | null = null;
         if (!current.paused && step > 0 && current.valid) {
-          nextMetrics = stepBoids(current.flock, current.params, WIDTH, HEIGHT, current.field);
+          nextMetrics = current.plugin.step(current.sim, current.params, WIDTH, HEIGHT);
         }
-        draw(graphics, current.flock, current.field);
+        current.plugin.draw(graphics, current.sim, current.params);
         view.render();
         if (nextMetrics && now - reported > 250 && metricsNode.current) {
           reported = now;
-          metricsNode.current.textContent = `种子 ${current.seed} · 平均速度 ${nextMetrics.averageSpeed.toFixed(2)} · 极化度 ${nextMetrics.polarization.toFixed(2)} · 聚簇 ${nextMetrics.clusters}`;
+          metricsNode.current.textContent = formatMetrics(current.plugin, current.seed, nextMetrics);
         }
         frameId = requestAnimationFrame(frame);
       };
       frameId = requestAnimationFrame(frame);
     }).catch(() => undefined);
+    bootQueue = boot;
     return () => {
       stopped = true;
       cancelAnimationFrame(frameId);
@@ -127,8 +113,8 @@ export default function LabPage() {
     };
   }, []);
 
-  function applyPreset(next: BoidParams) {
-    const checked = boidsSchema.safeParse(next);
+  function applyPreset(next: Record<string, number>) {
+    const checked = algorithm.schema.safeParse(next);
     if (!checked.success) {
       setNotice('预设参数超出范围');
       return;
@@ -140,11 +126,13 @@ export default function LabPage() {
   function reset(nextSeed = seed) {
     setSeed(nextSeed);
     stateRef.current.seed = nextSeed;
-    stateRef.current.flock = createFlock(stateRef.current.params, nextSeed, WIDTH, HEIGHT);
-    stateRef.current.field = createField(nextSeed, WIDTH, HEIGHT);
-    if (metricsNode.current) {
-      metricsNode.current.textContent = `种子 ${nextSeed} · 平均速度 0.00 · 极化度 0.00 · 聚簇 0`;
-    }
+    stateRef.current.sim = stateRef.current.plugin.create(stateRef.current.params, nextSeed, WIDTH, HEIGHT);
+    if (metricsNode.current) metricsNode.current.textContent = formatMetrics(stateRef.current.plugin, nextSeed, {});
+  }
+
+  function pointAt(event: PointerEvent<HTMLCanvasElement>): PointerForce {
+    const point = canvasPoint(event.currentTarget, event.clientX, event.clientY);
+    return { ...point, mode: event.button === 2 ? 'repel' : 'attract' };
   }
 
   async function savePreset() {
@@ -170,9 +158,8 @@ export default function LabPage() {
   }
 
   async function removePreset(preset: LabPresetDto) {
-    if (preset.id < 0) {
-      dropLocalPreset(algorithm.id, preset.id);
-    } else {
+    if (preset.id < 0) dropLocalPreset(algorithm.id, preset.id);
+    else {
       try {
         await deleteLabPreset(preset.id);
       } catch {
@@ -190,7 +177,7 @@ export default function LabPage() {
           <h1 className="text-3xl font-bold">群体智能实验室</h1>
           <p className="text-muted-foreground">{algorithm.description}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {labRegistry.map((item) => (
             <Button key={item.id} asChild variant={item.id === algorithm.id ? 'default' : 'outline'} size="sm">
               <Link to={`/lab/${item.id}`}>{item.name}</Link>
@@ -207,38 +194,28 @@ export default function LabPage() {
               height={HEIGHT}
               className="h-auto w-full rounded-[1.5rem] border border-primary/30"
               onContextMenu={(event) => event.preventDefault()}
-              onPointerDown={(event) => {
-                const point = canvasPoint(event.currentTarget, event.clientX, event.clientY);
-                stateRef.current.field.pointer = { ...point, mode: event.button === 2 ? 'repel' : 'attract' };
-              }}
+              onPointerDown={(event) => stateRef.current.plugin.onPointer?.(stateRef.current.sim, pointAt(event))}
               onPointerMove={(event) => {
-                if (!stateRef.current.field.pointer) return;
-                const point = canvasPoint(event.currentTarget, event.clientX, event.clientY);
-                stateRef.current.field.pointer = { ...point, mode: stateRef.current.field.pointer.mode };
+                if (event.buttons === 0) return;
+                stateRef.current.plugin.onPointer?.(stateRef.current.sim, pointAt(event));
               }}
-              onPointerUp={() => {
-                stateRef.current.field.pointer = null;
-              }}
-              onPointerLeave={() => {
-                stateRef.current.field.pointer = null;
-              }}
+              onPointerUp={() => stateRef.current.plugin.onPointer?.(stateRef.current.sim, null)}
+              onPointerLeave={() => stateRef.current.plugin.onPointer?.(stateRef.current.sim, null)}
             />
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => setPaused((value) => !value)}>{paused ? '继续' : '暂停'}</Button>
               <Button variant="outline" onClick={() => {
                 stateRef.current.paused = true;
                 setPaused(true);
-                const nextMetrics = stepBoids(stateRef.current.flock, params, WIDTH, HEIGHT, stateRef.current.field);
-                if (metricsNode.current) {
-                  metricsNode.current.textContent = `种子 ${seed} · 平均速度 ${nextMetrics.averageSpeed.toFixed(2)} · 极化度 ${nextMetrics.polarization.toFixed(2)} · 聚簇 ${nextMetrics.clusters}`;
-                }
+                const nextMetrics = stateRef.current.plugin.step(stateRef.current.sim, params, WIDTH, HEIGHT);
+                if (metricsNode.current) metricsNode.current.textContent = formatMetrics(algorithm as LabPlugin<Record<string, number>, unknown>, seed, nextMetrics);
               }}>单步</Button>
               <Button variant="outline" onClick={() => reset()}>重置</Button>
               <Button variant="outline" onClick={() => reset(Math.floor(Math.random() * 10000))}>随机种子</Button>
               <Button variant="outline" onClick={() => canvasRef.current?.requestFullscreen()}>全屏</Button>
             </div>
-            <p ref={metricsNode} className="text-sm">种子 {seed} · 平均速度 0.00 · 极化度 0.00 · 聚簇 0</p>
-            <p className="text-sm text-muted-foreground">左键吸引，右键驱散。青圈是障碍，洋红点是捕食者。</p>
+            <p ref={metricsNode} className="text-sm">{formatMetrics(algorithm as LabPlugin<Record<string, number>, unknown>, seed, {})}</p>
+            {algorithm.pointerHint && <p className="text-sm text-muted-foreground">{algorithm.pointerHint}</p>}
             {!parsed.success && <p className="text-sm text-destructive">参数超出范围</p>}
             {notice && <p className="text-sm text-primary">{notice}</p>}
           </CardContent>
@@ -255,10 +232,10 @@ export default function LabPage() {
                   min={field.min}
                   max={field.max}
                   step={field.step}
-                  value={params[field.key]}
+                  value={params[field.key] ?? field.min}
                   onChange={(event) => {
-                    const value = Number(event.target.value);
-                    setParams((current) => ({ ...current, [field.key]: field.key === 'count' ? Math.round(value) : value }));
+                    const value = snap(field, Number(event.target.value));
+                    setParams((current) => ({ ...current, [field.key]: value }));
                   }}
                 />
               </label>
@@ -284,35 +261,34 @@ export default function LabPage() {
         </Card>
       </div>
       <Card>
-        <CardHeader><CardTitle>局部规则，全局涌现</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{algorithm.name}</CardTitle></CardHeader>
         <CardContent className="grid gap-3 text-sm md:grid-cols-3">
-          <p>分离让个体躲开过近的邻居。</p>
-          <p>对齐让个体朝邻居的平均方向转。</p>
-          <p>凝聚让个体靠近邻居的中心。没有一只鸟知道群体的形状。</p>
+          {algorithm.explain.map((line) => <p key={line}>{line}</p>)}
         </CardContent>
       </Card>
     </div>
   );
 }
 
-function draw(graphics: Graphics, flock: Boid[], field: BoidField) {
-  graphics.clear();
-  for (const obstacle of field.obstacles) {
-    graphics.circle(obstacle.x, obstacle.y, obstacle.radius).stroke({ color: 0x3dffe0, width: 2, alpha: 0.7 });
+function formatMetrics(plugin: LabPlugin<Record<string, number>, unknown>, seed: number, metrics: Record<string, number>) {
+  const parts = [`种子 ${seed}`];
+  for (const [key, label] of Object.entries(plugin.metricLabels)) {
+    parts.push(`${label} ${(metrics[key] ?? 0).toFixed(2)}`);
   }
-  for (const predator of field.predators) {
-    graphics.circle(predator.x, predator.y, 6).fill({ color: 0xff4fd8 });
-  }
-  for (const boid of flock) {
-    graphics.circle(boid.x, boid.y, 2.5).fill({ color: 0x3dffe0 });
-  }
+  return parts.join(' · ');
+}
+
+function snap(field: ParamField, value: number) {
+  const steps = Math.round((value - field.min) / field.step);
+  const next = field.min + steps * field.step;
+  return Math.min(field.max, Math.max(field.min, Number(next.toFixed(4))));
 }
 
 function canvasPoint(canvas: HTMLCanvasElement, clientX: number, clientY: number) {
   const rect = canvas.getBoundingClientRect();
   return {
-    x: ((clientX - rect.left) / rect.width) * WIDTH,
-    y: ((clientY - rect.top) / rect.height) * HEIGHT,
+    x: ((clientX - rect.left) / Math.max(1, rect.width)) * WIDTH,
+    y: ((clientY - rect.top) / Math.max(1, rect.height)) * HEIGHT,
   };
 }
 
@@ -328,22 +304,20 @@ function loadLocalPresets(algorithmId: string): LabPresetDto[] {
   }
 }
 
-function saveLocalPreset(algorithmId: string, name: string, params: BoidParams): LabPresetDto {
+function saveLocalPreset(algorithmId: string, name: string, params: Record<string, number>): LabPresetDto {
   const preset: LabPresetDto = {
     id: -Date.now(),
     userId: null,
     algorithmId,
     name,
-    params,
+    params: params as LabPresetDto['params'],
     isPublic: false,
     system: false,
   };
-  const next = [...loadLocalPresets(algorithmId), preset];
-  localStorage.setItem(localKey(algorithmId), JSON.stringify(next));
+  localStorage.setItem(localKey(algorithmId), JSON.stringify([...loadLocalPresets(algorithmId), preset]));
   return preset;
 }
 
 function dropLocalPreset(algorithmId: string, id: number) {
-  const next = loadLocalPresets(algorithmId).filter((preset) => preset.id !== id);
-  localStorage.setItem(localKey(algorithmId), JSON.stringify(next));
+  localStorage.setItem(localKey(algorithmId), JSON.stringify(loadLocalPresets(algorithmId).filter((preset) => preset.id !== id)));
 }

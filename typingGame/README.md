@@ -212,7 +212,7 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 | `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
 | `/api/v1/dictionary/**` | chat-svc | 词库管理兼容路径 |
 | `/api/v1/dictionaries/**` | chat-svc | 词库管理 |
-| `/api/v1/lab/**` | lab-svc | 群体智能算法与预设。公开读：`GET /algorithms`、`GET /presets`。登录后可增删改自己的预设。后台 `/api/v1/admin/lab/**` 由 admin-svc 转发到 `/internal/admin/lab/**` |
+| `/api/v1/lab/**` | lab-svc | 群体智能算法与预设。算法 id：`boids`、`pso`、`ant-colony`、`genetic`。公开读：`GET /algorithms`、`GET /presets`。登录后可增删改自己的预设。后台 `/api/v1/admin/lab/**` 由 admin-svc 转发到 `/internal/admin/lab/**` |
 
 ## 核心功能模块
 
