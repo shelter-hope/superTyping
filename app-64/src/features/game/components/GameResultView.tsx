@@ -127,7 +127,7 @@ export function GameResultView({
       <div className="container max-w-4xl py-8">
         <Card className="p-8">
           <div className="space-y-6 text-center">
-            <h1 className="text-3xl font-bold text-red-500">游戏结束</h1>
+            <h1 className="text-3xl font-bold text-accent">游戏结束</h1>
             <div className="grid grid-cols-2 gap-4 text-left">
               <StatBlock label="最终得分" value={stats.score} />
               <StatBlock label="轮次" value={stats.round} />
@@ -155,7 +155,7 @@ export function GameResultView({
       <Card className="p-8">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">详细结果</h1>
+            <h1 className="text-3xl font-bold gradient-text">详细结果</h1>
             <Button variant="outline" onClick={onBackToSummary}>返回</Button>
           </div>
           <SummaryCards stats={stats} />

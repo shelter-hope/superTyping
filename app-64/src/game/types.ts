@@ -55,6 +55,7 @@ export interface GameStats {
   errorChars: number;              // 错误字符数
   accuracy: number;                // 准确率
   speed: number;                   // 打字速度（字符/分钟）
+  peakSpeed: number;               // 本局峰值速度
   startTime: number;               // 开始时间
   currentTime: number;             // 当前时间
   monstersKilled: number;          // 消灭的怪兽数量

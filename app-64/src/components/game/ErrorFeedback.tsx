@@ -41,22 +41,22 @@ export default function ErrorFeedback({ lastError, lastCorrect }: ErrorFeedbackP
     <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
       {/* 错误提示 */}
       {showError && lastError && (
-        <Card className="p-6 bg-red-500/20 border-red-500 animate-shake pointer-events-auto">
+        <Card className="pointer-events-auto animate-shake border-destructive/50 bg-destructive/15 p-6">
           <div className="flex items-center gap-6">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-500/30">
-              <X className="w-8 h-8 text-red-500" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/30">
+              <X className="h-8 w-8 text-destructive" />
             </div>
             <div className="flex items-center gap-4">
               <div className="text-center">
-                <div className="text-sm text-muted-foreground mb-1">您输入了</div>
-                <div className="text-4xl font-mono font-bold text-red-500">
+                <div className="mb-1 text-sm text-muted-foreground">您输入了</div>
+                <div className="font-mono text-4xl font-bold text-destructive">
                   {lastError.input === ' ' ? '空格' : lastError.input}
                 </div>
               </div>
               <div className="text-3xl text-muted-foreground">→</div>
               <div className="text-center">
-                <div className="text-sm text-muted-foreground mb-1">应该是</div>
-                <div className="text-4xl font-mono font-bold text-green-500">
+                <div className="mb-1 text-sm text-muted-foreground">应该是</div>
+                <div className="font-mono text-4xl font-bold text-primary">
                   {lastError.expected === ' ' ? '空格' : lastError.expected}
                 </div>
               </div>
@@ -67,8 +67,8 @@ export default function ErrorFeedback({ lastError, lastCorrect }: ErrorFeedbackP
 
       {/* 正确提示 */}
       {showCorrect && lastCorrect && (
-        <div className="flex items-center justify-center w-20 h-20 rounded-full bg-green-500/30 animate-ping-once">
-          <Check className="w-12 h-12 text-green-500" />
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/30 animate-ping-once">
+          <Check className="h-12 w-12 text-primary" />
         </div>
       )}
     </div>

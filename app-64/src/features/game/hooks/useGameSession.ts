@@ -162,7 +162,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
         totalChars: finalStats.totalChars,
         correctChars: finalStats.correctChars,
         avgSpeed: finalStats.speed,
-        peakSpeed: finalStats.speed,
+        peakSpeed: finalStats.peakSpeed || finalStats.speed,
         avgAccuracy: finalStats.accuracy,
         peakAccuracy: finalStats.accuracy,
         gameDuration: Math.floor((finalStats.currentTime - finalStats.startTime) / 1000),
