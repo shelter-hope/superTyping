@@ -3,6 +3,8 @@ package com.typinggame.game.service.word;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.MonsterDataRepository;
 import com.typinggame.game.repository.StringParentRepository;
+import com.typinggame.game.rule.DifficultyEngine;
+import com.typinggame.game.rule.DifficultyRule;
 import com.typinggame.game.rule.GeneticEngine;
 import com.typinggame.game.rule.GeneticRule;
 import com.typinggame.game.rule.RuleConfigProvider;
@@ -14,6 +16,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -68,7 +71,7 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
             }
             return generateEvolvedWords(limitedParents, context.getFocusChars(), context.getCount(), context.getLength(), new ArrayList<>(pool), genetic);
         }
-        return buildFromPool(new ArrayList<>(pool), context.getCount(), context.getLength());
+        return buildFromPool(new ArrayList<>(pool), context.getFocusChars(), context.getCount(), context.getLength());
     }
 
     private List<String> generateEvolvedWords(List<String> parents, List<String> weakChars,
@@ -79,7 +82,7 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
         Set<String> result = new LinkedHashSet<>(GeneticEngine.evolve(parents, weakChars, safeCount, safeLength, genetic.getCrossRoundMutationRate(), random));
         int index = 0;
         while (result.size() < safeCount) {
-            result.add(buildFromPool(fallbackPool, index + 1, safeLength).get(index));
+            result.add(buildFromPool(fallbackPool, weakChars, index + 1, safeLength).get(index));
             index++;
         }
         return new ArrayList<>(result).subList(0, safeCount);
@@ -144,14 +147,21 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
         };
     }
 
-    private List<String> buildFromPool(List<String> pool, int count, int length) {
+    private List<String> buildFromPool(List<String> pool, List<String> focusChars, int count, int length) {
         List<String> words = new ArrayList<>();
         int safeCount = Math.max(3, Math.min(25, count));
         int safeLength = Math.max(1, Math.min(15, length));
+        if (pool.isEmpty()) {
+            return words;
+        }
+        DifficultyRule rule = ruleConfigProvider.activeDifficulty();
+        double multiplier = DifficultyEngine.weakExposureMultiplier(rule, focusChars == null ? 0 : focusChars.size());
+        Set<String> boosted = new HashSet<>(focusChars == null ? List.of() : focusChars);
+        Random random = ThreadLocalRandom.current();
         for (int i = 0; i < safeCount; i++) {
             StringBuilder word = new StringBuilder();
             for (int j = 0; j < safeLength; j++) {
-                word.append(pool.get((i + j) % pool.size()));
+                word.append(DifficultyEngine.pickWeighted(pool, boosted, multiplier, random));
             }
             words.add(word.toString());
         }

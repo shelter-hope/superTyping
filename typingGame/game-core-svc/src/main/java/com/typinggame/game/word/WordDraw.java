@@ -31,7 +31,7 @@ public final class WordDraw {
         if (pool != null) {
             for (Entry entry : pool) {
                 if (entry == null || entry.word() == null || entry.word().isBlank()) continue;
-                remaining.add(new Entry(entry.word().trim(), Math.max(1, Math.min(5, entry.weight()))));
+                remaining.add(new Entry(entry.word().trim(), Math.max(1, Math.min(10, entry.weight()))));
             }
         }
         int safeCount = Math.max(3, Math.min(25, count));

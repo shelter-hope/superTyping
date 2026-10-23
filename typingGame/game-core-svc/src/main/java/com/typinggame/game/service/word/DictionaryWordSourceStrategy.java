@@ -5,6 +5,8 @@ import com.typinggame.entity.dictionaries.DictionaryWord;
 import com.typinggame.entity.dictionaries.SystemDictionary;
 import com.typinggame.entity.dictionaries.SystemDictionaryWord;
 import com.typinggame.enums.GameMode;
+import com.typinggame.game.rule.DifficultyEngine;
+import com.typinggame.game.rule.RuleConfigProvider;
 import com.typinggame.game.repository.GameCustomDictionaryRepository;
 import com.typinggame.game.repository.GameDictionaryWordRepository;
 import com.typinggame.game.repository.GameSystemDictionaryRepository;
@@ -26,17 +28,20 @@ public class DictionaryWordSourceStrategy implements WordSourceStrategy {
     private final GameSystemDictionaryWordRepository systemDictionaryWordRepository;
     private final GameSystemDictionaryRepository systemDictionaryRepository;
     private final EndlessAdaptiveWordSourceStrategy fallbackStrategy;
+    private final RuleConfigProvider ruleConfigProvider;
 
     public DictionaryWordSourceStrategy(GameCustomDictionaryRepository customDictionaryRepository,
                                         GameDictionaryWordRepository dictionaryWordRepository,
                                         GameSystemDictionaryWordRepository systemDictionaryWordRepository,
                                         GameSystemDictionaryRepository systemDictionaryRepository,
-                                        EndlessAdaptiveWordSourceStrategy fallbackStrategy) {
+                                        EndlessAdaptiveWordSourceStrategy fallbackStrategy,
+                                        RuleConfigProvider ruleConfigProvider) {
         this.customDictionaryRepository = customDictionaryRepository;
         this.dictionaryWordRepository = dictionaryWordRepository;
         this.systemDictionaryWordRepository = systemDictionaryWordRepository;
         this.systemDictionaryRepository = systemDictionaryRepository;
         this.fallbackStrategy = fallbackStrategy;
+        this.ruleConfigProvider = ruleConfigProvider;
     }
 
     @Override
@@ -47,17 +52,20 @@ public class DictionaryWordSourceStrategy implements WordSourceStrategy {
     @Override
     public List<String> generateWords(WordSourceContext context) {
         List<WordDraw.Entry> pool = new ArrayList<>();
+        double multiplier = DifficultyEngine.weakExposureMultiplier(ruleConfigProvider.activeDifficulty(), context.getFocusChars().size());
         List<Integer> allowedCustomIds = loadAllowedCustomDictIds(context);
         if (!allowedCustomIds.isEmpty()) {
             dictionaryWordRepository.findByDictIdIn(allowedCustomIds, page()).stream()
                     .filter(word -> validWord(word.getWord()))
-                    .forEach(word -> pool.add(new WordDraw.Entry(word.getWord(), weight(word.getDifficultyLevel()))));
+                    .forEach(word -> pool.add(new WordDraw.Entry(word.getWord(),
+                            DifficultyEngine.exposureWeight(word.getWord(), context.getFocusChars(), weight(word.getDifficultyLevel()), multiplier))));
         }
         List<Integer> activeSystemIds = activeSystemIds(context.getSystemDictIds());
         if (!activeSystemIds.isEmpty()) {
             systemDictionaryWordRepository.findByDictIdIn(activeSystemIds, page()).stream()
                     .filter(word -> validWord(word.getWord()))
-                    .forEach(word -> pool.add(new WordDraw.Entry(word.getWord(), weight(word.getDifficultyLevel()))));
+                    .forEach(word -> pool.add(new WordDraw.Entry(word.getWord(),
+                            DifficultyEngine.exposureWeight(word.getWord(), context.getFocusChars(), weight(word.getDifficultyLevel()), multiplier))));
         }
         if (pool.isEmpty()) {
             return fallbackStrategy.generateWords(context);

@@ -322,7 +322,7 @@ Compose 里的 Nacos 开启了鉴权，服务配置只写了地址、没有用�
 
 - **遗传算法**：按上一轮存活时间、消灭耗时和错误次数挑选父本，切片重组后生成下一轮字符串。说明见 [docs/genetic-algorithm.md](docs/genetic-algorithm.md)
 - **定向变异**：把部分字符替换成该玩家的易错字符
-- **难度模型**：综合准确率、速度和轮次调节怪物速度、数量、长度和类型占比。说明见 [docs/math-model.md](docs/math-model.md)
+- **难度模型**：难度系数跟踪准确率相对 85% 的偏差；轮次只在难度升高后增加怪物数量。说明见 [docs/math-model.md](docs/math-model.md)
 
 ### 模式
 

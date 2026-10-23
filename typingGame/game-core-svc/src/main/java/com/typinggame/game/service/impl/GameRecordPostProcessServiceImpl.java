@@ -3,6 +3,7 @@ package com.typinggame.game.service.impl;
 import com.typinggame.dto.game.GameRecordUploadDTO;
 import com.typinggame.entity.dictionaries.DictionaryWord;
 import com.typinggame.entity.game.GameRecord;
+import com.typinggame.entity.game.GameRound;
 import com.typinggame.entity.game.MonsterData;
 import com.typinggame.entity.game.StringParent;
 import com.typinggame.entity.model.ModelInitParams;
@@ -12,6 +13,7 @@ import com.typinggame.entity.user.UserDailyStats;
 import com.typinggame.entity.user.UserInfo;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.GameDictionaryWordRepository;
+import com.typinggame.game.repository.GameRoundRepository;
 import com.typinggame.game.repository.GameUserDailyStatsRepository;
 import com.typinggame.game.repository.ModelInitParamsRepository;
 import com.typinggame.game.repository.MonsterDataRepository;
@@ -49,6 +51,7 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
     private final StringParentRepository stringParentRepository;
     private final MonsterDataRepository monsterDataRepository;
     private final GameDictionaryWordRepository dictionaryWordRepository;
+    private final GameRoundRepository gameRoundRepository;
     private final RuleConfigProvider ruleConfigProvider;
 
     public GameRecordPostProcessServiceImpl(GameUserDailyStatsRepository dailyStatsRepository,
@@ -58,6 +61,7 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
                                              StringParentRepository stringParentRepository,
                                              MonsterDataRepository monsterDataRepository,
                                              GameDictionaryWordRepository dictionaryWordRepository,
+                                             GameRoundRepository gameRoundRepository,
                                              RuleConfigProvider ruleConfigProvider) {
         this.dailyStatsRepository = dailyStatsRepository;
         this.userModelParamsRepository = userModelParamsRepository;
@@ -66,6 +70,7 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
         this.stringParentRepository = stringParentRepository;
         this.monsterDataRepository = monsterDataRepository;
         this.dictionaryWordRepository = dictionaryWordRepository;
+        this.gameRoundRepository = gameRoundRepository;
         this.ruleConfigProvider = ruleConfigProvider;
     }
 
@@ -162,10 +167,18 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
     }
 
     private BigDecimal calculatePostGameDifficulty(BigDecimal before, GameRecord record) {
+        if (record.getLastRoundId() != null) {
+            GameRound settled = gameRoundRepository.findById(record.getLastRoundId()).orElse(null);
+            if (settled != null && settled.getDifficultyAfter() != null) {
+                return settled.getDifficultyAfter().setScale(4, RoundingMode.HALF_UP);
+            }
+        }
         DifficultyRule rule = ruleConfigProvider.activeDifficulty();
         double base = before == null ? rule.getInitialDifficulty() : before.doubleValue();
-        Double accuracy = record.getAvgAccuracy() == null ? null : record.getAvgAccuracy().doubleValue();
-        double next = DifficultyEngine.nextDifficulty(rule, base, accuracy, 0.0, Math.max(1, safeInt(record.getRoundNum())), 0);
+        Double accuracy = record.getAccuracyRatio() != null
+                ? record.getAccuracyRatio().doubleValue()
+                : (record.getAvgAccuracy() == null ? null : record.getAvgAccuracy().doubleValue());
+        double next = DifficultyEngine.nextDifficulty(rule, base, accuracy, null, Math.max(1, safeInt(record.getRoundNum())), 0);
         return BigDecimal.valueOf(next).setScale(4, RoundingMode.HALF_UP);
     }
 

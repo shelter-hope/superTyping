@@ -6,11 +6,12 @@ public final class RuleValidator {
 
     public static void validateDifficulty(DifficultyRule rule) {
         if (rule == null) throw new IllegalArgumentException("难度规则不能为空");
-        double sum = rule.getWeightAccuracy() + rule.getWeightNormalizedSpeed() + rule.getWeightHistorySpeed()
-                + rule.getWeightComposure() + rule.getWeightRound();
-        if (Math.abs(sum - 1.0) > 0.001) {
-            throw new IllegalArgumentException("难度权重之和必须为 1，当前为 " + sum);
+        double regulator = rule.getWeightAccuracy() + rule.getWeightNormalizedSpeed() + rule.getWeightHistorySpeed();
+        if (Math.abs(regulator - 1.0) > 0.001) {
+            throw new IllegalArgumentException("准确率、速度、历史峰值权重之和必须为 1，当前为 " + regulator);
         }
+        requireRange("易错强化系数", rule.getWeightComposure(), 0, 1);
+        requireRange("轮次保留权重", rule.getWeightRound(), 0, 1);
         requireRange("目标准确率", rule.getTargetAccuracy(), 0, 1);
         requireRange("增益", rule.getGain(), 0, 2);
         requireRange("步长", rule.getStep(), 0, 1);
