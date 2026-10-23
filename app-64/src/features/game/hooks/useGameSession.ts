@@ -7,10 +7,13 @@ import type { Profile } from '@/types/database';
 import type { GameConfig as AppGameConfig } from '@/types/game';
 import { useToast } from '@/hooks/use-toast';
 import {
+  applyPracticeWords,
   createAdaptiveConfig,
   createCharacterPool,
   createEngineConfig,
   createSpawnConfig,
+  practiceWords,
+  selectedCharsLabel,
   type StartRoundParams,
 } from '../utils/gameRuntime';
 
@@ -37,9 +40,11 @@ interface UseGameSessionOptions {
   onAuthRequired: () => void;
 }
 
-function toRoundMonsters(monsters: MonsterDataDTO[] | undefined): RoundMonsterItem[] | undefined {
-  if (!monsters?.length) return undefined;
-  return monsters.map((monster) => ({
+function toRoundMonsters(monsters: MonsterDataDTO[] | undefined, config: AppGameConfig): RoundMonsterItem[] | undefined {
+  const words = practiceWords(config);
+  const source = words ? applyPracticeWords(monsters, words) : monsters;
+  if (!source?.length) return undefined;
+  return source.map((monster) => ({
     monsterKey: monster.monsterKey,
     targetStr: monster.targetStr,
     speed: monster.speed != null ? Number(monster.speed) : undefined,
@@ -156,7 +161,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
 
       const result = await createGameRecord({
         gameMode: currentConfig.gameMode,
-        selectedChars: currentConfig.selectedChars,
+        selectedChars: currentConfig.selectedChars || selectedCharsLabel(currentConfig),
         roundNum: finalStats.round,
         totalScore: finalStats.score,
         totalChars: finalStats.totalChars,
@@ -241,7 +246,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
                 count ?? engine.getAdaptiveSystem().getCurrentMaxMonsters()
               );
             }
-            const roundMonsters = toRoundMonsters(response?.monsters);
+            const roundMonsters = toRoundMonsters(response?.monsters, currentConfig);
             planVersionRef.current = response?.planVersion;
             if (roundMonsters?.length) engine.setRoundMonsters(roundMonsters);
           })
@@ -272,7 +277,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
     const currentConfig = configRef.current;
     sessionIdRef.current = startParams.sessionId;
     planVersionRef.current = startParams.planVersion;
-    const initialRoundMonsters = toRoundMonsters(startParams.monsters);
+    const initialRoundMonsters = toRoundMonsters(startParams.monsters, currentConfig);
     const engine = new GameEngine(
       createEngineConfig(currentConfig, startParams, soundEnabledRef.current),
       createAdaptiveConfig(startParams),

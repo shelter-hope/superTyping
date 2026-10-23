@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { visibleLabPlugins } from './registry';
 import { pheromoneTotal, stepAco, createAco, defaultAcoParams, CITY_COUNT } from './aco';
 import { createGenetic, defaultGeneticParams, stepGenetic } from './genetic';
 import { createPso, defaultPsoParams, stepPso } from './pso';
+
+describe('lab catalog', () => {
+  it('hides disabled algorithms and keeps the server order', () => {
+    const plugins = [{ id: 'boids' }, { id: 'pso' }, { id: 'ant-colony' }];
+    expect(visibleLabPlugins(plugins, ['ant-colony', 'boids']).map((plugin) => plugin.id)).toEqual(['ant-colony', 'boids']);
+    expect(visibleLabPlugins(plugins, null)).toEqual(plugins);
+  });
+});
 
 describe('lab plugins', () => {
   it('keeps a seeded PSO reproducible and does not lose the best fitness', () => {

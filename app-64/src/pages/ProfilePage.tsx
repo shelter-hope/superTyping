@@ -203,7 +203,7 @@ export default function ProfilePage() {
               获取你的打字训练摘要，可复制到 ChatGPT、Claude 等 AI 助手的系统提示中；或直接使用站内 AI 对话（方案 A）。
             </p>
             <div className="flex flex-wrap gap-2">
-              <Link to="/ai-chat">
+              <Link to="/ai-assistant">
                 <Button type="button" variant="default" size="sm">
                   <MessageCircle className="w-4 h-4" />
                   <span className="ml-2">打开 AI 对话</span>

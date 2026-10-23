@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGameConfig } from '@/contexts/GameConfigContext';
-import { getUserDictionaries, getGameRecommend, getGameCharTypes, updateGameCharTypes } from '@/db/api';
-import type { CustomDictionary } from '@/types/database';
+import { getUserDictionaries, getSystemDictionaries, getGameRecommend, getGameCharTypes, updateGameCharTypes } from '@/db/api';
+import type { CustomDictionary, SystemDictionary } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,7 @@ import {
 import GameTutorial from '@/components/game/GameTutorial';
 import { Play, FileText, ExternalLink, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { selectedCharsLabel } from '@/features/game/utils/gameRuntime';
 
 export default function PreparePage() {
   const { user } = useAuth();
@@ -27,7 +28,9 @@ export default function PreparePage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [dictionaries, setDictionaries] = useState<CustomDictionary[]>([]);
+  const [systemDictionaries, setSystemDictionaries] = useState<SystemDictionary[]>([]);
   const [selectedDictId, setSelectedDictId] = useState<string>('');
+  const [selectedSystemDictId, setSelectedSystemDictId] = useState<string>('');
   const [recommendLoading, setRecommendLoading] = useState(false);
 
   const userId = user?.userId;
@@ -48,7 +51,8 @@ export default function PreparePage() {
           .map((s: string) => s.trim())
           .filter(Boolean),
       );
-      updateConfig({
+      const next = {
+        ...config,
         enableLowercase: types.has('lower'),
         enableUppercase: types.has('upper'),
         enableNumbers: types.has('number'),
@@ -56,6 +60,16 @@ export default function PreparePage() {
         enableOperators: types.has('operator'),
         enableSpecialChars: types.has('special'),
         enableChinese: types.has('chinese'),
+      };
+      updateConfig({
+        enableLowercase: next.enableLowercase,
+        enableUppercase: next.enableUppercase,
+        enableNumbers: next.enableNumbers,
+        enablePunctuation: next.enablePunctuation,
+        enableOperators: next.enableOperators,
+        enableSpecialChars: next.enableSpecialChars,
+        enableChinese: next.enableChinese,
+        selectedChars: selectedCharsLabel(next),
       });
     } catch (e) {
       console.error('加载字符类型配置失败:', e);
@@ -106,8 +120,12 @@ export default function PreparePage() {
     if (!userId) return;
 
     try {
-      const data = await getUserDictionaries();
+      const [data, system] = await Promise.all([
+        getUserDictionaries(),
+        getSystemDictionaries().catch(() => [] as SystemDictionary[]),
+      ]);
       setDictionaries(data);
+      setSystemDictionaries(system);
     } catch (error) {
       console.error('加载词库失败:', error);
     }
@@ -121,8 +139,15 @@ export default function PreparePage() {
       const mode = (res.suggestedMode as 'endless' | 'dictionary' | 'limit') || 'endless';
       const words = res.previewWords ?? [];
       if (words.length > 0) {
-        updateConfig({ gameMode: 'dictionary', customDictionary: words });
+        updateConfig({
+          gameMode: 'dictionary',
+          customDictionary: words,
+          customDictIds: [],
+          systemDictIds: [],
+          selectedChars: selectedCharsLabel(config),
+        });
         setSelectedDictId('recommend');
+        setSelectedSystemDictId('');
         toast({
           title: '已应用推荐配置',
           description: res.summary ?? `已为你生成 ${words.length} 个推荐练习词，点击「开始游戏」即可使用。`,
@@ -147,23 +172,36 @@ export default function PreparePage() {
   }
 
   function handleStartGame() {
-    // 词源界定模式：已选词库 或 已应用推荐词库（customDictionary 有内容）均可开始
     if (config.gameMode === 'dictionary') {
-      const hasRecommendWords = config.customDictionary && config.customDictionary.length > 0;
-      if (!selectedDictId && !hasRecommendWords) {
+      const usingRecommend = selectedDictId === 'recommend' && (config.customDictionary?.length ?? 0) > 0;
+      const selectedDict = selectedDictId && selectedDictId !== 'recommend'
+        ? dictionaries.find((dict) => String(dict.dictId) === selectedDictId)
+        : undefined;
+      if (selectedDictId && selectedDictId !== 'recommend' && !selectedDict) {
+        toast({ title: '词库不存在', description: '请重新选择词库', variant: 'destructive' });
+        return;
+      }
+      if (selectedDict && selectedDict.wordCount === 0 && !selectedDict.words?.length) {
+        toast({ title: '词库是空的', description: '这个词库还没有可用词语', variant: 'destructive' });
+        return;
+      }
+      const systemId = selectedSystemDictId ? Number(selectedSystemDictId) : undefined;
+      if (!usingRecommend && !selectedDict && !systemId) {
         toast({
           title: '请选择词库',
-          description: '词源界定模式需要选择一个词库，或点击「根据我的数据推荐配置」',
+          description: '词源界定模式需要选择自定义词库、系统词库，或使用推荐词',
           variant: 'destructive',
         });
         return;
       }
-      if (selectedDictId && selectedDictId !== 'recommend') {
-        const selectedDict = dictionaries.find(d => String(d.dictId) === selectedDictId);
-        if (selectedDict?.words?.length) {
-          updateConfig({ customDictionary: selectedDict.words, customDictIds: [selectedDict.dictId] });
-        }
-      }
+      updateConfig({
+        customDictionary: usingRecommend ? config.customDictionary : (selectedDict?.words?.length ? selectedDict.words : undefined),
+        customDictIds: selectedDict ? [selectedDict.dictId] : [],
+        systemDictIds: systemId ? [systemId] : [],
+        selectedChars: selectedCharsLabel(config),
+      });
+    } else {
+      updateConfig({ selectedChars: selectedCharsLabel(config) });
     }
     navigate('/game');
   }
@@ -277,11 +315,11 @@ export default function PreparePage() {
                   {selectedDictId === 'recommend' && config.customDictionary && config.customDictionary.length > 0 && (
                     <p className="text-sm text-primary">已应用推荐词库（{config.customDictionary.length} 个词），可直接开始游戏。</p>
                   )}
-                  {dictionaries.length === 0 && selectedDictId !== 'recommend' ? (
+                  {dictionaries.length === 0 && selectedDictId !== 'recommend' && (
                     <div className="p-4 border rounded-lg bg-muted/30">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                         <FileText className="w-4 h-4" />
-                        <span>还没有词库</span>
+                        <span>还没有自定义词库{systemDictionaries.length > 0 ? '，可以改用下面的系统词库' : ''}</span>
                       </div>
                       <Link to="/dictionary">
                         <Button variant="outline" size="sm">
@@ -290,7 +328,8 @@ export default function PreparePage() {
                         </Button>
                       </Link>
                     </div>
-                  ) : (
+                  )}
+                  {(dictionaries.length > 0 || selectedDictId === 'recommend') && (
                     <Select value={selectedDictId} onValueChange={setSelectedDictId}>
                       <SelectTrigger id="dictionary-select">
                         <SelectValue placeholder="请选择一个词库" />
@@ -310,6 +349,24 @@ export default function PreparePage() {
                     </Select>
                   )}
                 </div>
+                {systemDictionaries.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="system-dictionary-select">系统词库（可选）</Label>
+                    <Select value={selectedSystemDictId || 'none'} onValueChange={(value) => setSelectedSystemDictId(value === 'none' ? '' : value)}>
+                      <SelectTrigger id="system-dictionary-select">
+                        <SelectValue placeholder="不使用系统词库" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">不使用系统词库</SelectItem>
+                        {systemDictionaries.map((dict) => (
+                          <SelectItem key={dict.dictId} value={String(dict.dictId)}>
+                            {dict.name} ({dict.wordCount}个词语)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Link to="/dictionary">
                     <Button variant="outline" size="sm">

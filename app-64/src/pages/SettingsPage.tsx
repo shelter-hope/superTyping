@@ -1,13 +1,65 @@
 // 设置页面
+import { useState } from 'react';
 import { useGameConfig } from '@/contexts/GameConfigContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Volume2, VolumeX } from 'lucide-react';
+import { changePassword } from '@/services/auth';
+import { updateSoundSettings } from '@/services/user';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
   const { config, updateConfig } = useGameConfig();
+  const { toast } = useToast();
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  async function handleSoundChange(checked: boolean) {
+    updateConfig({ soundEnabled: checked });
+    try {
+      await updateSoundSettings({ enabled: checked });
+    } catch (error) {
+      updateConfig({ soundEnabled: !checked });
+      toast({
+        title: '音效设置未保存',
+        description: error instanceof Error ? error.message : '请稍后重试',
+        variant: 'destructive',
+      });
+    }
+  }
+
+  async function handleChangePassword(event: React.FormEvent) {
+    event.preventDefault();
+    if (newPassword.length < 6) {
+      toast({ title: '密码太短', description: '新密码至少需要 6 个字符', variant: 'destructive' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: '密码不匹配', description: '两次输入的新密码不一致', variant: 'destructive' });
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await changePassword(oldPassword, newPassword, confirmPassword);
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      toast({ title: '密码已更新', description: '下次登录请使用新密码' });
+    } catch (error) {
+      toast({
+        title: '修改失败',
+        description: error instanceof Error ? error.message : '请检查当前密码',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingPassword(false);
+    }
+  }
 
   return (
     <div className="container max-w-2xl py-8">
@@ -37,9 +89,35 @@ export default function SettingsPage() {
               <Switch
                 id="sound"
                 checked={config.soundEnabled}
-                onCheckedChange={(checked) => updateConfig({ soundEnabled: checked })}
+                onCheckedChange={(checked) => void handleSoundChange(checked)}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>修改密码</CardTitle>
+            <CardDescription>需要填写当前密码。新密码至少 6 位。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4" onSubmit={(event) => void handleChangePassword(event)}>
+              <div className="space-y-2">
+                <Label htmlFor="old-password">当前密码</Label>
+                <Input id="old-password" type="password" value={oldPassword} onChange={(event) => setOldPassword(event.target.value)} autoComplete="current-password" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-password">新密码</Label>
+                <Input id="new-password" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">确认新密码</Label>
+                <Input id="confirm-password" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" />
+              </div>
+              <Button type="submit" disabled={savingPassword || !oldPassword || !newPassword || !confirmPassword}>
+                {savingPassword ? '保存中…' : '更新密码'}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 

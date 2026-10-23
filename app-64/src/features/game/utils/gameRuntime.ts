@@ -1,6 +1,8 @@
 import type { GameConfig as EngineGameConfig, AdaptiveConfig, MonsterSpawnConfig } from '@/game/types';
 import type { GameConfig as AppGameConfig } from '@/types/game';
 
+const CHINESE_PRACTICE = ['的', '一', '是', '不', '了', '人', '我', '在', '有', '他', '这', '中', '大', '来', '上', '个', '国', '到', '说', '们'];
+
 export const GAME_CANVAS_WIDTH = 1200;
 export const GAME_CANVAS_HEIGHT = 800;
 
@@ -27,12 +29,38 @@ export function createCharacterPool(config: AppGameConfig): string[] {
   if (config.enablePunctuation) pool.push(',', '.', '!', '?', ';', ':', "'", '"');
   if (config.enableOperators) pool.push('+', '-', '*', '/', '=', '<', '>');
   if (config.enableSpecialChars) pool.push('@', '#', '$', '%', '^', '&', '*');
+  if (config.enableChinese) pool.push(...CHINESE_PRACTICE);
 
   if (config.gameMode === 'dictionary' && config.customDictionary?.length) {
     return config.customDictionary;
   }
 
   return pool.length > 0 ? pool : ['a', 'b', 'c', 'd', 'e'];
+}
+
+export function selectedCharsLabel(config: Pick<AppGameConfig, 'enableLowercase' | 'enableUppercase' | 'enableNumbers' | 'enablePunctuation' | 'enableOperators' | 'enableSpecialChars' | 'enableChinese'>): string {
+  const types: string[] = [];
+  if (config.enableLowercase) types.push('lower');
+  if (config.enableUppercase) types.push('upper');
+  if (config.enableNumbers) types.push('number');
+  if (config.enablePunctuation) types.push('punct');
+  if (config.enableOperators) types.push('operator');
+  if (config.enableSpecialChars) types.push('special');
+  if (config.enableChinese) types.push('chinese');
+  return types.join(',');
+}
+
+/** 推荐词没有词库 ID 时，用这些词替换服务端生成的目标串，避免推荐被下一轮词覆盖。 */
+export function practiceWords(config: Pick<AppGameConfig, 'gameMode' | 'customDictionary' | 'customDictIds' | 'systemDictIds'>): string[] | undefined {
+  if (config.gameMode !== 'dictionary') return undefined;
+  if (config.customDictIds?.length || config.systemDictIds?.length) return undefined;
+  const words = config.customDictionary?.map((word) => word.trim()).filter(Boolean);
+  return words?.length ? words : undefined;
+}
+
+export function applyPracticeWords<T extends { targetStr?: string }>(monsters: T[] | undefined, words: string[] | undefined): T[] | undefined {
+  if (!monsters?.length || !words?.length) return monsters;
+  return monsters.map((monster, index) => ({ ...monster, targetStr: words[index % words.length] }));
 }
 
 export function createEngineConfig(config: AppGameConfig, startParams: StartRoundParams, soundEnabled: boolean): EngineGameConfig {
