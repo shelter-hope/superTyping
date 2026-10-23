@@ -9,10 +9,13 @@ import com.typinggame.entity.game.GameRound;
 import com.typinggame.entity.game.GameSession;
 import com.typinggame.entity.game.MonsterAttempt;
 import com.typinggame.entity.game.MonsterParentRelation;
+import com.typinggame.entity.model.UserModelAdaptLog;
+import com.typinggame.entity.user.UserInfo;
 import com.typinggame.game.repository.GameRoundRepository;
 import com.typinggame.game.repository.GameSessionRepository;
 import com.typinggame.game.repository.MonsterAttemptRepository;
 import com.typinggame.game.repository.MonsterParentRelationRepository;
+import com.typinggame.game.repository.UserModelAdaptLogRepository;
 import com.typinggame.game.rule.DifficultyEngine;
 import com.typinggame.game.rule.DifficultyRule;
 import com.typinggame.game.rule.GeneticRule;
@@ -23,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,6 +39,7 @@ public class GameRoundServiceImpl implements GameRoundService {
     private final GameRoundRepository gameRoundRepository;
     private final MonsterAttemptRepository monsterAttemptRepository;
     private final MonsterParentRelationRepository parentRelationRepository;
+    private final UserModelAdaptLogRepository adaptLogRepository;
     private final ObjectMapper objectMapper;
     private final RuleConfigProvider ruleConfigProvider;
 
@@ -42,12 +47,14 @@ public class GameRoundServiceImpl implements GameRoundService {
                                 GameRoundRepository gameRoundRepository,
                                 MonsterAttemptRepository monsterAttemptRepository,
                                 MonsterParentRelationRepository parentRelationRepository,
+                                UserModelAdaptLogRepository adaptLogRepository,
                                 ObjectMapper objectMapper,
                                 RuleConfigProvider ruleConfigProvider) {
         this.gameSessionRepository = gameSessionRepository;
         this.gameRoundRepository = gameRoundRepository;
         this.monsterAttemptRepository = monsterAttemptRepository;
         this.parentRelationRepository = parentRelationRepository;
+        this.adaptLogRepository = adaptLogRepository;
         this.objectMapper = objectMapper;
         this.ruleConfigProvider = ruleConfigProvider;
     }
@@ -130,14 +137,18 @@ public class GameRoundServiceImpl implements GameRoundService {
         int verifiedScore = attempts.stream().mapToInt(item -> nonNegative(item.getVerifiedScore())).sum();
         DifficultyRule rule = ruleConfigProvider.activeDifficulty();
         double before = round.getDifficultyBefore() == null ? rule.getInitialDifficulty() : round.getDifficultyBefore().doubleValue();
-        double after = DifficultyEngine.nextDifficulty(rule, before, accuracy.doubleValue(), round.getAvgSpeed() == null ? 0 : round.getAvgSpeed().doubleValue(), round.getRoundNum(), 0);
-        round.setDifficultyBefore(BigDecimal.valueOf(before).setScale(4, RoundingMode.HALF_UP));
-        round.setDifficultyAfter(BigDecimal.valueOf(after).setScale(4, RoundingMode.HALF_UP));
+        double speed = round.getAvgSpeed() == null ? 0 : round.getAvgSpeed().doubleValue();
+        double after = DifficultyEngine.nextDifficulty(rule, before, accuracy.doubleValue(), speed, round.getRoundNum(), 0);
+        BigDecimal beforeBd = BigDecimal.valueOf(before).setScale(4, RoundingMode.HALF_UP);
+        BigDecimal afterBd = BigDecimal.valueOf(after).setScale(4, RoundingMode.HALF_UP);
+        round.setDifficultyBefore(beforeBd);
+        round.setDifficultyAfter(afterBd);
         round.setFormulaVersion("difficulty-v" + ruleConfigProvider.difficultyVersion());
         round.setActualAccuracy(accuracy);
         round.setStatus("COMPLETED");
         round.setCompletedAt(new Date());
         gameRoundRepository.save(round);
+        writeRoundAdaptLog(session, round, rule, beforeBd, afterBd, accuracy, speed);
         session.setCurrentRound(Math.max(session.getCurrentRound() == null ? 0 : session.getCurrentRound(), request.getRoundNum()));
         session.setUpdatedAt(new Date());
         gameSessionRepository.save(session);
@@ -145,6 +156,51 @@ public class GameRoundServiceImpl implements GameRoundService {
                 .roundId(round.getRoundId()).roundNum(round.getRoundNum())
                 .verifiedAccuracy(accuracy).killRate(killRate).verifiedScore(verifiedScore)
                 .attemptCount(attempts.size()).status(round.getStatus()).build();
+    }
+
+    private void writeRoundAdaptLog(GameSession session, GameRound round, DifficultyRule rule,
+                                    BigDecimal before, BigDecimal after, BigDecimal accuracy, double speed) {
+        DifficultyEngine.Outcome outcome = DifficultyEngine.outcome(rule, after.doubleValue(), 0.8, 3.0, 1, 15);
+        int monsterCount = DifficultyEngine.monsterCount(rule, after.doubleValue(), round.getRoundNum());
+        String trigger = resolveRoundTrigger(accuracy, rule);
+        UserInfo user = new UserInfo();
+        user.setUserId(session.getUserId());
+        UserModelAdaptLog log = new UserModelAdaptLog();
+        log.setUser(user);
+        log.setGameRecord(null);
+        log.setGameMode(session.getGameMode());
+        log.setSessionId(session.getSessionId());
+        log.setRoundNum(round.getRoundNum());
+        log.setBeforeDifficulty(before);
+        log.setAfterDifficulty(after);
+        log.setTriggerRule(trigger);
+        log.setAdjustParams("{"
+                + "\"accuracy\":" + accuracy.toPlainString()
+                + ",\"speed\":" + speed
+                + ",\"weakCharCount\":0"
+                + ",\"ruleVersion\":" + ruleConfigProvider.difficultyVersion()
+                + ",\"monsterCount\":" + monsterCount
+                + ",\"outcomeSpeed\":" + round4(outcome.speed())
+                + ",\"outcomeLength\":" + outcome.length()
+                + ",\"normalRatio\":" + outcome.normalRatio()
+                + ",\"attackRatio\":" + outcome.attackRatio()
+                + ",\"evasiveRatio\":" + outcome.evasiveRatio()
+                + ",\"smartRatio\":" + outcome.smartRatio()
+                + "}");
+        log.setLogTime(LocalDateTime.now());
+        adaptLogRepository.save(log);
+    }
+
+    private static String resolveRoundTrigger(BigDecimal accuracy, DifficultyRule rule) {
+        if (accuracy == null) return "SMOOTH_ROUND_PROGRESS";
+        double percent = accuracy.doubleValue() > 1 ? accuracy.doubleValue() : accuracy.doubleValue() * 100.0;
+        if (percent >= rule.getHighAccuracyAdvanceThreshold()) return "HIGH_ACCURACY_ADVANCE";
+        if (percent <= rule.getLowAccuracyRollbackThreshold()) return "LOW_ACCURACY_ROLLBACK";
+        return "SMOOTH_ROUND_PROGRESS";
+    }
+
+    private static double round4(double value) {
+        return Math.round(value * 10000d) / 10000d;
     }
 
     private List<MonsterDataDTO> readPlan(String payload) {

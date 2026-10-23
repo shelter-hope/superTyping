@@ -88,7 +88,8 @@ public class RuleConfigService implements RuleConfigProvider {
 
     @Transactional
     public Map<String, Object> saveDraft(String key, Object payload, Integer userId) {
-        Object parsed = parseAndValidate(key, payload);
+        Object mergedPayload = mergeWithBase(key, payload);
+        Object parsed = parseAndValidate(key, mergedPayload);
         int next = repository.findByRuleKeyOrderByVersionDesc(key).stream()
                 .map(GameRuleConfig::getVersion)
                 .findFirst()
@@ -102,6 +103,30 @@ public class RuleConfigService implements RuleConfigProvider {
         row.setUpdateTime(new Date());
         repository.save(row);
         return Map.of("ruleKey", key, "version", next, "status", "draft");
+    }
+
+    /**
+     * 将请求字段覆盖到当前生效（或最新）规则上，避免前端漏传字段冲掉已有配置。
+     */
+    @SuppressWarnings("unchecked")
+    private Object mergeWithBase(String key, Object payload) {
+        requireKey(key);
+        Map<String, Object> incoming = objectMapper.convertValue(payload == null ? Map.of() : payload, Map.class);
+        Object base = latestPayloadOrDefault(key);
+        Map<String, Object> merged = new LinkedHashMap<>(objectMapper.convertValue(base, Map.class));
+        for (Map.Entry<String, Object> entry : incoming.entrySet()) {
+            if (entry.getValue() != null) {
+                merged.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return merged;
+    }
+
+    private Object latestPayloadOrDefault(String key) {
+        return repository.findFirstByRuleKeyAndStatusOrderByVersionDesc(key, "active")
+                .or(() -> repository.findByRuleKeyOrderByVersionDesc(key).stream().findFirst())
+                .map(row -> (Object) read(row.getPayload(), payloadType(key)))
+                .orElseGet(() -> DIFFICULTY.equals(key) ? (Object) new DifficultyRule() : new GeneticRule());
     }
 
     @Transactional

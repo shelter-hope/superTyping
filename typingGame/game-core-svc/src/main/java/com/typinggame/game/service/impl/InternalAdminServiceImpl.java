@@ -350,16 +350,21 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     private AdminFilter<UserModelAdaptLog> adaptLogFilter(Integer userId, String gameMode, LocalDate start, LocalDate end) {
         return AdminFilter.of(UserModelAdaptLog.class)
                 .eq("user.userId", userId)
-                .eq("gameRecord.gameMode", gameMode)
+                .eq("gameMode", gameMode)
                 .between("logTime", start == null ? null : start.atStartOfDay(), end == null ? null : end.plusDays(1).atStartOfDay());
     }
 
     private Map<String, Object> adaptLogView(UserModelAdaptLog l) {
+        String mode = l.getGameMode();
+        if (mode == null && l.getGameRecord() != null) {
+            mode = l.getGameRecord().getGameMode();
+        }
         return AdminPageSupport.map(
                 "logId", l.getLogId(),
                 "userId", l.getUser() != null ? l.getUser().getUserId() : null,
                 "gameRecordId", l.getGameRecord() != null ? l.getGameRecord().getRecordId() : null,
-                "gameMode", l.getGameRecord() != null ? l.getGameRecord().getGameMode() : null,
+                "sessionId", l.getSessionId(),
+                "gameMode", mode,
                 "roundNum", l.getRoundNum(),
                 "beforeDifficulty", l.getBeforeDifficulty(),
                 "afterDifficulty", l.getAfterDifficulty(),

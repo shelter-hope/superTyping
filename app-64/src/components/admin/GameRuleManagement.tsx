@@ -14,21 +14,13 @@ import {
   adminSaveGameRuleDraft,
   adminSimulateGameRule,
 } from '@/services/admin';
-import { difficultyRuleSchema, geneticRuleSchema, type DifficultyRuleForm, type GeneticRuleForm } from '@/features/admin/ruleSchema';
-
-const difficultyFields: Array<{ key: keyof DifficultyRuleForm; label: string }> = [
-  { key: 'weightAccuracy', label: '准确率权重' },
-  { key: 'weightNormalizedSpeed', label: '速度权重' },
-  { key: 'weightHistorySpeed', label: '历史速度权重' },
-  { key: 'weightComposure', label: '稳定权重' },
-  { key: 'weightRound', label: '轮次权重' },
-  { key: 'targetAccuracy', label: '目标准确率' },
-  { key: 'gain', label: '增益' },
-  { key: 'step', label: '步长' },
-  { key: 'minDifficulty', label: '下界' },
-  { key: 'maxDifficulty', label: '上界' },
-  { key: 'initialDifficulty', label: '初始难度' },
-];
+import {
+  difficultyFieldGroups,
+  difficultyRuleSchema,
+  geneticRuleSchema,
+  type DifficultyRuleForm,
+  type GeneticRuleForm,
+} from '@/features/admin/ruleSchema';
 
 export default function GameRuleManagement() {
   const { toast } = useToast();
@@ -85,16 +77,32 @@ export default function GameRuleManagement() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader><CardTitle>难度规则</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>难度规则</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            全部初始与固定参数均可配置；保存草稿时后端会与当前生效配置合并，避免漏传字段冲掉已有值。
+          </p>
+        </CardHeader>
         <CardContent>
-          <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" onSubmit={difficultyForm.handleSubmit(saveDifficulty)}>
-            {difficultyFields.map((field) => (
-              <label key={field.key} className="space-y-1 text-sm">
-                <span>{field.label}</span>
-                <Input type="number" step="0.01" {...difficultyForm.register(field.key, { valueAsNumber: true })} />
-              </label>
+          <form className="space-y-6" onSubmit={difficultyForm.handleSubmit(saveDifficulty)}>
+            {difficultyFieldGroups.map((group) => (
+              <div key={group.title} className="space-y-3">
+                <h3 className="text-sm font-medium">{group.title}</h3>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.fields.map((field) => (
+                    <label key={field.key} className="space-y-1 text-sm">
+                      <span>{field.label}</span>
+                      <Input
+                        type="number"
+                        step={field.step ?? '0.01'}
+                        {...difficultyForm.register(field.key, { valueAsNumber: true })}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
             ))}
-            <div className="sm:col-span-2 lg:col-span-3 text-sm text-destructive">
+            <div className="text-sm text-destructive">
               {difficultyForm.formState.errors.root?.message || Object.values(difficultyForm.formState.errors)[0]?.message}
             </div>
             <Button type="submit">保存草稿</Button>

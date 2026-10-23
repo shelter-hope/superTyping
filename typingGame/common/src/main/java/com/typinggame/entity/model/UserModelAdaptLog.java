@@ -30,19 +30,27 @@ public class UserModelAdaptLog {
     private UserInfo user;
 
     @ManyToOne
-    @JoinColumn(name = "game_record_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_adapt_logs_record"))
-    @Comment("关联游戏记录ID")
+    @JoinColumn(name = "game_record_id", nullable = true, foreignKey = @ForeignKey(name = "fk_user_adapt_logs_record"))
+    @Comment("关联游戏记录ID（轮次日志可为 null）")
     private GameRecord gameRecord;
+
+    @Column(name = "game_mode", length = 32)
+    @Comment("游戏模式")
+    private String gameMode;
+
+    @Column(name = "session_id")
+    @Comment("游戏会话ID（轮次日志）")
+    private Long sessionId;
 
     @Column(name = "round_num", nullable = false)
     @Comment("游戏轮次")
     private Integer roundNum;
 
-    @Column(name = "before_difficulty", precision = 3, scale = 2)
+    @Column(name = "before_difficulty", precision = 6, scale = 4)
     @Comment("调整前难度系数")
     private BigDecimal beforeDifficulty;
 
-    @Column(name = "after_difficulty", precision = 3, scale = 2)
+    @Column(name = "after_difficulty", precision = 6, scale = 4)
     @Comment("调整后难度系数")
     private BigDecimal afterDifficulty;
 

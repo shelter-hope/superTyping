@@ -23,6 +23,19 @@ public final class RuleValidator {
         if (rule.getCountMin() < 1 || rule.getCountMax() < rule.getCountMin()) {
             throw new IllegalArgumentException("怪物数量区间不合法");
         }
+        requirePositive("最大参考速度", rule.getMaxReferenceSpeed());
+        requirePositive("参考峰值速度", rule.getRefPeakSpeed());
+        requirePositive("弱项字符除数", rule.getWeakCharDivisor());
+        requirePositive("速度跨度", rule.getSpeedSpan());
+        requirePositive("轮次对数底", rule.getRoundLogBase());
+        requireMinMax("普通型占比", rule.getNormalMin(), rule.getNormalMax(), 0, 100);
+        requireMinMax("攻击型占比", rule.getAttackMin(), rule.getAttackMax(), 0, 100);
+        requireMinMax("回避型占比", rule.getEvasiveMin(), rule.getEvasiveMax(), 0, 100);
+        requireRange("高准确率推进阈值", rule.getHighAccuracyAdvanceThreshold(), 0, 100);
+        requireRange("低准确率回退阈值", rule.getLowAccuracyRollbackThreshold(), 0, 100);
+        if (rule.getLowAccuracyRollbackThreshold() >= rule.getHighAccuracyAdvanceThreshold()) {
+            throw new IllegalArgumentException("低准确率回退阈值必须小于高准确率推进阈值");
+        }
     }
 
     public static void validateGenetic(GeneticRule rule) {
@@ -40,6 +53,18 @@ public final class RuleValidator {
     private static void requireRange(String name, double value, double min, double max) {
         if (value < min || value > max) {
             throw new IllegalArgumentException(name + "超出区间 [" + min + ", " + max + "]");
+        }
+    }
+
+    private static void requirePositive(String name, double value) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(name + "必须大于 0");
+        }
+    }
+
+    private static void requireMinMax(String name, int min, int max, int floor, int ceiling) {
+        if (min < floor || max > ceiling || min > max) {
+            throw new IllegalArgumentException(name + "区间不合法");
         }
     }
 }

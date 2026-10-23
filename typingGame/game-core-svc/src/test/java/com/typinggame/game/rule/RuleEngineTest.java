@@ -50,6 +50,28 @@ class RuleEngineTest {
     }
 
     @Test
+    void rejectsInvalidTriggerThresholdOrder() {
+        DifficultyRule rule = new DifficultyRule();
+        rule.setHighAccuracyAdvanceThreshold(40);
+        rule.setLowAccuracyRollbackThreshold(80);
+        assertThrows(IllegalArgumentException.class, () -> RuleValidator.validateDifficulty(rule));
+    }
+
+    @Test
+    void acceptsFullDefaultDifficultyRule() {
+        RuleValidator.validateDifficulty(new DifficultyRule());
+    }
+
+    @Test
+    void monsterCountRespectsConfiguredBounds() {
+        DifficultyRule rule = new DifficultyRule();
+        rule.setCountMin(5);
+        rule.setCountMax(8);
+        rule.setCountBase(100);
+        assertEquals(8, DifficultyEngine.monsterCount(rule, 1.0, 50));
+    }
+
+    @Test
     void rejectsMutationRateOutsideUnitInterval() {
         GeneticRule rule = new GeneticRule();
         rule.setInRoundMutationRate(1.5);

@@ -7,28 +7,35 @@ import com.typinggame.dto.game.MonsterDataDTO;
 import com.typinggame.entity.game.GameRound;
 import com.typinggame.entity.game.GameSession;
 import com.typinggame.entity.game.MonsterAttempt;
+import com.typinggame.entity.model.UserModelAdaptLog;
 import com.typinggame.game.repository.GameRoundRepository;
 import com.typinggame.game.repository.GameSessionRepository;
 import com.typinggame.game.repository.MonsterAttemptRepository;
 import com.typinggame.game.repository.MonsterParentRelationRepository;
+import com.typinggame.game.repository.UserModelAdaptLogRepository;
 import com.typinggame.game.rule.RuleConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class GameRoundServiceImplTest {
     private GameSessionRepository sessionRepository;
     private GameRoundRepository roundRepository;
     private MonsterAttemptRepository attemptRepository;
+    private UserModelAdaptLogRepository adaptLogRepository;
     private GameRoundServiceImpl service;
     private GameRound round;
 
@@ -37,19 +44,23 @@ class GameRoundServiceImplTest {
         sessionRepository = mock(GameSessionRepository.class);
         roundRepository = mock(GameRoundRepository.class);
         attemptRepository = mock(MonsterAttemptRepository.class);
+        adaptLogRepository = mock(UserModelAdaptLogRepository.class);
         service = new GameRoundServiceImpl(
                 sessionRepository,
                 roundRepository,
                 attemptRepository,
                 mock(MonsterParentRelationRepository.class),
+                adaptLogRepository,
                 new ObjectMapper(),
                 RuleConfigProvider.DEFAULTS);
 
         GameSession session = new GameSession();
         session.setSessionId(10L);
         session.setUserId(7);
+        session.setGameMode("ENDLESS");
         session.setCurrentRound(0);
         when(sessionRepository.findBySessionIdAndUserId(10L, 7)).thenReturn(Optional.of(session));
+        when(adaptLogRepository.save(any(UserModelAdaptLog.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         MonsterDataDTO planMonster = new MonsterDataDTO();
         planMonster.setMonsterKey("round-1-monster-0");
@@ -77,6 +88,16 @@ class GameRoundServiceImplTest {
         assertEquals(new BigDecimal("1.0000"), result.getKillRate());
         assertEquals(20, result.getVerifiedScore());
         assertEquals("COMPLETED", round.getStatus());
+        assertNotNull(round.getDifficultyAfter());
+
+        ArgumentCaptor<UserModelAdaptLog> captor = ArgumentCaptor.forClass(UserModelAdaptLog.class);
+        verify(adaptLogRepository).save(captor.capture());
+        UserModelAdaptLog log = captor.getValue();
+        assertNull(log.getGameRecord());
+        assertEquals("ENDLESS", log.getGameMode());
+        assertEquals(10L, log.getSessionId());
+        assertEquals("HIGH_ACCURACY_ADVANCE", log.getTriggerRule());
+        assertNotNull(log.getAdjustParams());
     }
 
     @Test

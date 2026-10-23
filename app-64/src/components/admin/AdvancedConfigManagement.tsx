@@ -17,10 +17,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Save, Trash2, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const RULES: { key: AdminRuleKey; title: string; hint: string }[] = [
+const RULES: { key: AdminRuleKey; title: string; hint: string; readonly?: boolean }[] = [
   { key: 'character-rules', title: '字符生成规则', hint: '例：{"charTypes": ["lower", "upper", "number", "punct"]}' },
   { key: 'movement-rules', title: '移动规则', hint: '例：{"minSpeed": 0.8, "maxSpeed": 3.0}，minSpeed 须大于 0 且不大于 maxSpeed' },
-  { key: 'difficulty-params', title: '难度参数', hint: '例：{"minDifficulty": 0, "maxDifficulty": 1}' },
+  {
+    key: 'difficulty-params',
+    title: '难度参数（已迁移）',
+    hint: '自适应难度的初始与固定参数请到「规则引擎」配置；此处仅只读展示旧 system_params，保存已禁用。',
+    readonly: true,
+  },
 ];
 
 type Drafts = Record<AdminRuleKey, string>;
@@ -68,6 +73,10 @@ export default function AdvancedConfigManagement() {
   }
 
   async function handleSaveRule(key: AdminRuleKey) {
+    if (RULES.find((r) => r.key === key)?.readonly) {
+      toast({ title: '请到规则引擎配置难度参数', description: 'difficulty-params 已废弃为只读', variant: 'destructive' });
+      return;
+    }
     let value: Record<string, unknown>;
     try {
       value = parseObject(drafts[key]);
@@ -155,11 +164,15 @@ export default function AdvancedConfigManagement() {
               <Textarea
                 className="font-mono text-xs min-h-[180px]"
                 value={drafts[r.key]}
-                onChange={(e) => setDrafts((prev) => ({ ...prev, [r.key]: e.target.value }))}
+                readOnly={r.readonly}
+                onChange={(e) => {
+                  if (r.readonly) return;
+                  setDrafts((prev) => ({ ...prev, [r.key]: e.target.value }));
+                }}
               />
-              <Button size="sm" onClick={() => handleSaveRule(r.key)} disabled={saving !== null}>
+              <Button size="sm" onClick={() => handleSaveRule(r.key)} disabled={saving !== null || !!r.readonly}>
                 {saving === r.key ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
-                保存
+                {r.readonly ? '已禁用' : '保存'}
               </Button>
             </CardContent>
           </Card>

@@ -37,4 +37,8 @@ public class DifficultyRule {
     private int evasiveMin = 10;
     private int evasiveMax = 20;
     private int roundLogBase = 32;
+    /** 准确率百分比阈值：达到则判定为高准确率推进（与历史 trigger 语义一致） */
+    private double highAccuracyAdvanceThreshold = 85;
+    /** 准确率百分比阈值：不高于则判定为低准确率回退 */
+    private double lowAccuracyRollbackThreshold = 50;
 }

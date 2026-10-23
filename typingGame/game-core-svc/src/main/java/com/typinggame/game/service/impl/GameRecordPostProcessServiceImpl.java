@@ -165,8 +165,8 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
         DifficultyRule rule = ruleConfigProvider.activeDifficulty();
         double base = before == null ? rule.getInitialDifficulty() : before.doubleValue();
         Double accuracy = record.getAvgAccuracy() == null ? null : record.getAvgAccuracy().doubleValue();
-        double next = DifficultyEngine.nextDifficulty(rule, base, accuracy, 0.0, 1, 0);
-        return BigDecimal.valueOf(next).setScale(2, RoundingMode.HALF_UP);
+        double next = DifficultyEngine.nextDifficulty(rule, base, accuracy, 0.0, Math.max(1, safeInt(record.getRoundNum())), 0);
+        return BigDecimal.valueOf(next).setScale(4, RoundingMode.HALF_UP);
     }
 
     private int resolveMismatchRound(UserModelParams params, BigDecimal before, BigDecimal after) {
@@ -177,6 +177,9 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
     }
 
     private void writeAdaptLog(Integer userId, GameRecord record, BigDecimal before, BigDecimal after, UserModelParams params) {
+        DifficultyRule rule = ruleConfigProvider.activeDifficulty();
+        int monsterCount = DifficultyEngine.monsterCount(rule, after == null ? rule.getInitialDifficulty() : after.doubleValue(),
+                Math.max(1, safeInt(record.getRoundNum())));
         UserInfo user = new UserInfo();
         user.setUserId(userId);
         GameRecord recordRef = new GameRecord();
@@ -184,22 +187,34 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
         UserModelAdaptLog log = new UserModelAdaptLog();
         log.setUser(user);
         log.setGameRecord(recordRef);
+        log.setGameMode(record.getGameMode());
         log.setRoundNum(record.getRoundNum());
-        log.setBeforeDifficulty(before);
-        log.setAfterDifficulty(after);
-        log.setTriggerRule(resolveTriggerRule(record));
-        log.setAdjustParams("{\"avgAccuracy\":" + decimal(record.getAvgAccuracy())
-                + ",\"avgSpeed\":" + decimal(record.getAvgSpeed())
-                + ",\"consecutiveMismatchRound\":" + safeInt(params.getConsecutiveMismatchRound()) + "}");
+        log.setBeforeDifficulty(scale4(before));
+        log.setAfterDifficulty(scale4(after));
+        log.setTriggerRule("SESSION_SUMMARY");
+        log.setAdjustParams("{"
+                + "\"accuracy\":" + decimal(record.getAvgAccuracy())
+                + ",\"speed\":" + decimal(record.getAvgSpeed())
+                + ",\"weakCharCount\":0"
+                + ",\"ruleVersion\":" + ruleConfigProvider.difficultyVersion()
+                + ",\"monsterCount\":" + monsterCount
+                + ",\"consecutiveMismatchRound\":" + safeInt(params.getConsecutiveMismatchRound())
+                + ",\"triggerHint\":\"" + resolveTriggerHint(record.getAvgAccuracy(), rule) + "\""
+                + "}");
         log.setLogTime(LocalDateTime.now());
         adaptLogRepository.save(log);
     }
 
-    private String resolveTriggerRule(GameRecord record) {
-        BigDecimal accuracy = record.getAvgAccuracy();
-        if (accuracy != null && accuracy.doubleValue() >= 85) return "HIGH_ACCURACY_ADVANCE";
-        if (accuracy != null && accuracy.doubleValue() <= 50) return "LOW_ACCURACY_ROLLBACK";
+    static String resolveTriggerHint(BigDecimal accuracy, DifficultyRule rule) {
+        if (accuracy == null) return "SMOOTH_ROUND_PROGRESS";
+        double percent = accuracy.doubleValue() > 1 ? accuracy.doubleValue() : accuracy.doubleValue() * 100.0;
+        if (percent >= rule.getHighAccuracyAdvanceThreshold()) return "HIGH_ACCURACY_ADVANCE";
+        if (percent <= rule.getLowAccuracyRollbackThreshold()) return "LOW_ACCURACY_ROLLBACK";
         return "SMOOTH_ROUND_PROGRESS";
+    }
+
+    private BigDecimal scale4(BigDecimal value) {
+        return value == null ? null : value.setScale(4, RoundingMode.HALF_UP);
     }
 
     private void updateStringParents(Integer userId, List<MonsterData> monsters) {

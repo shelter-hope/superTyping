@@ -340,8 +340,9 @@ export async function adminDeleteGameRecord(recordId: number): Promise<void> {
 export interface UserModelAdaptLogDTO {
   logId: number;
   userId: number;
-  gameRecordId: number;
-  gameMode: string;
+  gameRecordId: number | null;
+  sessionId?: number | null;
+  gameMode: string | null;
   roundNum: number;
   beforeDifficulty: number | null;
   afterDifficulty: number | null;

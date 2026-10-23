@@ -25,6 +25,7 @@ import UserManagement from '@/components/admin/UserManagement';
 import GameRecordManagement from '@/components/admin/GameRecordManagement';
 import MonsterConfigManagement from '@/components/admin/MonsterConfigManagement';
 import AdaptLogTrend from '@/components/admin/AdaptLogTrend';
+import AdaptLogHistory from '@/components/admin/AdaptLogHistory';
 import SystemParamsManagement from '@/components/admin/SystemParamsManagement';
 import SystemDictionaryManagement from '@/components/admin/SystemDictionaryManagement';
 import LeaderboardManagement from '@/components/admin/LeaderboardManagement';
@@ -123,7 +124,12 @@ export default function AdminPage() {
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'records' && <GameRecordManagement />}
         {activeTab === 'monsters' && <MonsterConfigManagement />}
-        {activeTab === 'trend' && <AdaptLogTrend />}
+        {activeTab === 'trend' && (
+          <div className="space-y-6">
+            <AdaptLogTrend />
+            <AdaptLogHistory />
+          </div>
+        )}
         {activeTab === 'systemParams' && <SystemParamsManagement />}
         {activeTab === 'advanced' && <AdvancedConfigManagement />}
         {activeTab === 'systemDicts' && <SystemDictionaryManagement />}
