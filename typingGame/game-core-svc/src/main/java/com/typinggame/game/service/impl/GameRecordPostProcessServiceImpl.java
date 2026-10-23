@@ -18,6 +18,10 @@ import com.typinggame.game.repository.MonsterDataRepository;
 import com.typinggame.game.repository.StringParentRepository;
 import com.typinggame.game.repository.UserModelAdaptLogRepository;
 import com.typinggame.game.repository.UserModelParamsRepository;
+import com.typinggame.game.rule.DifficultyEngine;
+import com.typinggame.game.rule.DifficultyRule;
+import com.typinggame.game.rule.GeneticRule;
+import com.typinggame.game.rule.RuleConfigProvider;
 import com.typinggame.game.service.GameRecordPostProcessService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,8 +42,6 @@ import java.util.stream.Collectors;
 @Service
 public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessService {
 
-    private static final int MAX_PARENT_COUNT = 8;
-
     private final GameUserDailyStatsRepository dailyStatsRepository;
     private final UserModelParamsRepository userModelParamsRepository;
     private final ModelInitParamsRepository modelInitParamsRepository;
@@ -47,6 +49,7 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
     private final StringParentRepository stringParentRepository;
     private final MonsterDataRepository monsterDataRepository;
     private final GameDictionaryWordRepository dictionaryWordRepository;
+    private final RuleConfigProvider ruleConfigProvider;
 
     public GameRecordPostProcessServiceImpl(GameUserDailyStatsRepository dailyStatsRepository,
                                              UserModelParamsRepository userModelParamsRepository,
@@ -54,7 +57,8 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
                                              UserModelAdaptLogRepository adaptLogRepository,
                                              StringParentRepository stringParentRepository,
                                              MonsterDataRepository monsterDataRepository,
-                                             GameDictionaryWordRepository dictionaryWordRepository) {
+                                             GameDictionaryWordRepository dictionaryWordRepository,
+                                             RuleConfigProvider ruleConfigProvider) {
         this.dailyStatsRepository = dailyStatsRepository;
         this.userModelParamsRepository = userModelParamsRepository;
         this.modelInitParamsRepository = modelInitParamsRepository;
@@ -62,6 +66,7 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
         this.stringParentRepository = stringParentRepository;
         this.monsterDataRepository = monsterDataRepository;
         this.dictionaryWordRepository = dictionaryWordRepository;
+        this.ruleConfigProvider = ruleConfigProvider;
     }
 
     @Override
@@ -145,8 +150,9 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
         params.setRollbackFlag(Boolean.FALSE);
         params.setMaxAdjustRatio(defaultDecimal(init.getMaxAdjustRatio(), "0.30"));
         params.setSmoothAdjustCoeff(defaultDecimal(init.getSmoothAdjustCoeff(), "0.80"));
-        params.setCrossoverRate(BigDecimal.valueOf(0.80));
-        params.setMutationRate(BigDecimal.valueOf(0.10));
+        GeneticRule genetic = ruleConfigProvider.activeGenetic();
+        params.setCrossoverRate(BigDecimal.ONE);
+        params.setMutationRate(BigDecimal.valueOf(genetic.getCrossRoundMutationRate()));
         params.setSpeedAdjustCoeff(BigDecimal.ONE);
         params.setLengthAdjustCoeff(BigDecimal.ONE);
         params.setConsecutiveMismatchRound(0);
@@ -156,10 +162,11 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
     }
 
     private BigDecimal calculatePostGameDifficulty(BigDecimal before, GameRecord record) {
-        BigDecimal base = before == null ? BigDecimal.valueOf(0.30) : before;
-        double accuracy = record.getAvgAccuracy() == null ? 0.85 : record.getAvgAccuracy().doubleValue() / 100.0;
-        double delta = clamp((accuracy - 0.85) * 0.35, -0.05, 0.05);
-        return BigDecimal.valueOf(clamp(base.doubleValue() + delta, 0.15, 0.95)).setScale(2, RoundingMode.HALF_UP);
+        DifficultyRule rule = ruleConfigProvider.activeDifficulty();
+        double base = before == null ? rule.getInitialDifficulty() : before.doubleValue();
+        Double accuracy = record.getAvgAccuracy() == null ? null : record.getAvgAccuracy().doubleValue();
+        double next = DifficultyEngine.nextDifficulty(rule, base, accuracy, 0.0, 1, 0);
+        return BigDecimal.valueOf(next).setScale(2, RoundingMode.HALF_UP);
     }
 
     private int resolveMismatchRound(UserModelParams params, BigDecimal before, BigDecimal after) {
@@ -202,7 +209,7 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
                 .sorted(Comparator.comparing((MonsterData m) -> safeInt(m.getScore())).reversed()
                         .thenComparing(Comparator.comparing((MonsterData m) -> safeInt(m.getSurvivalTime())).reversed())
                         .thenComparing(MonsterData::getMonsterId))
-                .limit(MAX_PARENT_COUNT)
+                .limit(ruleConfigProvider.activeGenetic().getCrossRoundParentLimit())
                 .collect(Collectors.toList());
         if (parents.isEmpty()) return;
         parents.forEach(m -> m.setIsParent(true));

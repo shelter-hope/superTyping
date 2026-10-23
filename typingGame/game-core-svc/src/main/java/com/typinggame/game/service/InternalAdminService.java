@@ -26,6 +26,8 @@ public interface InternalAdminService {
     List<ModelInitParams> getModelInitParamsByMode(String gameMode);
     boolean updateModelConstant(Integer id, ModelConstant body);
     boolean updateModelInitParam(Integer id, ModelInitParams body);
+    boolean updateMonsterTypeConfig(Integer id, com.typinggame.entity.config.SystemMonsterTypeConfig body);
+    boolean updateMonsterCommonConfig(Integer id, com.typinggame.entity.config.SystemMonsterCommoConfig body);
     Map<String, Object> getGameModeConfigs(int page, int pageSize);
     void updateGameModeConfig(Integer id, Map<String, Object> updates);
     Map<String, Object> getAdaptLogs(int page, int pageSize, Integer userId, String gameMode, String startDate, String endDate);

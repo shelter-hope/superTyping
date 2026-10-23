@@ -1,0 +1,41 @@
+import { describe, expect, it } from 'vitest';
+import { difficultyRuleSchema, geneticRuleSchema } from './ruleSchema';
+
+const validDifficulty = {
+  weightAccuracy: 0.45,
+  weightNormalizedSpeed: 0.2,
+  weightHistorySpeed: 0.1,
+  weightComposure: 0.1,
+  weightRound: 0.15,
+  targetAccuracy: 0.85,
+  gain: 0.35,
+  step: 0.05,
+  minDifficulty: 0.15,
+  maxDifficulty: 0.95,
+  initialDifficulty: 0.3,
+};
+
+describe('difficultyRuleSchema', () => {
+  it('accepts the shipped default weights', () => {
+    expect(difficultyRuleSchema.safeParse(validDifficulty).success).toBe(true);
+  });
+
+  it('rejects weights that do not sum to one', () => {
+    const result = difficultyRuleSchema.safeParse({ ...validDifficulty, weightAccuracy: 0.9 });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('geneticRuleSchema', () => {
+  it('rejects a mutation rate above one', () => {
+    const result = geneticRuleSchema.safeParse({
+      inRoundParentLimit: 10,
+      crossRoundParentLimit: 8,
+      inRoundMutationRate: 1.5,
+      crossRoundMutationRate: 0.25,
+      crossover: 'SINGLE_POINT',
+      preferWeakChars: true,
+    });
+    expect(result.success).toBe(false);
+  });
+});

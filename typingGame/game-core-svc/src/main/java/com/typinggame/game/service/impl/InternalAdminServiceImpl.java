@@ -8,10 +8,13 @@ import com.typinggame.common.admin.AdminPageSupport;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.entity.config.ConfigTemplate;
 import com.typinggame.entity.config.SystemGameModeConfig;
+import com.typinggame.entity.config.SystemMonsterCommoConfig;
+import com.typinggame.entity.config.SystemMonsterTypeConfig;
 import com.typinggame.entity.config.SystemParam;
 import com.typinggame.entity.game.GameRecord;
 import com.typinggame.entity.game.StringParent;
 import com.typinggame.entity.game.SystemMonsterConfig;
+import com.typinggame.game.admin.PartialUpdate;
 import com.typinggame.entity.model.ModelConstant;
 import com.typinggame.entity.model.ModelInitParams;
 import com.typinggame.entity.model.UserModelAdaptLog;
@@ -207,6 +210,15 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     @Override public List<ModelInitParams> getModelInitParamsByMode(String gameMode) { return modelInitParamsRepository.findByGameMode(gameMode); }
     @Override public boolean updateModelConstant(Integer id, ModelConstant body) { return saveModelConstant(id, body); }
     @Override public boolean updateModelInitParam(Integer id, ModelInitParams body) { return saveModelInitParam(id, body); }
+    @Override
+    public boolean updateMonsterTypeConfig(Integer id, SystemMonsterTypeConfig body) {
+        return saveMonsterType(id, body);
+    }
+
+    @Override
+    public boolean updateMonsterCommonConfig(Integer id, SystemMonsterCommoConfig body) {
+        return saveMonsterCommon(id, body);
+    }
 
     @Override
     public Map<String, Object> getGameModeConfigs(int page, int pageSize) {
@@ -436,16 +448,35 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     }
 
     private boolean saveModelConstant(Integer id, ModelConstant body) {
-        if (!modelConstantRepository.existsById(id)) return false;
-        body.setConstantId(id);
-        modelConstantRepository.save(body);
+        ModelConstant existing = modelConstantRepository.findById(id).orElse(null);
+        if (existing == null) return false;
+        PartialUpdate.copyNonNull(body, existing, "constantId");
+        existing.setUpdateTime(new Date());
+        modelConstantRepository.save(existing);
         return true;
     }
 
     private boolean saveModelInitParam(Integer id, ModelInitParams body) {
-        if (!modelInitParamsRepository.existsById(id)) return false;
-        body.setParamId(id);
-        modelInitParamsRepository.save(body);
+        ModelInitParams existing = modelInitParamsRepository.findById(id).orElse(null);
+        if (existing == null) return false;
+        PartialUpdate.copyNonNull(body, existing, "paramId", "updatedAt");
+        modelInitParamsRepository.save(existing);
+        return true;
+    }
+
+    private boolean saveMonsterType(Integer id, SystemMonsterTypeConfig body) {
+        SystemMonsterTypeConfig existing = systemMonsterTypeConfigRepository.findById(id).orElse(null);
+        if (existing == null || body == null) return false;
+        PartialUpdate.copyNonNull(body, existing, "id", "updatedAt");
+        systemMonsterTypeConfigRepository.save(existing);
+        return true;
+    }
+
+    private boolean saveMonsterCommon(Integer id, SystemMonsterCommoConfig body) {
+        SystemMonsterCommoConfig existing = systemMonsterCommoConfigRepository.findById(id).orElse(null);
+        if (existing == null || body == null) return false;
+        PartialUpdate.copyNonNull(body, existing, "id", "updatedAt");
+        systemMonsterCommoConfigRepository.save(existing);
         return true;
     }
 

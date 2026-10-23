@@ -25,6 +25,9 @@ import com.typinggame.game.service.CharacterStatsService;
 import com.typinggame.game.service.DifficultyModelService;
 import com.typinggame.game.service.GameConfigService;
 import com.typinggame.game.service.StatsService;
+import com.typinggame.game.rule.GeneticEngine;
+import com.typinggame.game.rule.GeneticRule;
+import com.typinggame.game.rule.RuleConfigProvider;
 import com.typinggame.game.service.word.WordSourceContext;
 import com.typinggame.game.service.word.WordSourceStrategy;
 import com.typinggame.entity.game.GameRound;
@@ -48,6 +51,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Random;
 
 @Service
 public class GameConfigServiceImpl implements GameConfigService {
@@ -68,6 +72,7 @@ public class GameConfigServiceImpl implements GameConfigService {
     private final GameRoundRepository gameRoundRepository;
     private final ObjectMapper objectMapper;
     private final MonsterAttemptRepository monsterAttemptRepository;
+    private final RuleConfigProvider ruleConfigProvider;
 
     public GameConfigServiceImpl(StatsService statsService,
                                  CharacterStatsService characterStatsService,
@@ -79,7 +84,8 @@ public class GameConfigServiceImpl implements GameConfigService {
                                  GameSessionRepository gameSessionRepository,
                                  GameRoundRepository gameRoundRepository,
                                  ObjectMapper objectMapper,
-                                 MonsterAttemptRepository monsterAttemptRepository) {
+                                 MonsterAttemptRepository monsterAttemptRepository,
+                                 RuleConfigProvider ruleConfigProvider) {
         this.statsService = statsService;
         this.characterStatsService = characterStatsService;
         this.difficultyModelService = difficultyModelService;
@@ -91,6 +97,7 @@ public class GameConfigServiceImpl implements GameConfigService {
         this.gameRoundRepository = gameRoundRepository;
         this.objectMapper = objectMapper;
         this.monsterAttemptRepository = monsterAttemptRepository;
+        this.ruleConfigProvider = ruleConfigProvider;
     }
 
     @Override
@@ -161,7 +168,18 @@ public class GameConfigServiceImpl implements GameConfigService {
                 .map(CharacterStats::getCharValue)
                 .filter(s -> s != null && !s.isBlank())
                 .collect(Collectors.toList());
-        GameAdjustParam adjustParam = difficultyModelService.calculate(userId, mode, roundNum, suggestion.getRecentAccuracy(), suggestion.getRecentSpeed(), focusChars.size());
+        Double accuracy = suggestion.getRecentAccuracy();
+        Double previousDifficulty = null;
+        if (sessionId != null && roundNum > 1) {
+            GameRound previous = gameRoundRepository.findBySessionIdAndRoundNum(sessionId, roundNum - 1).orElse(null);
+            if (previous != null && previous.getActualAccuracy() != null) {
+                accuracy = previous.getActualAccuracy().doubleValue();
+            }
+            if (previous != null && previous.getDifficultyAfter() != null) {
+                previousDifficulty = previous.getDifficultyAfter().doubleValue();
+            }
+        }
+        GameAdjustParam adjustParam = difficultyModelService.calculate(userId, mode, roundNum, accuracy, suggestion.getRecentSpeed(), focusChars.size(), previousDifficulty);
         List<String> words = selectWordSource(mode).generateWords(new WordSourceContext(
                 userId,
                 mode,
@@ -182,7 +200,7 @@ public class GameConfigServiceImpl implements GameConfigService {
         }
         NextRoundResponseDTO response = NextRoundResponseDTO.builder()
                 .planVersion(planVersion)
-                .targetAccuracy(BigDecimal.valueOf(0.85))
+                .targetAccuracy(BigDecimal.valueOf(ruleConfigProvider.activeDifficulty().getTargetAccuracy()))
                 .adjustParam(adjustParam)
                 .monsters(monsters)
                 .build();
@@ -200,7 +218,8 @@ public class GameConfigServiceImpl implements GameConfigService {
             round.setSessionId(sessionId);
             round.setRoundNum(roundNum);
             round.setPlanVersion(planVersion);
-            round.setFormulaVersion("v1");
+            round.setFormulaVersion("difficulty-v" + ruleConfigProvider.difficultyVersion());
+            round.setDifficultyBefore(adjustParam.getCurrentDifficulty());
             round.setTargetAccuracy(response.getTargetAccuracy());
             round.setMonsterSpeed(adjustParam.getMonsterSpeed());
             round.setMonsterCount(adjustParam.getMonsterCount());
@@ -339,35 +358,31 @@ public class GameConfigServiceImpl implements GameConfigService {
                                                        List<MonsterAttempt> attempts,
                                                        List<String> focusChars,
                                                        int roundNum) {
-        List<MonsterAttempt> parents = attempts.stream()
+        GeneticRule genetic = ruleConfigProvider.activeGenetic();
+        Random random = ThreadLocalRandom.current();
+        List<MonsterAttempt> parents = GeneticEngine.limitParents(attempts.stream()
                 .filter(attempt -> attempt.getTargetStr() != null && !attempt.getTargetStr().isBlank())
-                .limit(10)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()), genetic.getInRoundParentLimit());
         if (parents.isEmpty()) {
             return baseMonsters;
         }
         for (int i = 0; i < baseMonsters.size(); i++) {
             MonsterDataDTO child = baseMonsters.get(i);
-            MonsterAttempt parentA = parents.get(ThreadLocalRandom.current().nextInt(parents.size()));
+            MonsterAttempt parentA = parents.get(random.nextInt(parents.size()));
             MonsterAttempt parentB = parents.size() > 1
-                    ? parents.get(ThreadLocalRandom.current().nextInt(parents.size())) : null;
+                    ? parents.get(random.nextInt(parents.size())) : null;
             if (parentB != null && parents.size() > 1 && Objects.equals(parentA.getAttemptId(), parentB.getAttemptId())) {
                 parentB = parents.get((parents.indexOf(parentA) + 1) % parents.size());
             }
             int targetLength = Math.max(1, child.getTargetStr() == null ? 1 : child.getTargetStr().length());
-            int crossoverPoint = parentA.getTargetStr().length() > 1
-                    ? ThreadLocalRandom.current().nextInt(1, parentA.getTargetStr().length()) : 0;
-            String text = crossover(parentA.getTargetStr(), parentB == null ? parentA.getTargetStr() : parentB.getTargetStr(), crossoverPoint, targetLength);
-            BigDecimal mutationRate = BigDecimal.valueOf(0.15);
-            List<Integer> mutationPositions = new ArrayList<>();
-            List<String> mutationChars = new ArrayList<>();
-            if (ThreadLocalRandom.current().nextDouble() < mutationRate.doubleValue() && !text.isEmpty()) {
-                int position = ThreadLocalRandom.current().nextInt(text.length());
-                String replacement = chooseMutationChar(text, position, focusChars);
-                text = text.substring(0, position) + replacement + text.substring(position + 1);
-                mutationPositions.add(position);
-                mutationChars.add(replacement);
-            }
+            String parentBText = parentB == null ? parentA.getTargetStr() : parentB.getTargetStr();
+            String crossed = GeneticEngine.crossover(parentA.getTargetStr(), parentBText, targetLength, random);
+            int crossoverPoint = Math.min(targetLength, parentA.getTargetStr().length());
+            GeneticEngine.Mutation mutation = GeneticEngine.mutate(crossed, focusChars, genetic.getInRoundMutationRate(), genetic.isPreferWeakChars(), random);
+            String text = mutation.text();
+            BigDecimal mutationRate = BigDecimal.valueOf(genetic.getInRoundMutationRate());
+            List<Integer> mutationPositions = new ArrayList<>(mutation.positions());
+            List<String> mutationChars = new ArrayList<>(mutation.chars());
             child.setTargetStr(text);
             child.setTotalCount(text.length());
             child.setMonsterKey("round-" + roundNum + "-monster-" + i);

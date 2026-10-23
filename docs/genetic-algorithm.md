@@ -559,10 +559,9 @@ private List<Character> buildBasePool(Integer userId, GameMode modeEnum) {
 
 | 类名 | 功能 |
 | :--- | :--- |
-| `GeneticEvolutionUtil` | 遗传进化算法工具 |
+| `GeneticEngine` | 交叉、变异和父本截断；局内与跨局共用 |
+| `GeneticRule` / `RuleConfigService` | 父本上限、变异率、适应度系数，来自 `game_rule_config` |
 | `NormalDistributionLengthGenerator` | 正态分布长度生成器 |
-| `DifficultyCalculationUtil` | 难度计算工具 |
-| `GameCoreUtil` | 游戏核心工具 |
 
 ### 7.3 数据库表
 

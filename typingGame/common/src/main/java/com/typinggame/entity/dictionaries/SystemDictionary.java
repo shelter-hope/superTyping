@@ -1,6 +1,8 @@
 package com.typinggame.entity.dictionaries;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -19,6 +21,7 @@ import java.util.Date;
 @AllArgsConstructor
 public class SystemDictionary {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer dictId; // 词库ID（自增）
     private String name; // 词库名称
     private String description; // 词库描述

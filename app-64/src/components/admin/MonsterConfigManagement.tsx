@@ -1,7 +1,8 @@
 // 怪物配置管理组件
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { getMonsterConfigs, updateMonsterConfig } from '@/db/api';
-import type { MonsterConfig } from '@/types/database';
+import { adminGetSystemMonsterCommonConfigs, adminGetSystemMonsterTypeConfigs, adminPatchMonsterCommonConfig, adminPatchMonsterTypeConfig } from '@/services/admin';
+import type { MonsterConfig, SystemMonsterCommoConfig, SystemMonsterTypeConfig } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -21,6 +22,8 @@ export default function MonsterConfigManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editedScores, setEditedScores] = useState<Record<string, number>>({});
+  const [typeConfigs, setTypeConfigs] = useState<SystemMonsterTypeConfig[]>([]);
+  const [commonConfigs, setCommonConfigs] = useState<SystemMonsterCommoConfig[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -37,6 +40,8 @@ export default function MonsterConfigManagement() {
         scores[config.type] = config.score;
       });
       setEditedScores(scores);
+      setTypeConfigs(await adminGetSystemMonsterTypeConfigs());
+      setCommonConfigs(await adminGetSystemMonsterCommonConfigs());
     } catch (error) {
       toast({
         title: '加载失败',
@@ -88,6 +93,7 @@ export default function MonsterConfigManagement() {
   const hasChanges = configs.some(config => editedScores[config.type] !== config.score);
 
   return (
+    <div className="space-y-6">
     <Card>
       <CardHeader>
         <CardTitle>怪物配置管理</CardTitle>
@@ -174,5 +180,55 @@ export default function MonsterConfigManagement() {
         )}
       </CardContent>
     </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle>类型与公共约束</CardTitle>
+        <CardDescription>局部更新 system_monster_type_configs 和 system_monster_commo_configs，未填写的字段保持原值。</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {typeConfigs.map((config) => (
+          <form key={config.id} className="grid gap-2 rounded border p-3 sm:grid-cols-4" onSubmit={(event) => void saveType(event, config.id)}>
+            <div className="font-medium sm:col-span-4">{config.type}</div>
+            <Input name="initSpeed" type="number" step="0.01" defaultValue={config.initSpeed} placeholder="初始速度" />
+            <Input name="initStrLength" type="number" defaultValue={config.initStrLength} placeholder="初始长度" />
+            <Input name="score" type="number" defaultValue={config.score} placeholder="积分" />
+            <Button type="submit">保存</Button>
+          </form>
+        ))}
+        {commonConfigs.map((config) => (
+          <form key={config.id} className="grid gap-2 rounded border p-3 sm:grid-cols-5" onSubmit={(event) => void saveCommon(event, config.id)}>
+            <Input name="minSpeed" type="number" step="0.01" defaultValue={config.minSpeed} />
+            <Input name="maxSpeed" type="number" step="0.01" defaultValue={config.maxSpeed} />
+            <Input name="minStrLength" type="number" defaultValue={config.minStrLength} />
+            <Input name="maxStrLength" type="number" defaultValue={config.maxStrLength} />
+            <Button type="submit">保存约束</Button>
+          </form>
+        ))}
+      </CardContent>
+    </Card>
+    </div>
   );
+
+  async function saveType(event: FormEvent<HTMLFormElement>, id: number) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    await adminPatchMonsterTypeConfig(id, {
+      initSpeed: Number(data.get('initSpeed')),
+      initStrLength: Number(data.get('initStrLength')),
+      score: Number(data.get('score')),
+    });
+    toast({ title: '类型配置已更新' });
+  }
+
+  async function saveCommon(event: FormEvent<HTMLFormElement>, id: number) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    await adminPatchMonsterCommonConfig(id, {
+      minSpeed: Number(data.get('minSpeed')),
+      maxSpeed: Number(data.get('maxSpeed')),
+      minStrLength: Number(data.get('minStrLength')),
+      maxStrLength: Number(data.get('maxStrLength')),
+    });
+    toast({ title: '公共约束已更新' });
+  }
 }

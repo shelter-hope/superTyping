@@ -432,3 +432,86 @@ export async function adminDeleteConfigTemplate(id: number): Promise<void> {
   await apiClient.delete(`/admin/config-templates/${id}`);
 }
 
+export async function adminGetGameRule(key: 'difficulty' | 'genetic') {
+  const response = await apiClient.get(`/admin/game-rules/${key}`);
+  return response.data.data as { ruleKey: string; version: number; status: string; payload: Record<string, unknown> };
+}
+
+export async function adminSaveGameRuleDraft(key: 'difficulty' | 'genetic', payload: Record<string, unknown>) {
+  const response = await apiClient.put(`/admin/game-rules/${key}`, { payload });
+  return response.data.data as { version: number; status: string };
+}
+
+export async function adminPublishGameRule(key: 'difficulty' | 'genetic', version: number) {
+  const response = await apiClient.post(`/admin/game-rules/${key}/publish`, { version });
+  return response.data.data;
+}
+
+export async function adminGetGameRuleVersions(key: 'difficulty' | 'genetic') {
+  const response = await apiClient.get(`/admin/game-rules/${key}/versions`);
+  return response.data.data as Array<{ version: number; status: string; payload: Record<string, unknown> }>;
+}
+
+export async function adminSimulateGameRule(accuracies: number[], speeds: number[], rounds: number) {
+  const response = await apiClient.post('/admin/game-rules/simulate', { accuracies, speeds, rounds });
+  return response.data.data as { version: number; curve: Array<Record<string, number>> };
+}
+
+export async function adminCreateSystemDictionary(body: { name: string; description?: string; category?: string; isActive?: boolean }) {
+  const response = await apiClient.post('/admin/system-dictionaries', body);
+  return response.data.data as SystemDictionary;
+}
+
+export async function adminUpdateSystemDictionary(dictId: number, body: Partial<SystemDictionary>) {
+  const response = await apiClient.put(`/admin/system-dictionaries/${dictId}`, body);
+  return response.data.data as SystemDictionary;
+}
+
+export async function adminSetSystemDictionaryActive(dictId: number, isActive: boolean) {
+  const response = await apiClient.patch(`/admin/system-dictionaries/${dictId}/active`, { isActive });
+  return response.data.data as SystemDictionary;
+}
+
+export async function adminDeleteSystemDictionary(dictId: number) {
+  await apiClient.delete(`/admin/system-dictionaries/${dictId}`);
+}
+
+export async function adminImportSystemDictionary(body: { dictId?: number; name?: string; filename: string; text: string; category?: string }) {
+  const response = await apiClient.post('/admin/system-dictionaries/import', body);
+  return response.data.data as { imported: number; fileUrl: string };
+}
+
+export async function adminExportSystemDictionary(dictId: number) {
+  const response = await apiClient.get(`/admin/system-dictionaries/${dictId}/export`);
+  return response.data.data as { filename: string; content: string };
+}
+
+export async function adminCreateSystemWord(body: { dictId: number; word: string; difficultyLevel?: number }) {
+  const response = await apiClient.post('/admin/system-dictionary-words', body);
+  return response.data.data;
+}
+
+export async function adminDeleteSystemWord(wordId: number) {
+  await apiClient.delete(`/admin/system-dictionary-words/${wordId}`);
+}
+
+export async function adminSetCustomDictionaryVisibility(dictId: number, isPublic: boolean) {
+  const response = await apiClient.patch(`/admin/custom-dictionaries/${dictId}/visibility`, { isPublic });
+  return response.data.data as CustomDictionary;
+}
+
+export async function adminPatchMonsterTypeConfig(id: number, body: Partial<SystemMonsterTypeConfig>) {
+  await apiClient.patch(`/admin/system-monster-type-configs/${id}`, body);
+}
+
+export async function adminPatchMonsterCommonConfig(id: number, body: Partial<SystemMonsterCommoConfig>) {
+  await apiClient.patch(`/admin/system-monster-common-configs/${id}`, body);
+}
+
+export async function adminPatchModelConstant(id: number, body: Record<string, unknown>) {
+  await apiClient.patch(`/admin/model-constants/${id}`, body);
+}
+
+export async function adminPatchModelInitParam(id: number, body: Record<string, unknown>) {
+  await apiClient.patch(`/admin/model-init-params/${id}`, body);
+}
