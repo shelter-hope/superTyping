@@ -1,5 +1,5 @@
 // 游戏配置上下文
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import type { GameConfig } from '@/types/game';
 
 interface GameConfigContextType {
@@ -43,18 +43,18 @@ export function GameConfigProvider({ children }: { children: ReactNode }) {
     return defaultConfig;
   });
 
-  function updateConfig(updates: Partial<GameConfig>) {
+  const updateConfig = useCallback((updates: Partial<GameConfig>) => {
     setConfig(prev => {
       const newConfig = { ...prev, ...updates };
       localStorage.setItem('gameConfig', JSON.stringify(newConfig));
       return newConfig;
     });
-  }
+  }, []);
 
-  function resetConfig() {
+  const resetConfig = useCallback(() => {
     setConfig(defaultConfig);
     localStorage.setItem('gameConfig', JSON.stringify(defaultConfig));
-  }
+  }, []);
 
   return (
     <GameConfigContext.Provider value={{ config, updateConfig, resetConfig }}>

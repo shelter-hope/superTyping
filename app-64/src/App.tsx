@@ -7,6 +7,7 @@ import Header from '@/components/common/Header';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import { Loader2 } from 'lucide-react';
 import routes from './routes';
+import { SoundPreferenceSync } from '@/features/settings/SoundPreferenceSync';
 
 function LoadingFallback() {
   return (
@@ -21,6 +22,7 @@ function App() {
     <Router>
       <AuthProvider>
         <GameConfigProvider>
+          <SoundPreferenceSync />
           <div className="flex flex-col min-h-screen">
             <Header />
             <main className="flex-grow">

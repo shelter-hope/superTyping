@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Application, Graphics } from 'pixi.js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { deleteLabPreset, fetchLabPresets, fetchMyLabPresets, saveLabPreset, type LabPresetDto } from '@/features/lab/api';
-import { labRegistry } from '@/features/lab/registry';
+import { deleteLabPreset, fetchLabAlgorithms, fetchLabPresets, fetchMyLabPresets, saveLabPreset, type LabPresetDto } from '@/features/lab/api';
+import { labRegistry, visibleLabPlugins } from '@/features/lab/registry';
 import type { LabPlugin, ParamField, PointerForce } from '@/features/lab/plugin';
 
 const WIDTH = 800;
@@ -15,7 +15,9 @@ let bootQueue: Promise<void> = Promise.resolve();
 export default function LabPage() {
   const { algorithmId = 'boids' } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const algorithm = labRegistry.find((item) => item.id === algorithmId) ?? labRegistry[0];
+  const [enabledIds, setEnabledIds] = useState<string[] | null>(null);
+  const visiblePlugins = visibleLabPlugins(labRegistry, enabledIds);
+  const algorithm = visiblePlugins.find((item) => item.id === algorithmId) ?? visiblePlugins[0] ?? labRegistry[0];
   const [boundId, setBoundId] = useState(algorithm.id);
   const [params, setParams] = useState<Record<string, number>>(algorithm.defaults);
   if (boundId !== algorithm.id) {
@@ -50,6 +52,20 @@ export default function LabPage() {
     stateRef.current.bound = algorithm.id;
     stateRef.current.sim = algorithm.create(stateRef.current.params, stateRef.current.seed, WIDTH, HEIGHT);
   }
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchLabAlgorithms()
+      .then((rows) => {
+        if (!cancelled) setEnabledIds(rows.filter((row) => row.enabled).map((row) => row.id));
+      })
+      .catch(() => {
+        if (!cancelled) setEnabledIds(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -180,6 +196,13 @@ export default function LabPage() {
     setPresets((items) => items.filter((item) => item.id !== preset.id));
   }
 
+  if (enabledIds && visiblePlugins.length === 0) {
+    return <div className="container py-16 text-center text-muted-foreground">实验室算法都已停用。</div>;
+  }
+  if (algorithm.id !== algorithmId) {
+    return <Navigate to={`/lab/${algorithm.id}`} replace />;
+  }
+
   return (
     <div className="container space-y-4 py-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -188,7 +211,7 @@ export default function LabPage() {
           <p className="text-muted-foreground">{algorithm.description}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {labRegistry.map((item) => (
+          {visiblePlugins.map((item) => (
             <Button key={item.id} asChild variant={item.id === algorithm.id ? 'default' : 'outline'} size="sm">
               <Link to={`/lab/${item.id}`}>{item.name}</Link>
             </Button>

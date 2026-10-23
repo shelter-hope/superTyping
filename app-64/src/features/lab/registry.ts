@@ -62,3 +62,12 @@ function createBoidState(params: BoidParams, seed: number, width: number, height
 }
 
 export const labRegistry = [boidsPlugin, psoPlugin, acoPlugin, geneticPlugin];
+
+/** enabledIds 为 null 表示目录接口不可用，保留全部本地插件。 */
+export function visibleLabPlugins<T extends { id: string }>(plugins: T[], enabledIds: string[] | null): T[] {
+  if (enabledIds == null) return plugins;
+  const order = new Map(enabledIds.map((id, index) => [id, index]));
+  return plugins
+    .filter((plugin) => order.has(plugin.id))
+    .sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0));
+}

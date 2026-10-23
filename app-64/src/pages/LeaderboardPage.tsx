@@ -5,18 +5,35 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { getLeaderboard } from '@/db/api';
+import { getLeaderboard, getUserRank, searchLeaderboard } from '@/db/api';
+import { useAuth } from '@/contexts/AuthContext';
 import type { LeaderboardEntry } from '@/types/database';
 import { Trophy, Medal, Award, Loader2, Search, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+type BoardMode = 'endless' | 'dictionary' | 'limit';
+
+function displayName(entry: LeaderboardEntry) {
+  return entry.nickname || entry.username || `用户 ${entry.userId}`;
+}
+
+function entryKey(entry: LeaderboardEntry) {
+  return String(entry.recordId ?? entry.entryId ?? entry.userId);
+}
+
 export default function LeaderboardPage() {
-  const [endlessLeaderboard, setEndlessLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [dictionaryLeaderboard, setDictionaryLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const { user } = useAuth();
+  const [boards, setBoards] = useState<Record<BoardMode, LeaderboardEntry[]>>({
+    endless: [],
+    dictionary: [],
+    limit: [],
+  });
+  const [myRank, setMyRank] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'endless' | 'dictionary'>('endless');
+  const [activeTab, setActiveTab] = useState<BoardMode>('endless');
   const highlightedRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -34,14 +51,24 @@ export default function LeaderboardPage() {
     }
   }, [highlightedId]);
 
+  useEffect(() => {
+    if (!user) {
+      setMyRank(null);
+      return;
+    }
+    getUserRank(user.userId, activeTab)
+      .then((rank) => setMyRank(rank))
+      .catch(() => setMyRank(null));
+  }, [user, activeTab]);
+
   async function loadLeaderboards() {
     try {
-      const [endless, dictionary] = await Promise.all([
+      const [endless, dictionary, limit] = await Promise.all([
         getLeaderboard('endless', 50),
         getLeaderboard('dictionary', 50),
+        getLeaderboard('limit', 50),
       ]);
-      setEndlessLeaderboard(endless);
-      setDictionaryLeaderboard(dictionary);
+      setBoards({ endless, dictionary, limit });
     } catch (error) {
       console.error('加载排行榜失败:', error);
     } finally {
@@ -49,8 +76,9 @@ export default function LeaderboardPage() {
     }
   }
 
-  function handleSearch() {
-    if (!searchTerm.trim()) {
+  async function handleSearch() {
+    const keyword = searchTerm.trim();
+    if (!keyword) {
       toast({
         title: '请输入玩家名',
         description: '请输入要搜索的玩家用户名',
@@ -59,26 +87,37 @@ export default function LeaderboardPage() {
       return;
     }
 
-    const currentLeaderboard = activeTab === 'endless' ? endlessLeaderboard : dictionaryLeaderboard;
-    const foundIndex = currentLeaderboard.findIndex(
-      entry => entry.username.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    const found = foundIndex >= 0 ? currentLeaderboard[foundIndex] : null;
-    const rank = foundIndex >= 0 ? foundIndex + 1 : 0;
-
-    if (found) {
-      setHighlightedId(found.recordId?.toString() ?? '');
+    setSearching(true);
+    try {
+      const found = await searchLeaderboard(keyword, activeTab);
+      const match = found[0];
+      if (!match) {
+        setHighlightedId(null);
+        toast({
+          title: '未找到玩家',
+          description: `在当前模式的排行榜中未找到“${keyword}”`,
+          variant: 'destructive',
+        });
+        return;
+      }
+      setBoards((current) => {
+        const list = current[activeTab];
+        if (list.some((entry) => entry.userId === match.userId)) return current;
+        return { ...current, [activeTab]: [match, ...list] };
+      });
+      setHighlightedId(entryKey(match));
       toast({
         title: '找到玩家',
-        description: `${found.username} 排名第 ${rank} 位，得分 ${found.totalScore}`,
+        description: `${displayName(match)} 排名第 ${match.rank || '—'} 位，得分 ${match.totalScore}`,
       });
-    } else {
-      setHighlightedId(null);
+    } catch (error) {
       toast({
-        title: '未找到玩家',
-        description: `在当前模式的排行榜中未找到"${searchTerm}"`,
+        title: '搜索失败',
+        description: error instanceof Error ? error.message : '请稍后重试',
         variant: 'destructive',
       });
+    } finally {
+      setSearching(false);
     }
   }
 
@@ -106,8 +145,8 @@ export default function LeaderboardPage() {
     return (
       <div className="space-y-2">
         {entries.map((entry, index) => {
-          const rank = index + 1;
-          const isHighlighted = entry.recordId?.toString() === highlightedId;
+          const rank = entry.rank || index + 1;
+          const isHighlighted = entryKey(entry) === highlightedId;
           return (
             <div
               key={entry.recordId ?? entry.entryId ?? index}
@@ -123,7 +162,7 @@ export default function LeaderboardPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className={`font-medium truncate ${isHighlighted ? 'text-primary' : ''}`}>
-                  {entry.username}
+                  {displayName(entry)}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   轮数: {entry.roundNum} | 准确率: {formatNum(entry.avgAccuracy)}% | 
@@ -178,42 +217,43 @@ export default function LeaderboardPage() {
                   </Button>
                 )}
               </div>
-              <Button onClick={handleSearch}>
+              <Button onClick={() => void handleSearch()} disabled={searching}>
                 <Search className="w-4 h-4 mr-2" />
-                搜索
+                {searching ? '搜索中…' : '搜索'}
               </Button>
             </div>
           </CardContent>
         </Card>
 
+        {user && (
+          <p className="text-center text-sm text-muted-foreground">
+            {myRank ? `你在当前榜的排名：第 ${myRank} 名` : '你还没有进入当前榜'}
+          </p>
+        )}
+
         <Tabs defaultValue="endless" value={activeTab} onValueChange={(v) => {
-          setActiveTab(v as 'endless' | 'dictionary');
-          setHighlightedId(null); // 切换标签时清除高亮
+          setActiveTab(v as BoardMode);
+          setHighlightedId(null);
         }} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="endless">无尽适应模式</TabsTrigger>
-            <TabsTrigger value="dictionary">词源界定模式</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="endless">无尽适应</TabsTrigger>
+            <TabsTrigger value="dictionary">词源界定</TabsTrigger>
+            <TabsTrigger value="limit">限时冲刺</TabsTrigger>
           </TabsList>
-          <TabsContent value="endless" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>无尽适应模式 - 前50名</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {renderLeaderboard(endlessLeaderboard)}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="dictionary" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>词源界定模式 - 前50名</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {renderLeaderboard(dictionaryLeaderboard)}
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {(['endless', 'dictionary', 'limit'] as BoardMode[]).map((mode) => (
+            <TabsContent key={mode} value={mode} className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    {mode === 'endless' ? '无尽适应' : mode === 'dictionary' ? '词源界定' : '限时冲刺'} - 前50名
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {renderLeaderboard(boards[mode])}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          ))}
         </Tabs>
       </div>
     </div>
