@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
+import { createSingleFlight, shouldRefresh } from './refreshSession';
 
 // 定义统一响应结构
 export interface ResultMessage<T> {
@@ -87,10 +88,25 @@ apiClient.interceptors.response.use((response) => {
         : getDefaultErrorMessage(status));
     apiError.data = res?.data;
 
-    // 登录失败的 401 是凭证错误，不要当成“会话过期”清 token 以外的状态
+    const config = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    if (config && shouldRefresh(status, reqUrl, Boolean(config._retry))) {
+      config._retry = true;
+      return refreshAccessToken()
+        .then((token) => {
+          if (!token) {
+            clearSession();
+            return Promise.reject(apiError);
+          }
+          config.headers.Authorization = `Bearer ${token}`;
+          return apiClient(config);
+        })
+        .catch(() => {
+          clearSession();
+          return Promise.reject(apiError);
+        });
+    }
     if (status === 401 && !isLoginAttempt) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
+      clearSession();
     }
   } else if (error.request) {
     // 常见于 CORS：Network 面板可能仍显示 200，但 JS 读不到响应体
@@ -105,6 +121,27 @@ apiClient.interceptors.response.use((response) => {
   
   return Promise.reject(apiError);
 });
+
+const refreshAccessToken = createSingleFlight(async () => {
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) return null;
+  const response = await axios.post(
+    backendBaseUrl + '/api/v1/auth/refresh',
+    null,
+    { params: { refreshToken }, timeout: 15000 },
+  );
+  const payload = response.data as ResultMessage<{ accessToken?: string; refreshToken?: string }>;
+  const accessToken = payload?.data?.accessToken;
+  if (!accessToken) return null;
+  localStorage.setItem('auth_token', accessToken);
+  if (payload.data?.refreshToken) localStorage.setItem('refresh_token', payload.data.refreshToken);
+  return accessToken;
+});
+
+function clearSession() {
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('refresh_token');
+}
 
 function getDefaultErrorMessage(status: number): string {
   const messages: Record<number, string> = {

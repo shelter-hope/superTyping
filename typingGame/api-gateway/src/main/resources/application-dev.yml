@@ -60,7 +60,7 @@ spring:
             - PrefixPath=/chat-svc
       discovery:
         locator:
-          enabled: true
+          enabled: false
       globalcors:
         cors-configurations:
           '[/**]':
@@ -69,3 +69,8 @@ spring:
             allowedHeaders: "*"
             allowCredentials: false
             maxAge: 3600
+
+typing:
+  gateway:
+    ip-per-second: 30
+    user-per-second: 20
