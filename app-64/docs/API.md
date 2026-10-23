@@ -305,6 +305,36 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 
 ---
 
+## 12.1 群体智能实验室 `/lab/*`
+
+无需登录：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/lab/algorithms` | 已启用算法。目前有 `boids`、`pso`、`ant-colony`、`genetic` |
+| GET | `/lab/presets` | 系统预设和公开预设，查询参数 `algorithmId` |
+
+需要登录：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/lab/presets/mine` | 当前用户预设 |
+| POST | `/lab/presets` | `{ algorithmId, name, params, isPublic }`，服务端校验参数区间 |
+| PUT | `/lab/presets/{id}` | 只能改自己的预设 |
+| DELETE | `/lab/presets/{id}` | 只能删自己的预设 |
+
+后台（管理员，经 admin-svc 代理）：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/admin/lab/algorithms` | 全部算法 |
+| PUT | `/admin/lab/algorithms/{id}` | 启停、排序、默认参数 |
+| GET | `/admin/lab/presets` | 系统预设 |
+| POST | `/admin/lab/presets` | 新建系统预设 |
+| DELETE | `/admin/lab/presets/{id}` | 删除系统预设 |
+
+迁移脚本：`typingGame/DB/006-lab.sql`。
+
 ## 13. 微服务路由映射
 
 前端所有请求通过 API Gateway（`http://localhost:8080`）统一入口，按路径前缀路由到对应微服务：
@@ -323,6 +353,7 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 | `/api/v1/dictionaries/*` | chat-svc | 8084 |
 | `/api/v1/ai/*` | ai-svc | 8083 |
 | `/api/v1/admin/*` | admin-svc | 8085（代理到各服务 `/internal/admin/*`） |
+| `/api/v1/lab/*` | lab-svc | 8086 |
 
 ---
 

@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Loader2,
   FlaskConical,
+  Microscope,
 } from 'lucide-react';
 import GameRuleManagement from '@/components/admin/GameRuleManagement';
 import UserManagement from '@/components/admin/UserManagement';
@@ -31,6 +32,7 @@ import CharacterStatsOverview from '@/components/admin/CharacterStatsOverview';
 import NotificationManagement from '@/components/admin/NotificationManagement';
 import OperationLogView from '@/components/admin/OperationLogView';
 import AdvancedConfigManagement from '@/components/admin/AdvancedConfigManagement';
+import LabManagement from '@/components/admin/LabManagement';
 import { adminGetOverview, type AdminOverview } from '@/db/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -47,7 +49,8 @@ type TabType =
   | 'notifications'
   | 'advanced'
   | 'logs'
-  | 'rules';
+  | 'rules'
+  | 'lab';
 
 const TAB_IDS: TabType[] = [
   'dashboard',
@@ -63,6 +66,7 @@ const TAB_IDS: TabType[] = [
   'advanced',
   'logs',
   'rules',
+  'lab',
 ];
 
 export default function AdminPage() {
@@ -87,6 +91,7 @@ export default function AdminPage() {
     { id: 'notifications' as TabType, name: '系统公告', icon: Megaphone },
     { id: 'logs' as TabType, name: '操作日志', icon: ScrollText },
     { id: 'rules' as TabType, name: '规则引擎', icon: FlaskConical },
+    { id: 'lab' as TabType, name: '实验室管理', icon: Microscope },
   ];
 
   return (
@@ -127,6 +132,7 @@ export default function AdminPage() {
         {activeTab === 'notifications' && <NotificationManagement />}
         {activeTab === 'logs' && <OperationLogView />}
         {activeTab === 'rules' && <GameRuleManagement />}
+        {activeTab === 'lab' && <LabManagement />}
       </main>
     </div>
   );

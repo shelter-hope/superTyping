@@ -19,6 +19,7 @@ const ChatPage = lazy(() => import('@/pages/ChatPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const AdminPage = lazy(() => import('@/pages/AdminPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
+const LabPage = lazy(() => import('@/pages/LabPage'));
 
 export interface RouteConfig {
   name: string;
@@ -85,6 +86,20 @@ const routes: RouteConfig[] = [
     element: TrendsPage,
     requireAuth: true,
     visible: true,
+  },
+  {
+    name: '群体智能实验室',
+    path: '/lab',
+    element: LabPage,
+    requireAuth: false,
+    visible: true,
+  },
+  {
+    name: '实验室算法',
+    path: '/lab/:algorithmId',
+    element: LabPage,
+    requireAuth: false,
+    visible: false,
   },
   {
     name: '排行榜',

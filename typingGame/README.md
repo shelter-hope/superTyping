@@ -190,6 +190,7 @@ typingGame/
 | ai-svc | 8083 | AI 对话、训练建议、LLM 集成 | ✅ |
 | chat-svc | 8084 | 消息中心、排行榜、词库管理 | ✅ |
 | admin-svc | 8085 | 管理后台聚合接口，代理调用各领域服务内部管理接口 | ✅ |
+| lab-svc | 8086 | 群体智能实验室：算法定义、参数 schema 与预设 | ✅ |
 
 ---
 
@@ -211,6 +212,7 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 | `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
 | `/api/v1/dictionary/**` | chat-svc | 词库管理兼容路径 |
 | `/api/v1/dictionaries/**` | chat-svc | 词库管理 |
+| `/api/v1/lab/**` | lab-svc | 群体智能算法与预设。算法 id：`boids`、`pso`、`ant-colony`、`genetic`。公开读：`GET /algorithms`、`GET /presets`。登录后可增删改自己的预设。后台 `/api/v1/admin/lab/**` 由 admin-svc 转发到 `/internal/admin/lab/**` |
 
 ## 核心功能模块
 
