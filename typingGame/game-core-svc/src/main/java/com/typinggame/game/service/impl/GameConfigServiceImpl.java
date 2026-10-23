@@ -128,7 +128,7 @@ public class GameConfigServiceImpl implements GameConfigService {
         GameMode mode = GameMode.fromClientMode(gameMode);
         TrainingSuggestionDTO suggestion = statsService.getTrainingSuggestions(userId);
         List<String> focusChars = extractFocusChars(suggestion);
-        GameAdjustParam adjustParam = difficultyModelService.calculate(userId, mode, 1, suggestion.getRecentAccuracy(), suggestion.getRecentSpeed(), focusChars.size());
+        GameAdjustParam adjustParam = difficultyModelService.project(userId, mode, 1, null);
         List<String> words = selectWordSource(mode).generateWords(new WordSourceContext(
                 userId, mode, 8, 3, focusChars, parseCharTypes(resolveCharTypeConfig(userId, mode).getCharType()), null, null));
 
@@ -162,24 +162,19 @@ public class GameConfigServiceImpl implements GameConfigService {
             gameSessionRepository.findBySessionIdAndUserId(sessionId, userId)
                     .orElseThrow(() -> new IllegalArgumentException("游戏会话不存在或无权访问"));
         }
-        TrainingSuggestionDTO suggestion = statsService.getTrainingSuggestions(userId);
         List<CharacterStats> weakChars = characterStatsService.getWeakChars(userId, 10);
         List<String> focusChars = weakChars.stream()
                 .map(CharacterStats::getCharValue)
                 .filter(s -> s != null && !s.isBlank())
                 .collect(Collectors.toList());
-        Double accuracy = suggestion.getRecentAccuracy();
-        Double previousDifficulty = null;
+        Double settledDifficulty = null;
         if (sessionId != null && roundNum > 1) {
             GameRound previous = gameRoundRepository.findBySessionIdAndRoundNum(sessionId, roundNum - 1).orElse(null);
-            if (previous != null && previous.getActualAccuracy() != null) {
-                accuracy = previous.getActualAccuracy().doubleValue();
-            }
             if (previous != null && previous.getDifficultyAfter() != null) {
-                previousDifficulty = previous.getDifficultyAfter().doubleValue();
+                settledDifficulty = previous.getDifficultyAfter().doubleValue();
             }
         }
-        GameAdjustParam adjustParam = difficultyModelService.calculate(userId, mode, roundNum, accuracy, suggestion.getRecentSpeed(), focusChars.size(), previousDifficulty);
+        GameAdjustParam adjustParam = difficultyModelService.project(userId, mode, roundNum, settledDifficulty);
         List<String> words = selectWordSource(mode).generateWords(new WordSourceContext(
                 userId,
                 mode,

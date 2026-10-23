@@ -60,9 +60,25 @@ public class DifficultyModelServiceImpl implements DifficultyModelService {
 
         double previous = previousDifficulty != null
                 ? previousDifficulty
-                : weight(firstNonNull(userParams == null ? null : userParams.getLastDifficulty(), weights.getInitDifficulty()), rule.getInitialDifficulty());
+                : storedDifficulty(userParams, weights, rule);
         double difficulty = DifficultyEngine.nextDifficulty(rule, previous, recentAccuracy, recentSpeed, roundNum, weakCharCount);
+        return present(rule, difficulty, roundNum, bounds);
+    }
 
+    @Override
+    public GameAdjustParam project(Integer userId, GameMode gameMode, int roundNum, Double difficulty) {
+        DifficultyRule rule = copyRule(ruleConfigProvider.activeDifficulty());
+        ModelInitParams weights = loadInitParams(gameMode);
+        UserModelParams userParams = userModelParamsRepository.findByUserIdAndGameMode(userId, gameMode.name()).orElse(null);
+        ModelConstant constants = modelConstantRepository.findAll().stream().findFirst().orElse(null);
+        SystemMonsterCommoConfig bounds = monsterCommoConfigRepository.findAll().stream().findFirst().orElse(null);
+        if (constants != null && constants.getMaxSpeed() != null) rule.setMaxReferenceSpeed(constants.getMaxSpeed().doubleValue());
+        if (constants != null && constants.getRefPeakSpeed() != null) rule.setRefPeakSpeed(constants.getRefPeakSpeed().doubleValue());
+        double resolved = difficulty != null ? difficulty : storedDifficulty(userParams, weights, rule);
+        return present(rule, resolved, roundNum, bounds);
+    }
+
+    private GameAdjustParam present(DifficultyRule rule, double difficulty, int roundNum, SystemMonsterCommoConfig bounds) {
         BigDecimal minSpeed = bounds != null && bounds.getMinSpeed() != null ? bounds.getMinSpeed() : DEFAULT_MIN_SPEED;
         BigDecimal maxMonsterSpeed = bounds != null && bounds.getMaxSpeed() != null ? bounds.getMaxSpeed() : DEFAULT_MAX_SPEED;
         int minLength = bounds != null && bounds.getMinStrLength() != null ? bounds.getMinStrLength() : 1;
@@ -116,6 +132,8 @@ public class DifficultyModelServiceImpl implements DifficultyModelService {
         copy.setEvasiveMin(source.getEvasiveMin());
         copy.setEvasiveMax(source.getEvasiveMax());
         copy.setRoundLogBase(source.getRoundLogBase());
+        copy.setHighAccuracyAdvanceThreshold(source.getHighAccuracyAdvanceThreshold());
+        copy.setLowAccuracyRollbackThreshold(source.getLowAccuracyRollbackThreshold());
         return copy;
     }
 
@@ -123,9 +141,8 @@ public class DifficultyModelServiceImpl implements DifficultyModelService {
         return modelInitParamsRepository.findByGameMode(gameMode.name()).stream().findFirst().orElseGet(ModelInitParams::new);
     }
 
-    private double normalizeAccuracy(Double accuracy) {
-        if (accuracy == null) return 0.85;
-        return accuracy > 1 ? clamp(accuracy / 100.0, 0, 1) : clamp(accuracy, 0, 1);
+    private double storedDifficulty(UserModelParams userParams, ModelInitParams weights, DifficultyRule rule) {
+        return weight(firstNonNull(userParams == null ? null : userParams.getLastDifficulty(), weights.getInitDifficulty()), rule.getInitialDifficulty());
     }
 
     private double weight(BigDecimal value, double fallback) {
@@ -138,9 +155,5 @@ public class DifficultyModelServiceImpl implements DifficultyModelService {
 
     private BigDecimal scale(double value) {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
     }
 }
