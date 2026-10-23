@@ -47,11 +47,11 @@ public class ImNotifier {
     }
 
     private void push(Integer toUserId, Map<String, Object> event) {
-        if (toUserId == null || !sessionRegistry.isOnline(toUserId)) {
+        if (toUserId == null || !sessionRegistry.online(toUserId)) {
             return;
         }
         try {
-            sessionRegistry.sendToUser(toUserId, objectMapper.writeValueAsString(event));
+            sessionRegistry.send(toUserId, objectMapper.writeValueAsString(event));
         } catch (JsonProcessingException e) {
             log.error("Serialize IM event failed, type={}", event.get("type"), e);
         } catch (RuntimeException e) {

@@ -30,6 +30,7 @@ import {
   sendMessage, 
   markAsReadByFriend 
 } from '@/db/api';
+import { sendTyping } from '@/features/im/imClient';
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -163,7 +164,8 @@ export default function ChatPage() {
     setSending(true);
 
     try {
-      const sent = await sendMessage(fId, content);
+      const clientMsgId = crypto.randomUUID();
+      const sent = await sendMessage(fId, content, 'text', clientMsgId);
       // 推送可能先于响应到达，按 id 合并去重
       setMessages((prev) => mergeMessages(prev, [sent]));
     } catch (error) {
@@ -299,7 +301,10 @@ export default function ChatPage() {
               <Textarea
                 ref={textareaRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  if (friendId) sendTyping(parseInt(friendId, 10), e.target.value.length > 0);
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="输入消息... (Shift+Enter换行，Enter发送)"
                 className="min-h-[80px] max-h-[160px] resize-none bg-background shadow-sm"

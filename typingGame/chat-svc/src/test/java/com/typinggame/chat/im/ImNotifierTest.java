@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -36,7 +37,7 @@ class ImNotifierTest {
 
     @Test
     void pushMessageWrapsDtoInMessageEnvelope() throws Exception {
-        when(registry.isOnline(5)).thenReturn(true);
+        when(registry.online(5)).thenReturn(true);
         MessageDTO dto = new MessageDTO();
         dto.setId(42);
         dto.setSenderId(3);
@@ -47,7 +48,7 @@ class ImNotifierTest {
         notifier.pushMessage(5, dto);
 
         ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-        verify(registry).sendToUser(eq(5), payload.capture());
+        verify(registry).send(eq(5), payload.capture());
         JsonNode event = objectMapper.readTree(payload.getValue());
         assertEquals("MESSAGE", event.get("type").asText());
         assertEquals(42, event.get("message").get("id").asInt());
@@ -57,12 +58,12 @@ class ImNotifierTest {
 
     @Test
     void pushReadCarriesReaderId() throws Exception {
-        when(registry.isOnline(3)).thenReturn(true);
+        when(registry.online(3)).thenReturn(true);
 
         notifier.pushRead(3, 5);
 
         ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-        verify(registry).sendToUser(eq(3), payload.capture());
+        verify(registry).send(eq(3), payload.capture());
         JsonNode event = objectMapper.readTree(payload.getValue());
         assertEquals("READ", event.get("type").asText());
         assertEquals(5, event.get("readerId").asInt());
@@ -70,17 +71,17 @@ class ImNotifierTest {
 
     @Test
     void offlineUserIsSkipped() {
-        when(registry.isOnline(5)).thenReturn(false);
+        when(registry.online(5)).thenReturn(false);
 
         notifier.pushRead(5, 3);
 
-        verify(registry, never()).sendToUser(anyInt(), anyString());
+        verify(registry, never()).send(anyInt(), anyString());
     }
 
     @Test
     void registryFailureDoesNotPropagate() {
-        when(registry.isOnline(5)).thenReturn(true);
-        when(registry.sendToUser(eq(5), anyString())).thenThrow(new IllegalStateException("boom"));
+        when(registry.online(5)).thenReturn(true);
+        doThrow(new IllegalStateException("boom")).when(registry).send(eq(5), anyString());
 
         notifier.pushRead(5, 3);
     }

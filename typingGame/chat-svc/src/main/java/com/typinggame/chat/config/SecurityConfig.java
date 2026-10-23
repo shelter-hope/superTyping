@@ -28,8 +28,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
-                        // IM 握手由 ImHandshakeInterceptor 校验 ?token=
-                        .requestMatchers("/ws/**").permitAll()
+                        // IM 握手：ticket（/ws）由 ImWebSocketConfig 校验；JWT（/ws/im）由 ImHandshakeInterceptor 校验
+                        .requestMatchers("/ws", "/ws/**").permitAll()
                         // 排行榜公开读（my-rank 仍需登录）
                         .requestMatchers(HttpMethod.GET, "/api/v1/leaderboard").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/leaderboard/period").permitAll()

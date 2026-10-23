@@ -9,6 +9,9 @@ public interface MessageService {
     List<MessageDTO> getConversationMessages(Integer userId, Integer conversationId, Integer page, Integer size);
     List<MessageDTO> getMessages(Integer userId, Integer friendId, Integer offset);
     MessageDTO sendMessage(Integer senderId, Integer receiverId, String content, String type);
+    MessageDTO sendMessage(Integer senderId, Integer receiverId, String content, String type, String clientMsgId);
+    List<MessageDTO> getMessagesBefore(Integer userId, Integer friendId, Integer beforeId, int limit);
+    MessageDTO sendSystemNotice(Integer userId, String content);
     boolean markMessageAsRead(Integer userId, Integer messageId);
     void markAllAsRead(Integer userId);
     void markAsReadByFriend(Integer userId, Integer friendId);

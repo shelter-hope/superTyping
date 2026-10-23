@@ -246,7 +246,7 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 ### 社交系统
 
 - **好友管理**：添加、删除、查看好友
-- **好友聊天**：当前提供 REST 拉取、发送、已读、未读计数接口；WebSocket 推送为后续增强
+- **好友聊天**：发送使用 JSON body，带 `clientMsgId` 幂等和服务端序号。历史可用 `beforeId` 游标。WebSocket 地址为网关 `/ws?ticket=`，票据由 `POST /api/v1/messages/ws-ticket` 签发，30 秒一次性，不接受把 JWT 放进 URL。消息经 Redis `im.events` 广播到各实例。
 - **消息中心**：系统消息、好友消息统一管理
 
 ### AI 服务模块

@@ -1,7 +1,10 @@
 package com.typinggame.chat.service.impl;
 
+import com.typinggame.chat.im.ImEventPublisher;
 import com.typinggame.chat.im.ImNotifier;
+import com.typinggame.chat.im.MessagePolicy;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
+import com.typinggame.chat.repository.FriendRelationRepository;
 import com.typinggame.chat.repository.SystemNotificationRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
 import com.typinggame.chat.repository.UserInfoRepository;
@@ -22,7 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,6 +44,12 @@ public class MessageServiceImpl implements MessageService {
 
     @Autowired
     private UserInfoRepository userInfoRepository;
+
+    @Autowired
+    private FriendRelationRepository friendRelationRepository;
+
+    @Autowired
+    private ImEventPublisher imEventPublisher;
 
     @Autowired
     private ImNotifier imNotifier;
@@ -102,8 +113,24 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
+    @Transactional
     public MessageDTO sendMessage(Integer senderId, Integer receiverId, String content, String type) {
-        int msgType = "system".equalsIgnoreCase(type) ? TYPE_SYSTEM : TYPE_FRIEND;
+        return sendMessage(senderId, receiverId, content, type, null);
+    }
+
+    @Override
+    @Transactional
+    public MessageDTO sendMessage(Integer senderId, Integer receiverId, String content, String type, String clientMsgId) {
+        MessagePolicy.requireChatType(type);
+        MessagePolicy.requireContent(content);
+        if (clientMsgId != null && !clientMsgId.isBlank()) {
+            Optional<FriendChatMessage> existing = friendChatMessageRepository.findFirstBySenderIdAndClientMsgId(senderId, clientMsgId);
+            if (existing.isPresent()) return convertToDTO(existing.get());
+        }
+        if (friendRelationRepository.findAccepted(senderId, receiverId).isEmpty()) {
+            throw new IllegalArgumentException("只能给好友发消息");
+        }
+        int msgType = TYPE_FRIEND;
 
         FriendChatMessage message = new FriendChatMessage();
         message.setSenderId(senderId);
@@ -115,6 +142,8 @@ public class MessageServiceImpl implements MessageService {
 
         UserConversation senderConv = getOrCreateConversation(senderId, receiverId);
         message.setConversationId(senderConv.getId());
+        message.setClientMsgId(clientMsgId);
+        message.setServerSeq(friendChatMessageRepository.maxServerSeq(senderConv.getId()) + 1);
         friendChatMessageRepository.save(message);
 
         updateConversation(senderConv, message);
@@ -130,13 +159,59 @@ public class MessageServiceImpl implements MessageService {
         receiverMessage.setReadStatus(ReadStatus.UNREAD.getCode());
         receiverMessage.setSendTime(LocalDateTime.now());
         receiverMessage.setConversationId(receiverConv.getId());
+        receiverMessage.setClientMsgId(clientMsgId);
+        receiverMessage.setServerSeq(friendChatMessageRepository.maxServerSeq(receiverConv.getId()) + 1);
         friendChatMessageRepository.save(receiverMessage);
 
         MessageDTO senderView = convertToDTO(message);
-        imNotifier.pushMessage(receiverId, convertToDTO(receiverMessage));
-        // 发送者的其他标签页同步；当前页按 id 去重
+        MessageDTO receiverView = convertToDTO(receiverMessage);
+
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("event", "message");
+        event.put("userId", senderId);
+        event.put("receiverId", receiverId);
+        event.put("message", senderView);
+        imEventPublisher.publish(event);
+        imEventPublisher.publish(Map.of("event", "unread", "userId", receiverId, "count", getUnreadCount(receiverId)));
+
+        imNotifier.pushMessage(receiverId, receiverView);
         imNotifier.pushMessage(senderId, senderView);
+
         return senderView;
+    }
+
+    @Override
+    public List<MessageDTO> getMessagesBefore(Integer userId, Integer friendId, Integer beforeId, int limit) {
+        Optional<UserConversation> conversationOpt = userConversationRepository.findByUserIdAndTargetUserId(userId, friendId);
+        if (conversationOpt.isEmpty()) return List.of();
+        int size = Math.max(1, Math.min(50, limit));
+        List<FriendChatMessage> messages = beforeId == null
+                ? friendChatMessageRepository.findByConversationIdOrderBySendTimeDesc(conversationOpt.get().getId(), PageRequest.of(0, size))
+                : friendChatMessageRepository.findByConversationIdAndIdLessThanOrderByIdDesc(conversationOpt.get().getId(), beforeId, PageRequest.of(0, size));
+        return messages.stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public MessageDTO sendSystemNotice(Integer userId, String content) {
+        MessagePolicy.requireContent(content);
+        FriendChatMessage message = new FriendChatMessage();
+        message.setSenderId(userId);
+        message.setReceiverId(userId);
+        message.setMessageContent(content);
+        message.setMessageType(TYPE_SYSTEM);
+        message.setReadStatus(ReadStatus.UNREAD.getCode());
+        message.setSendTime(LocalDateTime.now());
+        UserConversation conversation = getOrCreateConversation(userId, userId);
+        message.setConversationId(conversation.getId());
+        message.setServerSeq(friendChatMessageRepository.maxServerSeq(conversation.getId()) + 1);
+        friendChatMessageRepository.save(message);
+        updateConversation(conversation, message);
+        MessageDTO dto = convertToDTO(message);
+        imEventPublisher.publish(Map.of("event", "notification", "userId", userId, "message", dto));
+        imEventPublisher.publish(Map.of("event", "unread", "userId", userId, "count", getUnreadCount(userId)));
+        imNotifier.pushMessage(userId, dto);
+        return dto;
     }
 
     private UserConversation getOrCreateConversation(Integer userId, Integer targetUserId) {
@@ -226,7 +301,6 @@ public class MessageServiceImpl implements MessageService {
             return;
         }
         Integer conversationId = convOpt.get().getId();
-        // 每条消息收发双方各存一份；对方那份也要置已读，否则对方刷新后仍显示未读
         Integer friendConversationId = userConversationRepository.findByUserIdAndTargetUserId(friendId, userId)
                 .map(UserConversation::getId)
                 .orElse(null);
@@ -271,7 +345,6 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public Integer getUnreadCount(Integer userId) {
-        // 每条消息在收发双方各存一份，按收件人统计消息表会重复计数；会话表的 unread_count 只记录在收件人一侧
         int conversationUnread = userConversationRepository.findByUserId(userId).stream()
                 .map(UserConversation::getUnreadCount)
                 .filter(Objects::nonNull)
@@ -340,6 +413,8 @@ public class MessageServiceImpl implements MessageService {
         messageDTO.setSendTime(message.getSendTime());
         messageDTO.setIsRead(Objects.equals(message.getReadStatus(), ReadStatus.READ.getCode()));
         messageDTO.setType(message.getMessageType() == TYPE_SYSTEM ? "system" : "friend");
+        messageDTO.setClientMsgId(message.getClientMsgId());
+        messageDTO.setServerSeq(message.getServerSeq());
         return messageDTO;
     }
 }

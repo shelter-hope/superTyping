@@ -17,4 +17,9 @@ public interface FriendChatMessageRepository extends JpaRepository<FriendChatMes
     int countByConversationIdAndReceiverIdAndReadStatus(Integer conversationId, Integer receiverId, Integer readStatus);
     int countByReceiverIdAndReadStatus(Integer receiverId, Integer readStatus);
     Optional<FriendChatMessage> findByIdAndReceiverId(Integer id, Integer receiverId);
+    Optional<FriendChatMessage> findFirstBySenderIdAndClientMsgId(Integer senderId, String clientMsgId);
+    List<FriendChatMessage> findByConversationIdAndIdLessThanOrderByIdDesc(Integer conversationId, Integer beforeId, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("select coalesce(max(m.serverSeq), 0) from FriendChatMessage m where m.conversationId = :conversationId")
+    int maxServerSeq(@org.springframework.data.repository.query.Param("conversationId") Integer conversationId);
 }
