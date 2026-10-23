@@ -33,7 +33,7 @@
 - **用户认证与授权**：JWT 令牌机制，支持注册、登录、权限管理
 - **游戏核心逻辑**：字符怪物生成、自适应难度调节、积分计算
 - **数据统计与分析**：打字行为记录、趋势分析、训练建议生成
-- **社交系统**：好友管理、消息中心、好友私聊（当前 REST 可用，WebSocket 推送为后续增强）
+- **社交系统**：好友管理、消息中心、好友私聊。REST 可独立使用；实时推送走网关 `/ws/im`，断线时前端回退轮询
 - **词库管理**：系统词库、自定义词库上传与管理
 - **AI 服务**：LLM 对话集成，提供智能训练指导
 - **管理后台**：用户管理、游戏配置、数据监控。当前 `/admin/**` 由独立 `admin-svc` 聚合提供，并代理调用各领域服务的 `/internal/admin/**` 内部接口。
@@ -93,18 +93,18 @@
         │                       │                       │
         ▼                       ▼                       ▼
 ┌───────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Chat Svc    │     │                 │     │                 │
-│   (8084)      │     │                 │     │                 │
-│  ├─ 消息中心  │     │                 │     │                 │
-│  ├─ 排行榜    │     │                 │     │                 │
-│  └─ 词库管理  │     │                 │     │                 │
+│   Chat Svc    │     │   Admin Svc     │     │                 │
+│   (8084)      │     │    (8085)       │     │                 │
+│  ├─ 消息中心  │     │  ├─ 后台聚合    │     │                 │
+│  ├─ 排行榜    │     │  └─ 转发内部接口│     │                 │
+│  ├─ 词库管理  │     │                 │     │                 │
+│  └─ IM /ws/im │     │                 │     │                 │
 └───────────────┘     └─────────────────┘     └─────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    基础设施层                                │
-│  Nacos(8848) | Redis(6379) | MySQL(3306) | RocketMQ        │
-│  Zipkin(9411) | Prometheus/Grafana                         │
+│  服务实际依赖：Nacos(8848) | Redis(6379) | MySQL(3306)       │
+│  Compose 已启动、代码未接入：Zipkin(9411) | RocketMQ         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -195,7 +195,7 @@ typingGame/
 
 ## API 路由
 
-API 网关统一入口：`http://localhost:8080/typingWord`
+API 网关统一入口：`http://localhost:8080`。对外路径没有 `/typingWord` 前缀，前端 baseURL 为 `http://localhost:8080/api/v1`。
 
 | 路径前缀 | 目标服务 | 说明 |
 |----------|----------|------|
@@ -211,6 +211,9 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 | `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
 | `/api/v1/dictionary/**` | chat-svc | 词库管理兼容路径 |
 | `/api/v1/dictionaries/**` | chat-svc | 词库管理 |
+| `/api/v1/model/**` | game-core-svc | 模型参数 |
+| `/uploads/**` | user-svc | 头像等上传文件 |
+| `/ws/**` | chat-svc | IM WebSocket，处理器路径为 `/ws/im` |
 
 ## 核心功能模块
 
@@ -244,7 +247,7 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 ### 社交系统
 
 - **好友管理**：添加、删除、查看好友
-- **好友聊天**：当前提供 REST 拉取、发送、已读、未读计数接口；WebSocket 推送为后续增强
+- **好友聊天**：REST 负责拉取、发送、已读和未读计数；WebSocket 路径为网关 `/ws/im`，JWT 放在查询参数 `token`。连接断开时前端回退轮询
 - **消息中心**：系统消息、好友消息统一管理
 
 ### AI 服务模块
@@ -324,7 +327,19 @@ cd typingGame
 docker-compose up -d
 ```
 
-等待 Nacos、Redis、MySQL 等服务启动完成（约 1-2 分钟）。
+等待 Nacos、Redis、MySQL 等服务启动完成。
+
+MySQL 首次初始化会执行 `DB/typing_word_game.sql`（已含 `004` 后台加固）。游戏会话和遗传相关表还要按顺序手动导入：
+
+```bash
+mysql -h127.0.0.1 -uroot -p123456 typing_word_game < DB/001-game-session-round-plan-20261006-2200.sql
+mysql -h127.0.0.1 -uroot -p123456 typing_word_game < DB/002-monster-attempt-genetics-20261006-2310.sql
+mysql -h127.0.0.1 -uroot -p123456 typing_word_game < DB/003-fix-round-payload-and-leaderboard-20261007.sql
+```
+
+本地默认连接：MySQL `root` / `123456`，库 `typing_word_game`；Redis 密码 `123456`。种子账号见仓库根目录 README。Compose 打开了 Nacos 鉴权，而服务配置只写了地址；注册出现 403 时，关闭鉴权或在 discovery 中补上 `nacos` / `nacos`。
+
+`Dockerfile` 复制的是单体包 `target/typingGame-0.0.1-SNAPSHOT.jar`。多模块构建不会生成该文件，本地按下面的模块包启动。
 
 ### 构建与运行
 
@@ -358,9 +373,11 @@ java -jar admin-svc/target/admin-svc-0.0.1-SNAPSHOT.jar
 
 ### 访问服务
 
-- API 网关：`http://localhost:8080/typingWord`
+- API 网关：`http://localhost:8080`
+- 网关健康检查：`http://localhost:8080/actuator/health`
+- 业务服务健康检查带 context-path，例如 `http://localhost:8081/user-svc/actuator/health`
 - Nacos 控制台：`http://localhost:8848/nacos`（用户名/密码：nacos/nacos）
-- Zipkin 追踪：`http://localhost:9411`
+- Zipkin：`http://localhost:9411`（容器已启动，服务尚未上报链路）
 
 ---
 
