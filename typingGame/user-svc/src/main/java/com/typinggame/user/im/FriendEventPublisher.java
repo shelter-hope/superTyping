@@ -5,6 +5,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -17,14 +18,17 @@ public class FriendEventPublisher {
         this.objectMapper = objectMapper;
     }
 
-    public void friendRequest(Integer senderId, Integer receiverId, Integer requestId) {
-        Map<String, Object> event = new LinkedHashMap<>();
-        event.put("event", "friend_request");
-        event.put("userId", receiverId);
-        event.put("senderId", senderId);
-        event.put("requestId", requestId);
+    public void friendRequest(Integer senderId, Integer receiverId, Integer requestId, String applyMessage) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("type", "FRIEND_REQUEST");
+        payload.put("senderId", senderId);
+        payload.put("requestId", requestId);
+        payload.put("applyMessage", applyMessage);
+        Map<String, Object> envelope = new LinkedHashMap<>();
+        envelope.put("targets", List.of(receiverId));
+        envelope.put("payload", payload);
         try {
-            redisTemplate.convertAndSend("im.events", objectMapper.writeValueAsString(event));
+            redisTemplate.convertAndSend("im.events", objectMapper.writeValueAsString(envelope));
         } catch (Exception ignored) {
             // The request is already stored; a missed push is recovered by the inbox.
         }

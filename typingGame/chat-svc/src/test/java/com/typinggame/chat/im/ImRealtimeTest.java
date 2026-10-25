@@ -46,5 +46,9 @@ class ImRealtimeTest {
         assertThrows(IllegalArgumentException.class, () -> MessagePolicy.requireContent("  "));
         assertFalse(MessagePolicy.userEnabled(false));
         assertTrue(MessagePolicy.userEnabled(null));
+        assertEquals("emoji", MessagePolicy.typeName(MessagePolicy.TYPE_EMOJI, false));
+        assertEquals("system", MessagePolicy.typeName(MessagePolicy.TYPE_EMOJI, true));
+        assertEquals("system", MessagePolicy.typeName(MessagePolicy.TYPE_SYSTEM, false));
+        assertThrows(IllegalArgumentException.class, () -> MessagePolicy.requireEmoji("nope"));
     }
 }

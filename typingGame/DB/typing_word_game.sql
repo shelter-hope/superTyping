@@ -489,6 +489,8 @@ CREATE TABLE IF NOT EXISTS friend_relation (
     user_id INT NOT NULL COMMENT '发起好友申请的用户ID',
     friend_user_id INT NOT NULL COMMENT '接收好友申请的用户ID',
     relation_status TINYINT NOT NULL COMMENT '关系状态 0-申请中 1-已成为好友 2-已拉黑 3-已拒绝',
+    apply_message VARCHAR(200) NULL COMMENT '申请附言',
+    blocked_by INT NULL COMMENT '拉黑方用户ID，仅 relation_status=2 时有值',
     apply_time DATETIME NOT NULL COMMENT '申请时间',
     agree_time DATETIME COMMENT '同意时间 状态为1时必填',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
@@ -525,7 +527,7 @@ CREATE TABLE IF NOT EXISTS friend_chat_message (
     conversation_id INT NOT NULL COMMENT '关联的会话ID',
     sender_id INT NOT NULL COMMENT '消息发送者ID',
     receiver_id INT NOT NULL COMMENT '消息接收者ID',
-    message_type TINYINT NOT NULL COMMENT '消息类型 1-文本 2-表情 3-游戏邀请 4-战绩分享',
+    message_type TINYINT NOT NULL COMMENT '消息类型 1-文本 2-表情 3-游戏邀请 4-战绩分享 5-图片 6-文件 9-系统私信',
     message_content VARCHAR(1000) NOT NULL COMMENT '消息内容 文本/表情编码/邀请参数JSON',
     send_time DATETIME NOT NULL COMMENT '消息发送时间',
     read_status TINYINT NOT NULL DEFAULT 0 COMMENT '阅读状态 0-未读 1-已读',
@@ -534,6 +536,19 @@ CREATE TABLE IF NOT EXISTS friend_chat_message (
     recall_time DATETIME COMMENT '撤回时间 状态为1时必填',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='好友聊天消息表';
+
+-- 9.3.1 聊天附件表 (chat_attachment)。文件不进入公开 /uploads。
+CREATE TABLE IF NOT EXISTS chat_attachment (
+    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '附件ID',
+    owner_id INT NOT NULL COMMENT '上传者用户ID',
+    original_name VARCHAR(255) NOT NULL COMMENT '原始文件名',
+    stored_name VARCHAR(80) NOT NULL COMMENT '磁盘文件名',
+    media_type VARCHAR(100) NOT NULL COMMENT '媒体类型',
+    size_bytes BIGINT NOT NULL COMMENT '字节数',
+    kind TINYINT NOT NULL COMMENT '5-图片 6-文件，与消息类型一致',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+    KEY idx_chat_attachment_owner (owner_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天附件';
 
 -- 创建索引
 CREATE INDEX idx_conversation ON friend_chat_message(conversation_id) COMMENT '按会话查询消息';
@@ -634,6 +649,7 @@ ALTER TABLE user_conversation ADD CONSTRAINT fk_user_conversation_target FOREIGN
 ALTER TABLE friend_chat_message ADD CONSTRAINT fk_friend_chat_message_conversation FOREIGN KEY (conversation_id) REFERENCES user_conversation(id) ON DELETE CASCADE;
 ALTER TABLE friend_chat_message ADD CONSTRAINT fk_friend_chat_message_sender FOREIGN KEY (sender_id) REFERENCES user_info(user_id) ON DELETE CASCADE;
 ALTER TABLE friend_chat_message ADD CONSTRAINT fk_friend_chat_message_receiver FOREIGN KEY (receiver_id) REFERENCES user_info(user_id) ON DELETE CASCADE;
+ALTER TABLE chat_attachment ADD CONSTRAINT fk_chat_attachment_owner FOREIGN KEY (owner_id) REFERENCES user_info(user_id) ON DELETE CASCADE;
 ALTER TABLE system_notification ADD CONSTRAINT fk_system_notification_user FOREIGN KEY (user_id) REFERENCES user_info(user_id) ON DELETE CASCADE;
 
 -- 添加AI对话系统表外键约束

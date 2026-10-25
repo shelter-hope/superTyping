@@ -2,53 +2,125 @@ package com.typinggame.chat.im;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.typinggame.chat.repository.FriendRelationRepository;
+import com.typinggame.chat.repository.UserInfoRepository;
+import com.typinggame.chat.service.MessageService;
+import com.typinggame.common.im.PresenceKeys;
+import com.typinggame.dto.message.MessageDTO;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
- * overnight-im：JWT 握手，下行推送；上行仅处理心跳 PING。消息发送仍走 REST。
+ * /ws/im：JWT 握手。上行处理心跳、发送、正在输入和回执确认。
+ * 消息先落库，再经 Redis 推给双方。
  */
 @Slf4j
 @Component
 public class OvernightImWebSocketHandler extends TextWebSocketHandler {
-
+    static final String LAST_SEEN = "lastSeen";
     private static final String PONG = "{\"type\":\"PONG\"}";
 
     private final ImSessionRegistry sessionRegistry;
+    private final MessageService messageService;
+    private final UserInfoRepository userInfoRepository;
+    private final FriendRelationRepository friendRelationRepository;
+    private final ImNotifier imNotifier;
+    private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final SlidingRateLimiter rateLimiter = new SlidingRateLimiter(5, 1_000);
 
-    public OvernightImWebSocketHandler(ImSessionRegistry sessionRegistry, ObjectMapper objectMapper) {
+    public OvernightImWebSocketHandler(ImSessionRegistry sessionRegistry,
+                                       MessageService messageService,
+                                       UserInfoRepository userInfoRepository,
+                                       FriendRelationRepository friendRelationRepository,
+                                       ImNotifier imNotifier,
+                                       StringRedisTemplate redisTemplate,
+                                       ObjectMapper objectMapper) {
         this.sessionRegistry = sessionRegistry;
+        this.messageService = messageService;
+        this.userInfoRepository = userInfoRepository;
+        this.friendRelationRepository = friendRelationRepository;
+        this.imNotifier = imNotifier;
+        this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         Integer userId = userIdOf(session);
-        if (userId == null) {
+        if (!allowed(userId)) {
             close(session);
             return;
         }
         sessionRegistry.add(userId, session);
-        log.debug("Overnight IM connected, userId={}, sessionId={}", userId, session.getId());
+        session.getAttributes().put(LAST_SEEN, System.currentTimeMillis());
+        markOnline(userId);
+        publishPresence(userId, true);
+        log.debug("IM connected, userId={}, sessionId={}", userId, session.getId());
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+        Integer userId = userIdOf(session);
+        if (!allowed(userId)) {
+            close(session);
+            return;
+        }
+        session.getAttributes().put(LAST_SEEN, System.currentTimeMillis());
+        String clientMsgId = null;
         try {
-            JsonNode node = objectMapper.readTree(message.getPayload());
-            if ("PING".equals(node.path("type").asText())) {
-                Integer userId = userIdOf(session);
-                if (userId != null) {
-                    sessionRegistry.sendToSession(userId, session.getId(), PONG);
-                }
+            JsonNode body = objectMapper.readTree(message.getPayload());
+            String type = body.path("type").asText("");
+            String action = body.path("action").asText("");
+            clientMsgId = textOrNull(body, "clientMsgId");
+            if ("PING".equals(type)) {
+                markOnline(userId);
+                sessionRegistry.sendToSession(userId, session.getId(), PONG);
+                return;
             }
-        } catch (Exception e) {
-            log.debug("Ignore malformed overnight IM frame, sessionId={}", session.getId());
+            if ("ack".equals(action)) {
+                return;
+            }
+            if (!rateLimiter.allow(userId, System.currentTimeMillis())) {
+                send(session, error("发送过于频繁", clientMsgId));
+                return;
+            }
+            if ("typing".equals(action)) {
+                int receiverId = body.path("receiverId").asInt();
+                Map<String, Object> payload = new LinkedHashMap<>();
+                payload.put("type", "TYPING");
+                payload.put("userId", userId);
+                payload.put("typing", body.path("typing").asBoolean());
+                imNotifier.publish(List.of(receiverId), payload);
+                return;
+            }
+            if ("chat".equals(action)) {
+                MessageDTO saved = messageService.sendMessage(
+                        userId,
+                        body.path("receiverId").asInt(),
+                        body.path("content").asText(),
+                        body.path("type").asText("text"),
+                        clientMsgId);
+                Map<String, Object> ack = new LinkedHashMap<>();
+                ack.put("type", "ACK");
+                ack.put("clientMsgId", clientMsgId == null ? "" : clientMsgId);
+                ack.put("id", saved.getId());
+                ack.put("serverSeq", saved.getServerSeq() == null ? 0 : saved.getServerSeq());
+                send(session, ack);
+            }
+        } catch (IllegalArgumentException exception) {
+            send(session, error(exception.getMessage(), clientMsgId));
+        } catch (Exception exception) {
+            log.debug("Ignore malformed IM frame, sessionId={}", session.getId());
         }
     }
 
@@ -57,6 +129,9 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
         Integer userId = userIdOf(session);
         if (userId != null) {
             sessionRegistry.remove(userId, session);
+            if (!sessionRegistry.online(userId)) {
+                markOffline(userId);
+            }
         }
     }
 
@@ -65,13 +140,60 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
         Integer userId = userIdOf(session);
         if (userId != null) {
             sessionRegistry.remove(userId, session);
+            if (!sessionRegistry.online(userId)) {
+                markOffline(userId);
+            }
         }
-        log.debug("Overnight IM disconnected, sessionId={}, status={}", session.getId(), status);
+    }
+
+    public void sweepIdle(long now, long idleMillis) {
+        for (Integer userId : sessionRegistry.userIds()) {
+            for (WebSocketSession session : sessionRegistry.sessions(userId)) {
+                Object seen = session.getAttributes().get(LAST_SEEN);
+                if (seen instanceof Long last && now - last > idleMillis) {
+                    close(session);
+                }
+            }
+        }
+    }
+
+    private void markOnline(Integer userId) {
+        redisTemplate.opsForValue().set(PresenceKeys.online(userId), "1", PresenceKeys.TTL);
+    }
+
+    private void markOffline(Integer userId) {
+        redisTemplate.delete(PresenceKeys.online(userId));
+        publishPresence(userId, false);
+    }
+
+    private void publishPresence(Integer userId, boolean online) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("type", "PRESENCE");
+        payload.put("userId", userId);
+        payload.put("online", online);
+        imNotifier.publish(friendRelationRepository.findFriendIds(userId), payload);
+    }
+
+    private boolean allowed(Integer userId) {
+        if (userId == null) {
+            return false;
+        }
+        return userInfoRepository.findById(userId).map(user -> !user.isDisabled()).orElse(false);
     }
 
     private Integer userIdOf(WebSocketSession session) {
         Object value = session.getAttributes().get(ImHandshakeInterceptor.USER_ID_ATTR);
         return value instanceof Integer id ? id : null;
+    }
+
+    private void send(WebSocketSession session, Map<String, Object> payload) {
+        try {
+            if (session.isOpen()) {
+                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
+            }
+        } catch (Exception exception) {
+            log.debug("IM reply failed, sessionId={}", session.getId());
+        }
     }
 
     private void close(WebSocketSession session) {
@@ -80,5 +202,24 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
         } catch (Exception ignored) {
             // Already closing.
         }
+    }
+
+    private static Map<String, Object> error(String message, String clientMsgId) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("type", "ERROR");
+        payload.put("message", message);
+        if (clientMsgId != null) {
+            payload.put("clientMsgId", clientMsgId);
+        }
+        return payload;
+    }
+
+    private static String textOrNull(JsonNode body, String field) {
+        JsonNode node = body.get(field);
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        String text = node.asText();
+        return text == null || text.isBlank() ? null : text;
     }
 }

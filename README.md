@@ -31,7 +31,7 @@
 - **科学训练**：字符级统计、趋势和训练建议定位薄弱环节
 - **游戏化体验**：无尽适应、词源界定、限时冲刺三种模式
 - **个性化方案**：遗传重组、定向变异和难度系数 `Dₜ` 随表现调整
-- **社交互动**：好友、消息中心、排行榜，私聊支持 WebSocket，断线时回退轮询
+- **社交互动**：好友申请、拉黑和一对一私聊。私聊走一条 WebSocket，断线时回退轮询
 - **微服务架构**：API 网关统一入口，领域规则留在各自服务，管理后台只做聚合
 
 ---
@@ -293,7 +293,7 @@ Compose 里的 Nacos 开启了鉴权，服务配置只写了地址、没有用�
 | `/api/v1/messages/**` | chat-svc | 消息中心 |
 | `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
 | `/api/v1/dictionary/**`、`/api/v1/dictionaries/**` | chat-svc | 词库 |
-| `/ws/**` | chat-svc | IM WebSocket，实际处理器为 `/ws/im` |
+| `/ws/**` | chat-svc | 即时通信 WebSocket，只使用 `/ws/im?token=` |
 | `/api/v1/admin/**` | admin-svc | 管理后台。由 admin-svc 转发到各服务 `/api/v1/internal/admin/**` |
 
 响应体使用 `ResultMessage`：`code`、`msg`、`data`。未登录返回 401，无权限返回 403。
@@ -350,7 +350,10 @@ Compose 里的 Nacos 开启了鉴权，服务配置只写了地址、没有用�
 
 - 字符级速度、准确率、趋势和训练建议来自 `game-core-svc`
 - 好友关系在 `user-svc`；消息、排行榜、词库和私聊在 `chat-svc`
-- 私聊优先走 `ws://<网关>/ws/im`。连接断开时页面回退为 REST 轮询
+- 私聊只走 `ws://<网关>/ws/im?token=`。打开时发送、正在输入和回执都在这条连接上，关闭时发送回退 `POST /api/v1/messages`，历史每 3 秒轮询一次
+- 消息类型：文本、内置表情、图片和普通文件。图片和文件先上传到 `POST /api/v1/messages/attachments`，正文只存附件 id，下载要带登录令牌。发送方可以在 2 分钟内撤回，双方会话行一起标记
+- 好友申请可以带 200 字附言。拉黑后不能再发消息，只有拉黑方能解除。在线状态看 Redis `im:online:{userId}`
+- 已有数据库执行 `typingGame/DB/010-im-chat.sql`
 - AI 对话读取真实对局和字符统计。未配置 `AI_LLM_API_KEY` 时只返回配置提示
 - `/admin` 覆盖用户、记录、词库、排行榜、统计、模型参数和日志趋势。领域查询在各服务的内部管理接口中完成
 

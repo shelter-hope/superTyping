@@ -215,7 +215,7 @@ API 网关统一入口：`http://localhost:8080`。对外路径没有 `/typingWo
 | `/api/v1/model/**` | game-core-svc | 模型参数 |
 | `/api/v1/lab/**` | lab-svc | 群体智能算法与预设。算法 id：`boids`、`pso`、`ant-colony`、`genetic`。公开读：`GET /algorithms`、`GET /presets`。登录后可增删改自己的预设。后台 `/api/v1/admin/lab/**` 由 admin-svc 转发到 `/internal/admin/lab/**` |
 | `/uploads/**` | user-svc | 头像等上传文件 |
-| `/ws/**` | chat-svc | IM WebSocket。`/ws?ticket=` 使用一次性票据；`/ws/im?token=` 使用访问令牌 |
+| `/ws/**` | chat-svc | 即时通信 WebSocket，只使用 `/ws/im?token=`。票据接口仍保留，页面不再连接 `/ws` |
 
 ## 核心功能模块
 
@@ -250,9 +250,10 @@ API 网关统一入口：`http://localhost:8080`。对外路径没有 `/typingWo
 
 ### 社交系统
 
-- **好友管理**：添加、删除、查看好友
-- **好友聊天**：REST 负责拉取、发送、已读和未读计数。发送使用 JSON body，带 `clientMsgId` 幂等和服务端序号，历史可用 `beforeId` 游标。实时通道有两条：网关 `/ws?ticket=`（票据由 `POST /api/v1/messages/ws-ticket` 签发）和 `/ws/im?token=`（访问令牌放在查询参数）。消息经 Redis `im.events` 广播，连接断开时前端回退轮询。
-- **消息中心**：系统消息、好友消息统一管理
+- **好友管理**：申请可带附言，同意和拒绝只能由被申请人操作。拉黑把关系标为 `2` 并记下 `blocked_by`，只有拉黑方能解除。删除会去掉这一条关系。好友列表的在线状态读取 `im:online:{userId}`。
+- **好友聊天**：REST 负责历史、断线补发和回退发送。发送使用 JSON body，带 `clientMsgId` 幂等和服务端序号。实时只有 `/ws/im?token=`：文本、表情、图片、文件、正在输入、已读、撤回和在线都走这条连接。下行先发到 Redis `im.events`，再由各实例交给本机连接。连接断开时前端回退轮询。图片限 5MB（jpeg、png、gif、webp），普通文件限 10MB（pdf、txt、zip），文件放在 `data/chat-files`，不进入公开上传目录。
+- **消息中心**：系统消息、好友消息和带附言的好友申请。
+- 已有库执行 `DB/010-im-chat.sql`。
 
 ### AI 服务模块
 

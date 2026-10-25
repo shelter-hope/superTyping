@@ -27,15 +27,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Users, UserPlus, MessageCircle, Trash2, Search, Loader2 } from 'lucide-react';
+import { Users, UserPlus, MessageCircle, Trash2, Search, Loader2, Ban } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import type { FriendResponseDTO } from '@/types/database';
+import { useImSocket } from '@/hooks/use-im-socket';
+import type { FriendRequestDTO, FriendResponseDTO } from '@/types/database';
 import { 
   getFriendList, 
   searchUsers, 
   sendFriendRequest, 
-  deleteFriend 
+  deleteFriend,
+  getFriendRequests,
+  handleFriendRequest,
+  blockFriend,
+  unblockFriend,
+  getBlockedFriends,
 } from '@/db/api';
 
 export default function FriendsPage() {
@@ -54,10 +60,25 @@ export default function FriendsPage() {
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [requestMessage, setRequestMessage] = useState('');
+  const [requests, setRequests] = useState<FriendRequestDTO[]>([]);
+  const [blocked, setBlocked] = useState<FriendResponseDTO[]>([]);
+
+  useImSocket((event) => {
+    if (event.type === 'PRESENCE') {
+      setFriends((prev) => prev.map((friend) =>
+        friend.userId === event.userId ? { ...friend, isOnline: event.online } : friend
+      ));
+    }
+    if (event.type === 'FRIEND_REQUEST') {
+      loadRequests();
+    }
+  }, !!user);
 
   useEffect(() => {
     if (user) {
       loadFriends();
+      loadRequests();
+      loadBlocked();
     }
   }, [user]);
 
@@ -70,6 +91,22 @@ export default function FriendsPage() {
       console.error('加载好友列表失败:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadRequests() {
+    try {
+      setRequests(await getFriendRequests());
+    } catch (error) {
+      console.error('加载好友申请失败:', error);
+    }
+  }
+
+  async function loadBlocked() {
+    try {
+      setBlocked(await getBlockedFriends());
+    } catch (error) {
+      console.error('加载拉黑列表失败:', error);
     }
   }
 
@@ -100,7 +137,7 @@ export default function FriendsPage() {
   async function onSendRequest(toUserId: number) {
     try {
       // Backend should handle duplicate checks
-      await sendFriendRequest(toUserId);
+      await sendFriendRequest(toUserId, requestMessage);
 
       toast({
         title: '好友请求已发送',
@@ -146,6 +183,52 @@ export default function FriendsPage() {
       toast({
         title: '删除失败',
         description: '无法删除好友',
+        variant: 'destructive',
+      });
+    }
+  }
+
+  async function onDecide(requestId: number, status: 'accepted' | 'rejected') {
+    try {
+      await handleFriendRequest(requestId, status);
+      toast({ title: status === 'accepted' ? '已同意' : '已拒绝' });
+      loadRequests();
+      loadFriends();
+    } catch (error) {
+      toast({
+        title: '操作失败',
+        description: error instanceof Error ? error.message : '无法处理申请',
+        variant: 'destructive',
+      });
+    }
+  }
+
+  async function onBlock(friendId: number) {
+    if (!confirm('拉黑后对方不能再给你发消息。确定拉黑？')) return;
+    try {
+      await blockFriend(friendId);
+      toast({ title: '已拉黑' });
+      loadFriends();
+      loadBlocked();
+    } catch (error) {
+      toast({
+        title: '拉黑失败',
+        description: error instanceof Error ? error.message : '无法拉黑',
+        variant: 'destructive',
+      });
+    }
+  }
+
+  async function onUnblock(friendId: number) {
+    try {
+      await unblockFriend(friendId);
+      toast({ title: '已解除拉黑' });
+      loadFriends();
+      loadBlocked();
+    } catch (error) {
+      toast({
+        title: '解除失败',
+        description: error instanceof Error ? error.message : '无法解除拉黑',
         variant: 'destructive',
       });
     }
@@ -251,6 +334,7 @@ export default function FriendsPage() {
                     <Textarea
                       placeholder="向对方介绍一下自己..."
                       value={requestMessage}
+                      maxLength={200}
                       onChange={(e) => setRequestMessage(e.target.value)}
                       rows={3}
                     />
@@ -262,6 +346,26 @@ export default function FriendsPage() {
         </CardHeader>
 
         <CardContent>
+          {requests.length > 0 && (
+            <div className="mb-6 space-y-2">
+              <p className="text-sm font-medium">收到的申请</p>
+              {requests.map((request) => (
+                <div key={request.id} className="flex items-center gap-3 rounded-lg border p-3">
+                  <Avatar>
+                    <AvatarFallback>{request.senderName?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{request.senderName}</p>
+                    {request.applyMessage && (
+                      <p className="truncate text-sm text-muted-foreground">{request.applyMessage}</p>
+                    )}
+                  </div>
+                  <Button size="sm" onClick={() => onDecide(request.id, 'accepted')}>同意</Button>
+                  <Button size="sm" variant="outline" onClick={() => onDecide(request.id, 'rejected')}>拒绝</Button>
+                </div>
+              ))}
+            </div>
+          )}
           <ScrollArea className="h-[600px]">
             {friends.length === 0 ? (
               <div className="text-center text-muted-foreground py-12">
@@ -282,9 +386,12 @@ export default function FriendsPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium">{friend.username}</p>
+                      <p className="font-medium flex items-center gap-2">
+                        <span className={`inline-block h-2 w-2 rounded-full ${friend.isOnline ? 'bg-green-500' : 'bg-muted-foreground/40'}`} />
+                        {friend.username}
+                      </p>
                       <p className="text-sm text-muted-foreground truncate">
-                        好友ID: {friend.userId ?? friend.id}
+                        {friend.isOnline ? '在线' : '离线'}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -294,6 +401,13 @@ export default function FriendsPage() {
                       >
                         <MessageCircle className="w-4 h-4 mr-1" />
                         聊天
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onBlock(friend.userId ?? friend.id)}
+                      >
+                        <Ban className="w-4 h-4" />
                       </Button>
                       <Button
                         size="sm"
@@ -308,6 +422,19 @@ export default function FriendsPage() {
               </div>
             )}
           </ScrollArea>
+          {blocked.length > 0 && (
+            <div className="mt-6 space-y-2">
+              <p className="text-sm font-medium">拉黑</p>
+              {blocked.map((friend) => (
+                <div key={friend.userId} className="flex items-center gap-3 rounded-lg border p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{friend.username}</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => onUnblock(friend.userId)}>解除拉黑</Button>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

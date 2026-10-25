@@ -6,6 +6,13 @@ export type ImStatus = 'idle' | 'connecting' | 'open' | 'closed';
 export type ImEvent =
   | { type: 'MESSAGE'; message: MessageDTO }
   | { type: 'READ'; readerId: number }
+  | { type: 'TYPING'; userId: number; typing: boolean }
+  | { type: 'PRESENCE'; userId: number; online: boolean }
+  | { type: 'FRIEND_REQUEST'; senderId: number; requestId: number; applyMessage?: string }
+  | { type: 'RECALL'; clientMsgId: string }
+  | { type: 'ACK'; clientMsgId: string; id: number; serverSeq?: number }
+  | { type: 'UNREAD'; count: number }
+  | { type: 'ERROR'; message: string; clientMsgId?: string }
   | { type: 'PONG' };
 
 type EventListener = (event: ImEvent) => void;
@@ -58,6 +65,13 @@ class ImSocket {
   onStatus(listener: StatusListener): () => void {
     this.statusListeners.add(listener);
     return () => this.statusListeners.delete(listener);
+  }
+
+  /** 连接打开时发出一帧。关闭时返回 false，调用方改走 HTTP。 */
+  send(payload: object): boolean {
+    if (this.ws?.readyState !== WebSocket.OPEN) return false;
+    this.ws.send(JSON.stringify(payload));
+    return true;
   }
 
   private setStatus(status: ImStatus) {

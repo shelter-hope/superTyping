@@ -13,9 +13,9 @@ export async function searchUsers(keyword: string): Promise<FriendResponseDTO[]>
   return response.data.data || [];
 }
 
-export async function sendFriendRequest(receiverId: number): Promise<FriendRequestDTO> {
+export async function sendFriendRequest(receiverId: number, applyMessage?: string): Promise<FriendRequestDTO> {
   const response = await apiClient.post('/friends/request', null, {
-    params: { receiverId }
+    params: { receiverId, applyMessage: applyMessage?.trim() || undefined }
   });
   return response.data.data;
 }
@@ -35,6 +35,21 @@ export async function getFriendRequests(): Promise<FriendRequestDTO[]> {
 export async function deleteFriend(friendId: number): Promise<boolean> {
   const response = await apiClient.delete(`/friends/${friendId}`);
   return response.data.data;
+}
+
+export async function blockFriend(friendId: number): Promise<boolean> {
+  const response = await apiClient.post(`/friends/${friendId}/block`);
+  return response.data.data;
+}
+
+export async function unblockFriend(friendId: number): Promise<boolean> {
+  const response = await apiClient.delete(`/friends/${friendId}/block`);
+  return response.data.data;
+}
+
+export async function getBlockedFriends(): Promise<FriendResponseDTO[]> {
+  const response = await apiClient.get('/friends/blocked');
+  return response.data.data || [];
 }
 
 export async function getConversations(): Promise<MessageDTO[]> {
@@ -61,9 +76,29 @@ export async function sendMessage(receiverId: number, content: string, type = 't
   return response.data.data;
 }
 
-export async function issueWsTicket(): Promise<string> {
-  const response = await apiClient.post('/messages/ws-ticket');
-  return response.data.data.ticket as string;
+export async function uploadAttachment(file: File): Promise<{
+  id: number;
+  originalName: string;
+  mediaType: string;
+  sizeBytes: number;
+  kind: number;
+}> {
+  const body = new FormData();
+  body.append('file', file);
+  const response = await apiClient.post('/messages/attachments', body, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data.data;
+}
+
+export async function downloadAttachment(id: number): Promise<Blob> {
+  const response = await apiClient.get(`/messages/attachments/${id}`, { responseType: 'blob' });
+  return response.data as Blob;
+}
+
+export async function recallMessage(messageId: number): Promise<MessageDTO> {
+  const response = await apiClient.post(`/messages/${messageId}/recall`);
+  return response.data.data;
 }
 
 export async function markMessageAsRead(messageId: number): Promise<boolean> {

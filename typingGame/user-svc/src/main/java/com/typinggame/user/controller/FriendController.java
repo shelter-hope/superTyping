@@ -34,9 +34,11 @@ public class FriendController {
     }
 
     @PostMapping("/request")
-    public ResponseEntity<ResultMessage<FriendRequestDTO>> sendFriendRequest(@RequestParam("receiverId") Integer receiverId) {
+    public ResponseEntity<ResultMessage<FriendRequestDTO>> sendFriendRequest(
+            @RequestParam("receiverId") Integer receiverId,
+            @RequestParam(value = "applyMessage", required = false) String applyMessage) {
         Integer senderId = getCurrentUserId();
-        FriendRequestDTO friendRequest = friendService.sendFriendRequest(senderId, receiverId);
+        FriendRequestDTO friendRequest = friendService.sendFriendRequest(senderId, receiverId, applyMessage);
         return ResponseEntity.ok(ResultMessage.success(friendRequest));
     }
 
@@ -44,15 +46,33 @@ public class FriendController {
     public ResponseEntity<ResultMessage<Boolean>> handleFriendRequest(
             @PathVariable("id") Integer id,
             @RequestParam("status") String status) {
+        Integer operatorId = getCurrentUserId();
         boolean result;
         if ("accepted".equalsIgnoreCase(status)) {
-            result = friendService.acceptFriendRequest(id);
+            result = friendService.acceptFriendRequest(operatorId, id);
         } else if ("rejected".equalsIgnoreCase(status)) {
-            result = friendService.rejectFriendRequest(id);
+            result = friendService.rejectFriendRequest(operatorId, id);
         } else {
             throw new IllegalArgumentException("Invalid status");
         }
         return ResponseEntity.ok(ResultMessage.success(result));
+    }
+
+    @GetMapping("/blocked")
+    public ResponseEntity<ResultMessage<List<FriendResponseDTO>>> getBlockedList() {
+        return ResponseEntity.ok(ResultMessage.success(friendService.getBlockedList(getCurrentUserId())));
+    }
+
+    @PostMapping("/{friendId}/block")
+    public ResponseEntity<ResultMessage<Boolean>> blockFriend(@PathVariable("friendId") Integer friendId) {
+        friendService.blockFriend(getCurrentUserId(), friendId);
+        return ResponseEntity.ok(ResultMessage.success(true));
+    }
+
+    @DeleteMapping("/{friendId}/block")
+    public ResponseEntity<ResultMessage<Boolean>> unblockFriend(@PathVariable("friendId") Integer friendId) {
+        friendService.unblockFriend(getCurrentUserId(), friendId);
+        return ResponseEntity.ok(ResultMessage.success(true));
     }
 
     @GetMapping("/request")

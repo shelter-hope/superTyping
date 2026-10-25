@@ -1,88 +1,71 @@
 package com.typinggame.chat.im;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.typinggame.dto.message.MessageDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class ImNotifierTest {
 
-    private ImSessionRegistry registry;
+    private ImEventPublisher publisher;
     private ImNotifier notifier;
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @BeforeEach
     void setUp() {
-        registry = mock(ImSessionRegistry.class);
-        notifier = new ImNotifier(registry, objectMapper);
+        publisher = mock(ImEventPublisher.class);
+        notifier = new ImNotifier(publisher);
     }
 
     @Test
-    void pushMessageWrapsDtoInMessageEnvelope() throws Exception {
-        when(registry.online(5)).thenReturn(true);
+    void pushMessageWrapsDtoInMessageEnvelope() {
         MessageDTO dto = new MessageDTO();
         dto.setId(42);
-        dto.setSenderId(3);
-        dto.setReceiverId(5);
         dto.setContent("ping-1");
-        dto.setSendTime(LocalDateTime.of(2026, 10, 22, 1, 2, 3));
 
         notifier.pushMessage(5, dto);
 
-        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-        verify(registry).send(eq(5), payload.capture());
-        JsonNode event = objectMapper.readTree(payload.getValue());
-        assertEquals("MESSAGE", event.get("type").asText());
-        assertEquals(42, event.get("message").get("id").asInt());
-        assertEquals("ping-1", event.get("message").get("content").asText());
-        assertEquals("2026-10-22T01:02:03", event.get("message").get("sendTime").asText());
+        ArgumentCaptor<Map<String, Object>> envelope = ArgumentCaptor.forClass(Map.class);
+        verify(publisher).publish(envelope.capture());
+        assertEquals(List.of(5), envelope.getValue().get("targets"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> payload = (Map<String, Object>) envelope.getValue().get("payload");
+        assertEquals("MESSAGE", payload.get("type"));
+        assertEquals(42, ((MessageDTO) payload.get("message")).getId());
     }
 
     @Test
-    void pushReadCarriesReaderId() throws Exception {
-        when(registry.online(3)).thenReturn(true);
-
+    void pushReadCarriesReaderId() {
         notifier.pushRead(3, 5);
 
-        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-        verify(registry).send(eq(3), payload.capture());
-        JsonNode event = objectMapper.readTree(payload.getValue());
-        assertEquals("READ", event.get("type").asText());
-        assertEquals(5, event.get("readerId").asInt());
+        ArgumentCaptor<Map<String, Object>> envelope = ArgumentCaptor.forClass(Map.class);
+        verify(publisher).publish(envelope.capture());
+        assertEquals(List.of(3), envelope.getValue().get("targets"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> payload = (Map<String, Object>) envelope.getValue().get("payload");
+        assertEquals("READ", payload.get("type"));
+        assertEquals(5, payload.get("readerId"));
     }
 
     @Test
-    void offlineUserIsSkipped() {
-        when(registry.online(5)).thenReturn(false);
-
-        notifier.pushRead(5, 3);
-
-        verify(registry, never()).send(anyInt(), anyString());
+    void nonPositiveTargetIsSkipped() {
+        notifier.pushRead(0, 3);
+        verify(publisher, never()).publish(any());
     }
 
     @Test
-    void registryFailureDoesNotPropagate() {
-        when(registry.online(5)).thenReturn(true);
-        doThrow(new IllegalStateException("boom")).when(registry).send(eq(5), anyString());
-
-        notifier.pushRead(5, 3);
+    void publishFailurePropagates() {
+        doThrow(new IllegalStateException("boom")).when(publisher).publish(any());
+        assertThrows(IllegalStateException.class, () -> notifier.pushRead(5, 3));
     }
 }

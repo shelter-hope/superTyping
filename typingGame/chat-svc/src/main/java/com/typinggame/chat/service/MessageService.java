@@ -16,6 +16,7 @@ public interface MessageService {
     void markAllAsRead(Integer userId);
     void markAsReadByFriend(Integer userId, Integer friendId);
     boolean deleteMessage(Integer userId, Integer messageId);
+    MessageDTO recall(Integer userId, Integer messageId);
     Integer getUnreadCount(Integer userId);
     List<MessageDTO> getSystemMessages(Integer userId);
     boolean markNotificationAsRead(Integer userId, Integer notificationId);
