@@ -216,6 +216,7 @@ export interface FriendRequestDTO {
   receiverName: string;
   sendTime: string;
   status: string;
+  applyMessage?: string;
 }
 
 /** 消息，对应后端 MessageDTO */
@@ -232,6 +233,12 @@ export interface MessageDTO {
   type: string;
   conversationId?: number;
   unreadCount?: number;
+  clientMsgId?: string;
+  serverSeq?: number;
+  recalled?: boolean;
+  attachmentName?: string;
+  attachmentMediaType?: string;
+  attachmentSize?: number;
 }
 
 // ==================== 后台管理 / 系统配置 ====================

@@ -175,9 +175,12 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 |------|------|----------|--------------|
 | GET | `/friends` | `getFriendList` | — |
 | GET | `/friends/search` | `searchUsers` | `keyword` |
-| POST | `/friends/request` | `sendFriendRequest` | Query：`receiverId`（body 为 `null`） |
-| PATCH | `/friends/request/{requestId}` | `handleFriendRequest` | Query：`status`: `accepted` \| `rejected` |
-| GET | `/friends/request` | `getFriendRequests` | — |
+| POST | `/friends/request` | `sendFriendRequest` | Query：`receiverId`，可选 `applyMessage`（最长 200 字） |
+| PATCH | `/friends/request/{requestId}` | `handleFriendRequest` | Query：`status`: `accepted` \| `rejected`。只能由被申请人操作 |
+| GET | `/friends/request` | `getFriendRequests` | 返回 `applyMessage` |
+| GET | `/friends/blocked` | `getBlockedFriends` | 当前用户拉黑的人 |
+| POST | `/friends/{friendId}/block` | `blockFriend` | 标为拉黑并记录拉黑方 |
+| DELETE | `/friends/{friendId}/block` | `unblockFriend` | 只有拉黑方可以解除，恢复好友 |
 | DELETE | `/friends/{friendId}` | `deleteFriend` | — |
 
 ---
@@ -188,10 +191,13 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 |------|------|----------|--------------|
 | GET | `/messages/conversations` | `getConversations` | — |
 | GET | `/messages/conversation/{conversationId}` | `getConversationMessages` | `page`、`size` |
-| GET | `/messages` | `getMessagesByFriend` | `friendId`、`offset` |
-| POST | `/messages` | `sendMessage` | Query：`receiverId`、`content`、`type`（默认 `text`） |
+| GET | `/messages` | `getMessagesByFriend` | `friendId`、`offset` 或 `beforeId` |
+| POST | `/messages` | `sendMessage` | JSON：`receiverId`、`content`、`type`（`text` / `emoji` / `image` / `file`）、`clientMsgId` |
+| POST | `/messages/attachments` | `uploadAttachment` | `multipart` 字段 `file`。图片 5MB，pdf/txt/zip 10MB |
+| GET | `/messages/attachments/{id}` | `downloadAttachment` | 仅发送方、接收方或上传者，返回文件流 |
+| POST | `/messages/{messageId}/recall` | `recallMessage` | 发送方 2 分钟内撤回，同一 `clientMsgId` 的两行一起标记 |
 | PATCH | `/messages/{messageId}/read` | `markMessageAsRead` | — |
-| POST | `/messages/read-by-friend` | `markAsReadByFriend` | Query：`friendId` |
+| POST | `/messages/read-by-friend` | `markAsReadByFriend` | Query：`friendId`。接收方已读后，发送方那一行也变为已读 |
 | GET | `/messages/unread-count` | `getUnreadCount` | — |
 | GET | `/messages/system` | `getSystemMessages` | — |
 

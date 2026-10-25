@@ -25,4 +25,8 @@ public class MessageDTO {
     private Integer unreadCount;
     private String clientMsgId;
     private Integer serverSeq;
+    private Boolean recalled;
+    private String attachmentName;
+    private String attachmentMediaType;
+    private Long attachmentSize;
 }

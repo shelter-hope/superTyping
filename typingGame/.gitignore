@@ -29,5 +29,8 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+# 聊天附件落在服务工作目录，不进仓库
+/data/
+
 ### VS Code ###
 .vscode/

@@ -6,9 +6,17 @@ server:
 spring:
   application:
     name: chat-svc
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
   profiles:
     default: local
   config:
     import:
       - optional:classpath:config/config.properties
       - optional:classpath:config/jdbc.properties
+
+chat:
+  files:
+    dir: data/chat-files

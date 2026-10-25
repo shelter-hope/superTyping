@@ -53,7 +53,8 @@ export default function MessageCenterPage() {
   }, [user, location.pathname]);
 
   useImSocket((event) => {
-    if (event.type === 'MESSAGE') loadConversations();
+    if (event.type === 'MESSAGE' || event.type === 'RECALL') loadConversations();
+    if (event.type === 'FRIEND_REQUEST') loadFriendRequests();
   }, !!user);
 
   async function loadData() {
@@ -282,6 +283,9 @@ export default function MessageCenterPage() {
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium">{request.senderName}</p>
+                          {request.applyMessage && (
+                            <p className="text-sm text-muted-foreground mt-1 truncate">{request.applyMessage}</p>
+                          )}
                           <p className="text-xs text-muted-foreground mt-1">
                             {new Date(request.sendTime).toLocaleString('zh-CN')}
                           </p>

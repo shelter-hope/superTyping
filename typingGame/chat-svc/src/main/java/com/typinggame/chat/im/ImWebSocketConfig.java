@@ -1,57 +1,42 @@
 package com.typinggame.chat.im;
 
-import com.typinggame.chat.repository.UserInfoRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.http.server.ServerHttpRequest;
-import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
-import org.springframework.web.socket.server.HandshakeInterceptor;
-import org.springframework.web.util.UriComponentsBuilder;
-
-import java.util.Map;
 
 @Configuration
 @EnableWebSocket
 @EnableScheduling
 public class ImWebSocketConfig implements WebSocketConfigurer {
-
     public static final String IM_PATH = "/ws/im";
 
-    private final ImWebSocketHandler handler;
-    private final OvernightImWebSocketHandler overnightImWebSocketHandler;
+    private final OvernightImWebSocketHandler handler;
     private final ImHandshakeInterceptor imHandshakeInterceptor;
-    private final WsTicketService tickets;
-    private final UserInfoRepository userInfoRepository;
     private final ImSessionRegistry registry;
+    private final ObjectMapper objectMapper;
 
-    public ImWebSocketConfig(
-            ImWebSocketHandler handler,
-            OvernightImWebSocketHandler overnightImWebSocketHandler,
-            ImHandshakeInterceptor imHandshakeInterceptor,
-            WsTicketService tickets,
-            UserInfoRepository userInfoRepository,
-            ImSessionRegistry registry) {
+    public ImWebSocketConfig(OvernightImWebSocketHandler handler,
+                             ImHandshakeInterceptor imHandshakeInterceptor,
+                             ImSessionRegistry registry,
+                             ObjectMapper objectMapper) {
         this.handler = handler;
-        this.overnightImWebSocketHandler = overnightImWebSocketHandler;
         this.imHandshakeInterceptor = imHandshakeInterceptor;
-        this.tickets = tickets;
-        this.userInfoRepository = userInfoRepository;
         this.registry = registry;
+        this.objectMapper = objectMapper;
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(handler, "/ws").addInterceptors(ticketInterceptor()).setAllowedOriginPatterns("*");
-        registry.addHandler(overnightImWebSocketHandler, IM_PATH)
+        registry.addHandler(handler, IM_PATH)
                 .addInterceptors(imHandshakeInterceptor)
                 .setAllowedOriginPatterns("*");
     }
@@ -69,39 +54,26 @@ public class ImWebSocketConfig implements WebSocketConfigurer {
 
     @Scheduled(fixedDelay = 15_000)
     public void sweep() {
-        handler.sweepIdle(System.currentTimeMillis(), 60_000);
+        handler.sweepIdle(System.currentTimeMillis(), 70_000);
     }
 
-    private void deliverLocal(String payload) {
+    private void deliverLocal(String raw) {
         try {
-            var node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(payload);
-            int userId = node.path("userId").asInt(0);
-            int receiverId = node.path("receiverId").asInt(0);
-            if (userId > 0) registry.send(userId, payload);
-            if (receiverId > 0 && receiverId != userId) registry.send(receiverId, payload);
+            JsonNode node = objectMapper.readTree(raw);
+            JsonNode targets = node.get("targets");
+            JsonNode payload = node.get("payload");
+            if (targets == null || payload == null || !targets.isArray()) {
+                return;
+            }
+            String body = objectMapper.writeValueAsString(payload);
+            for (JsonNode target : targets) {
+                int userId = target.asInt(0);
+                if (userId > 0) {
+                    registry.send(userId, body);
+                }
+            }
         } catch (Exception ignored) {
             // A malformed broadcast does not drop the listener.
         }
-    }
-
-    private HandshakeInterceptor ticketInterceptor() {
-        return new HandshakeInterceptor() {
-            @Override
-            public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Map<String, Object> attributes) {
-                String ticket = UriComponentsBuilder.fromUri(request.getURI()).build().getQueryParams().getFirst("ticket");
-                Integer userId = tickets.consume(ticket);
-                if (userId == null) return false;
-                boolean enabled = userInfoRepository.findById(userId)
-                        .map(user -> !user.isDisabled())
-                        .orElse(false);
-                if (!enabled) return false;
-                attributes.put(ImWebSocketHandler.USER_ID, userId);
-                return true;
-            }
-
-            @Override
-            public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Exception exception) {
-            }
-        };
     }
 }

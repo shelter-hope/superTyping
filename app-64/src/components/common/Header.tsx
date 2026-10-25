@@ -1,5 +1,5 @@
 // 头部导航组件
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,8 @@ import routes from '@/routes';
 import UserAvatar from '@/components/profile/UserAvatar';
 import { getDisplayName } from '@/lib/avatars';
 import { getUnreadCount } from '@/services/social';
-import { connectIm, subscribeIm } from '@/features/im/imClient';
+import { useImSocket } from '@/hooks/use-im-socket';
+import type { ImEvent } from '@/services/imSocket';
 
 export default function Header() {
   const { user, profile, signOut, isAdmin } = useAuth();
@@ -25,16 +26,24 @@ export default function Header() {
   const { toast } = useToast();
   const [unread, setUnread] = useState(0);
 
+  const onImEvent = useCallback((event: ImEvent) => {
+    if (event.type === 'UNREAD') {
+      setUnread(event.count);
+      return;
+    }
+    if (event.type === 'FRIEND_REQUEST' || event.type === 'MESSAGE') {
+      getUnreadCount().then(setUnread).catch(() => undefined);
+    }
+  }, []);
+
+  useImSocket(onImEvent, !!user);
+
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setUnread(0);
+      return;
+    }
     getUnreadCount().then(setUnread).catch(() => setUnread(0));
-    connectIm().catch(() => undefined);
-    return subscribeIm((event) => {
-      if (event.event === 'unread' && typeof event.count === 'number') setUnread(event.count);
-      if (event.event === 'friend_request' || event.event === 'notification') {
-        getUnreadCount().then(setUnread).catch(() => undefined);
-      }
-    });
   }, [user]);
 
   async function handleSignOut() {

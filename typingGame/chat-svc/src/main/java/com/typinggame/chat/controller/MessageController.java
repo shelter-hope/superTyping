@@ -1,15 +1,23 @@
 package com.typinggame.chat.controller;
 
 import com.typinggame.chat.im.WsTicketService;
+import com.typinggame.chat.service.ChatAttachmentService;
 import com.typinggame.chat.service.MessageService;
+import com.typinggame.dto.message.ChatAttachmentDTO;
 import com.typinggame.dto.message.MessageDTO;
 import com.typinggame.vo.ResultMessage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +30,9 @@ public class MessageController {
 
     @Autowired
     private WsTicketService wsTicketService;
+
+    @Autowired
+    private ChatAttachmentService chatAttachmentService;
 
     @GetMapping("/conversations")
     public ResponseEntity<ResultMessage<List<MessageDTO>>> getConversations() {
@@ -61,6 +72,31 @@ public class MessageController {
         Integer userId = getCurrentUserId();
         List<MessageDTO> messages = messageService.getConversationMessages(userId, conversationId, page, size);
         return ResponseEntity.ok(ResultMessage.success(messages));
+    }
+
+    @PostMapping(value = "/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResultMessage<ChatAttachmentDTO>> uploadAttachment(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(ResultMessage.success(chatAttachmentService.store(getCurrentUserId(), file)));
+    }
+
+    @GetMapping("/attachments/{id}")
+    public ResponseEntity<FileSystemResource> downloadAttachment(@PathVariable("id") Integer id) {
+        ChatAttachmentService.Download download = chatAttachmentService.loadFor(getCurrentUserId(), id);
+        var attachment = download.attachment();
+        boolean inline = attachment.getKind() != null && attachment.getKind() == 5;
+        ContentDisposition disposition = ContentDisposition.builder(inline ? "inline" : "attachment")
+                .filename(attachment.getOriginalName(), StandardCharsets.UTF_8)
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentType(MediaType.parseMediaType(attachment.getMediaType()))
+                .contentLength(attachment.getSizeBytes() == null ? 0 : attachment.getSizeBytes())
+                .body(new FileSystemResource(download.path()));
+    }
+
+    @PostMapping("/{messageId}/recall")
+    public ResponseEntity<ResultMessage<MessageDTO>> recall(@PathVariable("messageId") Integer messageId) {
+        return ResponseEntity.ok(ResultMessage.success(messageService.recall(getCurrentUserId(), messageId)));
     }
 
     @PostMapping

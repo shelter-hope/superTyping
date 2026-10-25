@@ -32,6 +32,14 @@ public class FriendRelation {
     @Comment("关系状态 0-申请中 1-已成为好友 2-已拉黑 3-已拒绝")
     private Integer relationStatus;
 
+    @Column(name = "apply_message", length = 200)
+    @Comment("申请附言")
+    private String applyMessage;
+
+    @Column(name = "blocked_by")
+    @Comment("拉黑方用户ID，仅 relation_status=2 时有值")
+    private Integer blockedBy;
+
     @Column(name = "apply_time", nullable = false)
     @Comment("申请时间")
     private LocalDateTime applyTime;

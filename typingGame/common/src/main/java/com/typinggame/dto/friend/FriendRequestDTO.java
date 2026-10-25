@@ -16,4 +16,5 @@ public class FriendRequestDTO {
     private String receiverName;
     private LocalDateTime sendTime;
     private String status;
+    private String applyMessage;
 }

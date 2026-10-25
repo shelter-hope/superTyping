@@ -1,15 +1,18 @@
 package com.typinggame.chat.service.impl;
 
-import com.typinggame.chat.im.ImEventPublisher;
 import com.typinggame.chat.im.ImNotifier;
 import com.typinggame.chat.im.MessagePolicy;
+import com.typinggame.chat.repository.ChatAttachmentRepository;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
 import com.typinggame.chat.repository.FriendRelationRepository;
 import com.typinggame.chat.repository.SystemNotificationRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
 import com.typinggame.chat.repository.UserInfoRepository;
+import com.typinggame.chat.service.ChatAttachmentService;
 import com.typinggame.chat.service.MessageService;
+import com.typinggame.common.exception.BusinessException;
 import com.typinggame.dto.message.MessageDTO;
+import com.typinggame.entity.message.ChatAttachment;
 import com.typinggame.entity.message.FriendChatMessage;
 import com.typinggame.entity.message.SystemNotification;
 import com.typinggame.entity.message.UserConversation;
@@ -25,9 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -49,18 +50,20 @@ public class MessageServiceImpl implements MessageService {
     private FriendRelationRepository friendRelationRepository;
 
     @Autowired
-    private ImEventPublisher imEventPublisher;
-
-    @Autowired
     private ImNotifier imNotifier;
 
     @Autowired
     private SystemNotificationRepository systemNotificationRepository;
 
-    private static final int TYPE_FRIEND = 1;
-    private static final int TYPE_SYSTEM = 2;
+    @Autowired
+    private ChatAttachmentService chatAttachmentService;
+
+    @Autowired
+    private ChatAttachmentRepository chatAttachmentRepository;
+
     /** 前端据此区分 system_notification 记录，标记已读走单独接口 */
     static final String NOTIFICATION_TYPE = "notification";
+    private static final int RECALL_MINUTES = 2;
 
     @Override
     public List<MessageDTO> getConversations(Integer userId) {
@@ -121,8 +124,8 @@ public class MessageServiceImpl implements MessageService {
     @Override
     @Transactional
     public MessageDTO sendMessage(Integer senderId, Integer receiverId, String content, String type, String clientMsgId) {
-        MessagePolicy.requireChatType(type);
-        MessagePolicy.requireContent(content);
+        int msgType = MessagePolicy.resolveType(type);
+        String stored = normalizeContent(msgType, content);
         if (clientMsgId != null && !clientMsgId.isBlank()) {
             Optional<FriendChatMessage> existing = friendChatMessageRepository.findFirstBySenderIdAndClientMsgId(senderId, clientMsgId);
             if (existing.isPresent()) return convertToDTO(existing.get());
@@ -130,12 +133,15 @@ public class MessageServiceImpl implements MessageService {
         if (friendRelationRepository.findAccepted(senderId, receiverId).isEmpty()) {
             throw new IllegalArgumentException("只能给好友发消息");
         }
-        int msgType = TYPE_FRIEND;
+        if (msgType == MessagePolicy.TYPE_IMAGE || msgType == MessagePolicy.TYPE_FILE) {
+            ChatAttachment attachment = chatAttachmentService.requireForSend(senderId, stored, msgType);
+            stored = String.valueOf(attachment.getId());
+        }
 
         FriendChatMessage message = new FriendChatMessage();
         message.setSenderId(senderId);
         message.setReceiverId(receiverId);
-        message.setMessageContent(content);
+        message.setMessageContent(stored);
         message.setMessageType(msgType);
         message.setReadStatus(ReadStatus.UNREAD.getCode());
         message.setSendTime(LocalDateTime.now());
@@ -154,7 +160,7 @@ public class MessageServiceImpl implements MessageService {
         FriendChatMessage receiverMessage = new FriendChatMessage();
         receiverMessage.setSenderId(senderId);
         receiverMessage.setReceiverId(receiverId);
-        receiverMessage.setMessageContent(content);
+        receiverMessage.setMessageContent(stored);
         receiverMessage.setMessageType(msgType);
         receiverMessage.setReadStatus(ReadStatus.UNREAD.getCode());
         receiverMessage.setSendTime(LocalDateTime.now());
@@ -165,18 +171,9 @@ public class MessageServiceImpl implements MessageService {
 
         MessageDTO senderView = convertToDTO(message);
         MessageDTO receiverView = convertToDTO(receiverMessage);
-
-        Map<String, Object> event = new LinkedHashMap<>();
-        event.put("event", "message");
-        event.put("userId", senderId);
-        event.put("receiverId", receiverId);
-        event.put("message", senderView);
-        imEventPublisher.publish(event);
-        imEventPublisher.publish(Map.of("event", "unread", "userId", receiverId, "count", getUnreadCount(receiverId)));
-
         imNotifier.pushMessage(receiverId, receiverView);
         imNotifier.pushMessage(senderId, senderView);
-
+        imNotifier.pushUnread(receiverId, getUnreadCount(receiverId));
         return senderView;
     }
 
@@ -199,7 +196,7 @@ public class MessageServiceImpl implements MessageService {
         message.setSenderId(userId);
         message.setReceiverId(userId);
         message.setMessageContent(content);
-        message.setMessageType(TYPE_SYSTEM);
+        message.setMessageType(MessagePolicy.TYPE_SYSTEM);
         message.setReadStatus(ReadStatus.UNREAD.getCode());
         message.setSendTime(LocalDateTime.now());
         UserConversation conversation = getOrCreateConversation(userId, userId);
@@ -208,9 +205,8 @@ public class MessageServiceImpl implements MessageService {
         friendChatMessageRepository.save(message);
         updateConversation(conversation, message);
         MessageDTO dto = convertToDTO(message);
-        imEventPublisher.publish(Map.of("event", "notification", "userId", userId, "message", dto));
-        imEventPublisher.publish(Map.of("event", "unread", "userId", userId, "count", getUnreadCount(userId)));
         imNotifier.pushMessage(userId, dto);
+        imNotifier.pushUnread(userId, getUnreadCount(userId));
         return dto;
     }
 
@@ -228,7 +224,7 @@ public class MessageServiceImpl implements MessageService {
 
     private void updateConversation(UserConversation conversation, FriendChatMessage message) {
         conversation.setLastMessageId(message.getId());
-        conversation.setLastMessageContent(message.getMessageContent());
+        conversation.setLastMessageContent(preview(message));
         conversation.setLastMessageTime(message.getSendTime());
         if (conversation.getUserId().equals(message.getReceiverId())) {
             conversation.setUnreadCount(conversation.getUnreadCount() + 1);
@@ -327,6 +323,7 @@ public class MessageServiceImpl implements MessageService {
         if (!unread.isEmpty()) {
             imNotifier.pushRead(friendId, userId);
         }
+        imNotifier.pushUnread(userId, getUnreadCount(userId));
     }
 
     @Override
@@ -344,6 +341,68 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
+    @Transactional
+    public MessageDTO recall(Integer userId, Integer messageId) {
+        FriendChatMessage message = friendChatMessageRepository.findById(messageId)
+                .orElseThrow(() -> BusinessException.notFound("消息不存在"));
+        if (!userId.equals(message.getSenderId())) {
+            throw BusinessException.forbidden("只能撤回自己的消息");
+        }
+        if (Boolean.TRUE.equals(message.getIsRecall())) {
+            return convertToDTO(message);
+        }
+        LocalDateTime sentAt = message.getSendTime();
+        if (sentAt == null || LocalDateTime.now().isAfter(sentAt.plusMinutes(RECALL_MINUTES))) {
+            throw BusinessException.badRequest("已超过撤回时间");
+        }
+        List<FriendChatMessage> rows = peerRows(message);
+        LocalDateTime now = LocalDateTime.now();
+        for (FriendChatMessage row : rows) {
+            row.setIsRecall(true);
+            row.setRecallTime(now);
+        }
+        friendChatMessageRepository.saveAll(rows);
+        java.util.Set<Integer> recalledIds = rows.stream().map(FriendChatMessage::getId).collect(Collectors.toSet());
+        List<UserConversation> conversations = new ArrayList<>();
+        userConversationRepository.findByUserIdAndTargetUserId(message.getSenderId(), message.getReceiverId())
+                .ifPresent(conversations::add);
+        userConversationRepository.findByUserIdAndTargetUserId(message.getReceiverId(), message.getSenderId())
+                .ifPresent(conversations::add);
+        for (UserConversation conversation : conversations) {
+            if (recalledIds.contains(conversation.getLastMessageId())) {
+                conversation.setLastMessageContent("已撤回");
+                userConversationRepository.save(conversation);
+            }
+        }
+        imNotifier.pushRecall(List.of(message.getSenderId(), message.getReceiverId()), message.getClientMsgId());
+        return convertToDTO(message);
+    }
+
+    private List<FriendChatMessage> peerRows(FriendChatMessage message) {
+        if (message.getClientMsgId() != null && !message.getClientMsgId().isBlank()) {
+            List<FriendChatMessage> rows = friendChatMessageRepository.findBySenderIdAndClientMsgId(
+                    message.getSenderId(), message.getClientMsgId());
+            if (!rows.isEmpty()) {
+                return rows;
+            }
+        }
+        LocalDateTime from = message.getSendTime().minusSeconds(2);
+        LocalDateTime to = message.getSendTime().plusSeconds(2);
+        List<FriendChatMessage> rows = new ArrayList<>(friendChatMessageRepository
+                .findBySenderIdAndReceiverIdAndMessageContent(
+                        message.getSenderId(), message.getReceiverId(), message.getMessageContent())
+                .stream()
+                .filter(row -> row.getSendTime() != null
+                        && !row.getSendTime().isBefore(from)
+                        && !row.getSendTime().isAfter(to))
+                .toList());
+        if (rows.stream().noneMatch(row -> row.getId().equals(message.getId()))) {
+            rows.add(message);
+        }
+        return rows;
+    }
+
+    @Override
     public Integer getUnreadCount(Integer userId) {
         int conversationUnread = userConversationRepository.findByUserId(userId).stream()
                 .map(UserConversation::getUnreadCount)
@@ -357,7 +416,11 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public List<MessageDTO> getSystemMessages(Integer userId) {
         List<MessageDTO> result = new ArrayList<>();
-        friendChatMessageRepository.findByReceiverIdAndMessageTypeOrderBySendTimeDesc(userId, TYPE_SYSTEM)
+        friendChatMessageRepository.findByReceiverIdAndMessageTypeOrderBySendTimeDesc(userId, MessagePolicy.TYPE_SYSTEM)
+                .forEach(m -> result.add(convertToDTO(m)));
+        friendChatMessageRepository.findByReceiverIdAndMessageTypeOrderBySendTimeDesc(userId, MessagePolicy.TYPE_EMOJI)
+                .stream()
+                .filter(m -> m.getSenderId().equals(m.getReceiverId()))
                 .forEach(m -> result.add(convertToDTO(m)));
         LocalDateTime now = LocalDateTime.now();
         systemNotificationRepository.findByUserIdOrderBySendTimeDesc(userId).stream()
@@ -409,12 +472,57 @@ public class MessageServiceImpl implements MessageService {
                 messageDTO.setReceiverName(u.getUsername())
         );
 
-        messageDTO.setContent(message.getMessageContent());
+        boolean recalled = Boolean.TRUE.equals(message.getIsRecall());
+        int messageType = message.getMessageType() == null ? MessagePolicy.TYPE_TEXT : message.getMessageType();
+        boolean selfAddressed = message.getSenderId() != null && message.getSenderId().equals(message.getReceiverId());
+        messageDTO.setRecalled(recalled);
+        messageDTO.setContent(recalled ? "" : message.getMessageContent());
         messageDTO.setSendTime(message.getSendTime());
         messageDTO.setIsRead(Objects.equals(message.getReadStatus(), ReadStatus.READ.getCode()));
-        messageDTO.setType(message.getMessageType() == TYPE_SYSTEM ? "system" : "friend");
+        messageDTO.setType(MessagePolicy.typeName(messageType, selfAddressed));
         messageDTO.setClientMsgId(message.getClientMsgId());
         messageDTO.setServerSeq(message.getServerSeq());
+        if (!recalled && (messageType == MessagePolicy.TYPE_IMAGE || messageType == MessagePolicy.TYPE_FILE)) {
+            attachmentOf(message.getMessageContent()).ifPresent(attachment -> {
+                messageDTO.setAttachmentName(attachment.getOriginalName());
+                messageDTO.setAttachmentMediaType(attachment.getMediaType());
+                messageDTO.setAttachmentSize(attachment.getSizeBytes());
+            });
+        }
         return messageDTO;
+    }
+
+    private Optional<ChatAttachment> attachmentOf(String content) {
+        if (content == null || chatAttachmentRepository == null) {
+            return Optional.empty();
+        }
+        try {
+            return chatAttachmentRepository.findById(Integer.parseInt(content.trim()));
+        } catch (NumberFormatException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private static String normalizeContent(int messageType, String content) {
+        MessagePolicy.requireContent(content);
+        String value = content.trim();
+        if (messageType == MessagePolicy.TYPE_EMOJI) {
+            MessagePolicy.requireEmoji(value);
+            return value;
+        }
+        return content;
+    }
+
+    private static String preview(FriendChatMessage message) {
+        if (Boolean.TRUE.equals(message.getIsRecall())) {
+            return "已撤回";
+        }
+        int messageType = message.getMessageType() == null ? MessagePolicy.TYPE_TEXT : message.getMessageType();
+        return switch (messageType) {
+            case MessagePolicy.TYPE_EMOJI -> "[表情]";
+            case MessagePolicy.TYPE_IMAGE -> "[图片]";
+            case MessagePolicy.TYPE_FILE -> "[文件]";
+            default -> message.getMessageContent();
+        };
     }
 }
