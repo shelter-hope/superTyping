@@ -12,3 +12,7 @@ spring:
     import:
       - optional:classpath:config/config.properties
       - optional:classpath:config/jdbc.properties
+
+user:
+  bootstrap:
+    game-core-base-url: http://game-core-svc/game-core-svc

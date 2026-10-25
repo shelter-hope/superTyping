@@ -50,6 +50,8 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/v1/internal/admin/**").hasRole("ADMIN")
+                        // 集群内服务调用；网关已屏蔽含 /internal/ 的外部请求
+                        .requestMatchers("/api/v1/internal/friends/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

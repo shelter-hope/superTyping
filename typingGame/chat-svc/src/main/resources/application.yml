@@ -20,3 +20,6 @@ spring:
 chat:
   files:
     dir: data/chat-files
+  friends:
+    auth-mode: dual
+    user-svc-base-url: http://user-svc/user-svc

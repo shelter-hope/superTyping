@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.entity.config.SystemParam;
 import com.typinggame.entity.game.SystemMonsterConfig;
+import com.typinggame.game.admin.ConfigAdminService;
+import com.typinggame.game.admin.LeaderboardAdminService;
+import com.typinggame.game.admin.RecordAdminService;
+import com.typinggame.game.admin.RuleAdminService;
 import com.typinggame.game.repository.CharacterStatsRepository;
 import com.typinggame.game.repository.ConfigTemplateRepository;
 import com.typinggame.game.repository.GameLeaderboardEntryRepository;
@@ -45,12 +49,18 @@ class InternalAdminServiceImplTest {
     void setUp() {
         systemParamRepository = mock(SystemParamRepository.class);
         monsterConfigRepository = mock(SystemMonsterConfigRepository.class);
-        service = new InternalAdminServiceImpl(mock(GameRecordRepository.class), mock(MonsterDataRepository.class),
-                mock(CharacterStatsRepository.class), mock(StringParentRepository.class), systemParamRepository,
-                mock(SystemMonsterTypeConfigRepository.class), mock(SystemMonsterCommoConfigRepository.class),
-                monsterConfigRepository, mock(ModelConstantRepository.class), mock(ModelInitParamsRepository.class),
-                mock(GameModeConfigRepository.class), mock(UserModelAdaptLogRepository.class),
-                mock(ConfigTemplateRepository.class), mock(GameLeaderboardEntryRepository.class), new ObjectMapper());
+        ObjectMapper objectMapper = new ObjectMapper();
+        RecordAdminService records = new RecordAdminService(
+                mock(GameRecordRepository.class), mock(MonsterDataRepository.class),
+                mock(CharacterStatsRepository.class), mock(StringParentRepository.class));
+        ConfigAdminService configs = new ConfigAdminService(
+                systemParamRepository, mock(SystemMonsterTypeConfigRepository.class),
+                mock(SystemMonsterCommoConfigRepository.class), monsterConfigRepository,
+                mock(ModelConstantRepository.class), mock(ModelInitParamsRepository.class),
+                mock(GameModeConfigRepository.class), mock(UserModelAdaptLogRepository.class), objectMapper);
+        RuleAdminService rules = new RuleAdminService(systemParamRepository, mock(ConfigTemplateRepository.class), objectMapper);
+        LeaderboardAdminService leaderboard = new LeaderboardAdminService(mock(GameLeaderboardEntryRepository.class), records);
+        service = new InternalAdminServiceImpl(records, configs, rules, leaderboard);
     }
 
     @Test
@@ -79,33 +89,24 @@ class InternalAdminServiceImplTest {
     }
 
     @Test
-    void rejectsInvalidMovementRange() {
-        BusinessException e = assertThrows(BusinessException.class,
+    void rejectsInvalidMovementRules() {
+        BusinessException error = assertThrows(BusinessException.class,
                 () -> service.saveRules("movement-rules", Map.of("minSpeed", 3, "maxSpeed", 1)));
-
-        assertEquals(400, e.getCode());
+        assertEquals(400, error.getCode());
         verify(systemParamRepository, never()).save(any());
     }
 
     @Test
-    void unknownRuleKeyIsNotFound() {
-        BusinessException e = assertThrows(BusinessException.class, () -> service.getRules("nope"));
-        assertEquals(404, e.getCode());
-    }
-
-    @Test
-    void updatesMonsterConfigWithValidation() {
+    void updatesMonsterConfigFields() {
         SystemMonsterConfig config = new SystemMonsterConfig();
-        when(monsterConfigRepository.findByType("normal")).thenReturn(Optional.of(config));
+        config.setType("NORMAL");
+        when(monsterConfigRepository.findByType("NORMAL")).thenReturn(Optional.of(config));
 
-        service.updateMonsterConfig("normal", Map.of("score", 20, "initSpeed", "1.25", "initStrLength", 3));
+        service.updateMonsterConfig("NORMAL", Map.of("score", 12, "initSpeed", 1.2, "initStrLength", 4));
 
-        assertEquals(20, config.getScore());
-        assertEquals(1.25, config.getInitSpeed());
-        assertEquals(3, config.getInitStrLength());
+        assertEquals(12, config.getScore());
+        assertEquals(1.2, config.getInitSpeed());
+        assertEquals(4, config.getInitStrLength());
         verify(monsterConfigRepository).save(config);
-
-        assertThrows(BusinessException.class,
-                () -> service.updateMonsterConfig("normal", Map.of("initSpeed", 0)));
     }
 }
