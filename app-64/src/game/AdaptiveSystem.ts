@@ -1,4 +1,10 @@
-// 自适应系统 - 前端本地自适应逻辑实现
+/**
+ * 自适应系统 — 前端本地表现层调节（速度/刷怪视觉节奏）。
+ *
+ * 权威难度 D 由服务端 DifficultyEngine / user_model_params 决定。
+ * 本类不得改写服务端 D；仅影响客户端观感参数。后续若要消除双源，
+ * 应删除客户端调节或改成只读展示服务端下发的速度/密度。
+ */
 import type { 
   AdaptiveConfig, 
   GameStats, 
