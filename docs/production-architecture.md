@@ -2,7 +2,7 @@
 
 ## 目标
 
-本项目采用前后端分离与后端微服务架构。后端以领域边界拆分为 `user-svc`、`game-core-svc`、`chat-svc`、`ai-svc`、`admin-svc`，公共实体、DTO、枚举、工具放在 `common`。所有新增功能默认遵循 Controller、Service、Repository 分层，Controller 不承载业务规则。
+本项目采用前后端分离与后端微服务架构。后端以领域边界拆分为 `user-svc`、`game-core-svc`、`chat-svc`、`ai-svc`、`admin-svc`、`lab-svc`、`dict-svc`，公共实体、DTO、枚举、工具放在 `common`。所有新增功能默认遵循 Controller、Service、Repository 分层，Controller 不承载业务规则。
 
 ## 标准分层
 
@@ -38,6 +38,7 @@ game-core-svc/src/main/java/com/typinggame/game/
 | `user-svc` | `com.typinggame.user`, `com.typinggame.common` | `com.typinggame.user.repository` | `com.typinggame.entity` |
 | `game-core-svc` | `com.typinggame.game`, `com.typinggame.common` | `com.typinggame.game.repository` | `com.typinggame.entity` |
 | `chat-svc` | `com.typinggame.chat`, `com.typinggame.common` | `com.typinggame.chat.repository` | `com.typinggame.entity` |
+| `dict-svc` | `com.typinggame.dict`, `com.typinggame.common` | `com.typinggame.dict.repository` | `com.typinggame.entity` |
 | `ai-svc` | `com.typinggame.ai`, `com.typinggame.common` | `com.typinggame.ai.repository` | `com.typinggame.entity` |
 | `admin-svc` | `com.typinggame.admin`, `com.typinggame.common` | 当前无 Repository | 当前无 JPA 边界配置 |
 

@@ -1,11 +1,11 @@
-package com.typinggame.chat.service.impl;
+package com.typinggame.dict.service.impl;
 
-import com.typinggame.chat.dictionary.DictionaryFileStore;
-import com.typinggame.chat.dictionary.DictionaryTextParser;
-import com.typinggame.chat.repository.CustomDictionaryRepository;
-import com.typinggame.chat.repository.DictionaryWordRepository;
-import com.typinggame.chat.repository.SystemDictionaryRepository;
-import com.typinggame.chat.service.DictionaryService;
+import com.typinggame.dict.dictionary.DictionaryFileStore;
+import com.typinggame.dict.dictionary.DictionaryTextParser;
+import com.typinggame.dict.repository.CustomDictionaryRepository;
+import com.typinggame.dict.repository.DictionaryWordRepository;
+import com.typinggame.dict.repository.SystemDictionaryRepository;
+import com.typinggame.dict.service.DictionaryService;
 import com.typinggame.dto.dictionary.DictionaryCreateDTO;
 import com.typinggame.entity.dictionaries.CustomDictionary;
 import com.typinggame.entity.dictionaries.DictionaryWord;

@@ -43,9 +43,9 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 |------|------|-----------|
 | `src/services/auth.ts` | 认证相关 | user-svc |
 | `src/services/user.ts` | 用户资料、配置 | user-svc |
-| `src/services/game.ts` | 游戏记录、排行榜、游戏配置 | game-core-svc / chat-svc |
+| `src/services/game.ts` | 游戏记录、排行榜、游戏配置 | game-core-svc |
 | `src/services/stats.ts` | 字符统计、行为分析、趋势 | game-core-svc |
-| `src/services/dictionary.ts` | 词库管理 | chat-svc |
+| `src/services/dictionary.ts` | 词库管理 | dict-svc |
 | `src/services/social.ts` | 好友、消息 | chat-svc |
 | `src/services/ai.ts` | AI 助手、训练建议 | ai-svc |
 | `src/services/admin.ts` | 管理后台 | admin-svc |
@@ -346,11 +346,11 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 | `/api/v1/profiles/*` | user-svc | 8081 |
 | `/api/v1/friends/*` | user-svc | 8081 |
 | `/api/v1/messages/*` | chat-svc | 8084 |
-| `/api/v1/leaderboard/*` | chat-svc | 8084 |
+| `/api/v1/leaderboard/*` | game-core-svc | 8082 |
 | `/api/v1/game/*` | game-core-svc | 8082 |
 | `/api/v1/stats/*` | game-core-svc | 8082 |
-| `/api/v1/dictionary/*` | chat-svc | 8084（兼容历史路径） |
-| `/api/v1/dictionaries/*` | chat-svc | 8084 |
+| `/api/v1/dictionary/*` | dict-svc | 8087（兼容历史路径） |
+| `/api/v1/dictionaries/*` | dict-svc | 8087 |
 | `/api/v1/ai/*` | ai-svc | 8083 |
 | `/api/v1/admin/*` | admin-svc | 8085（代理到各服务 `/internal/admin/*`） |
 | `/api/v1/lab/*` | lab-svc | 8086 |

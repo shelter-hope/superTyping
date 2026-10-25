@@ -1,4 +1,4 @@
-package com.typinggame.chat.service;
+package com.typinggame.game.service;
 
 import com.typinggame.dto.leaderboard.LeaderboardDTO;
 import java.util.List;

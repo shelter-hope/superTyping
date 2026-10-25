@@ -1,4 +1,4 @@
-package com.typinggame.chat.dictionary;
+package com.typinggame.dict.dictionary;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;

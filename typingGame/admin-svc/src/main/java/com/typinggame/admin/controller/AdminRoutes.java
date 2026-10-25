@@ -25,9 +25,13 @@ final class AdminRoutes {
         if (path.startsWith("/system-dictionaries")
                 || path.startsWith("/system-dictionary-words")
                 || path.startsWith("/custom-dictionaries")
-                || path.startsWith("/custom-dictionary-words")
-                || path.startsWith("/leaderboard-entries")
-                || path.startsWith("/user-conversations")
+                || path.startsWith("/custom-dictionary-words")) {
+            return "dict-svc";
+        }
+        if (path.startsWith("/leaderboard-entries")) {
+            return "game-core-svc";
+        }
+        if (path.startsWith("/user-conversations")
                 || path.startsWith("/friend-chat-messages")
                 || path.startsWith("/system-notifications")) {
             return "chat-svc";
@@ -48,6 +52,7 @@ final class AdminRoutes {
             case "chat-svc" -> "/chat-svc";
             case "ai-svc" -> "/ai-svc";
             case "lab-svc" -> "/lab-svc";
+            case "dict-svc" -> "/dict-svc";
             default -> throw new IllegalArgumentException("不支持的后台目标服务: " + service);
         };
     }

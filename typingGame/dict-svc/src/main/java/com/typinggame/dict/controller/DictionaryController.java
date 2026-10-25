@@ -1,12 +1,11 @@
-package com.typinggame.chat.controller;
+package com.typinggame.dict.controller;
 
-import com.typinggame.chat.dictionary.DictionaryFileStore;
-import com.typinggame.chat.service.DictionaryService;
+import com.typinggame.dict.dictionary.DictionaryFileStore;
+import com.typinggame.dict.service.DictionaryService;
 import com.typinggame.dto.dictionary.DictionaryCreateDTO;
 import com.typinggame.entity.dictionaries.CustomDictionary;
 import com.typinggame.entity.dictionaries.SystemDictionary;
 import com.typinggame.vo.ResultMessage;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -23,11 +22,13 @@ import java.util.List;
 @RequestMapping("/api/v1/dictionaries")
 public class DictionaryController {
 
-    @Autowired
-    private DictionaryService dictionaryService;
+    private final DictionaryService dictionaryService;
+    private final DictionaryFileStore dictionaryFileStore;
 
-    @Autowired
-    private DictionaryFileStore dictionaryFileStore;
+    public DictionaryController(DictionaryService dictionaryService, DictionaryFileStore dictionaryFileStore) {
+        this.dictionaryService = dictionaryService;
+        this.dictionaryFileStore = dictionaryFileStore;
+    }
 
     @GetMapping("/files/{name}")
     public ResponseEntity<Resource> file(@PathVariable String name) {

@@ -1,4 +1,4 @@
-package com.typinggame.chat.repository;
+package com.typinggame.dict.repository;
 
 import com.typinggame.entity.dictionaries.SystemDictionaryWord;
 import org.springframework.data.domain.Page;

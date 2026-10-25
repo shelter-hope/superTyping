@@ -1,4 +1,4 @@
-package com.typinggame.chat.repository;
+package com.typinggame.dict.repository;
 
 import com.typinggame.entity.dictionaries.CustomDictionary;
 import org.springframework.data.jpa.repository.JpaRepository;

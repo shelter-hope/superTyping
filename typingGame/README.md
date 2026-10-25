@@ -87,18 +87,16 @@
 │   User Svc    │     │  Game-Core Svc  │     │     AI Svc      │
 │   (8081)      │     │    (8082)       │     │    (8083)       │
 │  ├─ 认证      │     │  ├─ 游戏核心    │     │  ├─ AI对话      │
-│  ├─ 用户管理  │     │  ├─ 游戏记录    │     │  ├─ 训练建议    │
+│  ├─ 用户管理  │     │  ├─ 排行榜      │     │  ├─ 训练建议    │
 │  └─ 好友管理  │     │  ├─ 自适应算法  │     │  └─ LLM集成     │
 └───────────────┘     └─────────────────┘     └─────────────────┘
         │                       │                       │
         ▼                       ▼                       ▼
 ┌───────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Chat Svc    │     │   Admin Svc     │     │                 │
-│   (8084)      │     │    (8085)       │     │                 │
-│  ├─ 消息中心  │     │  ├─ 后台聚合    │     │                 │
-│  ├─ 排行榜    │     │  └─ 转发内部接口│     │                 │
-│  ├─ 词库管理  │     │                 │     │                 │
-│  └─ IM /ws/im │     │                 │     │                 │
+│   Chat Svc    │     │   Admin Svc     │     │   Dict Svc      │
+│   (8084)      │     │    (8085)       │     │    (8087)       │
+│  ├─ 消息中心  │     │  ├─ 后台聚合    │     │  ├─ 词库管理    │
+│  └─ IM /ws/im │     │  └─ 转发内部接口│     │  └─ 词库文件    │
 └───────────────┘     └─────────────────┘     └─────────────────┘
                                 │
                                 ▼
@@ -156,9 +154,17 @@ typingGame/
 │   │   └── config/                  # 安全配置
 │   ├── src/main/resources/application.yml
 │   └── pom.xml
+├── dict-svc/                        # 词库服务
+│   ├── src/main/java/com/typinggame/dict/
+│   │   ├── controller/              # 词库与后台词库接口
+│   │   ├── service/                 # 词库业务
+│   │   ├── repository/              # 词库数据访问
+│   │   └── config/                  # 安全配置
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
 ├── chat-svc/                        # 社交聊天服务
 │   ├── src/main/java/com/typinggame/chat/
-│   │   ├── controller/              # 消息、排行榜、词库控制器
+│   │   ├── controller/              # 消息、通知、IM 控制器
 │   │   ├── service/                 # 业务逻辑
 │   │   ├── repository/              # 数据访问
 │   │   └── config/                  # 安全配置
@@ -186,11 +192,12 @@ typingGame/
 |----------|------|------|------|
 | api-gateway | 8080 | 统一入口、路由转发 | ✅ |
 | user-svc | 8081 | 用户认证、用户管理、好友管理 | ✅ |
-| game-core-svc | 8082 | 游戏核心逻辑、游戏记录、统计分析、自适应算法 | ✅ |
+| game-core-svc | 8082 | 游戏核心逻辑、游戏记录、统计分析、自适应算法、排行榜 | ✅ |
 | ai-svc | 8083 | AI 对话、训练建议、LLM 集成 | ✅ |
-| chat-svc | 8084 | 消息中心、排行榜、词库管理 | ✅ |
+| chat-svc | 8084 | 消息中心、通知、IM | ✅ |
 | admin-svc | 8085 | 管理后台聚合接口，代理调用各领域服务内部管理接口 | ✅ |
 | lab-svc | 8086 | 群体智能实验室：算法定义、参数 schema 与预设 | ✅ |
+| dict-svc | 8087 | 系统词库、自定义词库、词条与词库文件 | ✅ |
 
 ---
 
@@ -209,9 +216,9 @@ API 网关统一入口：`http://localhost:8080`。对外路径没有 `/typingWo
 | `/api/v1/admin/**` | admin-svc | 管理后台聚合接口，转发到各服务 `/api/v1/internal/admin/**` |
 | `/api/v1/ai/**` | ai-svc | AI 助手对话 |
 | `/api/v1/messages/**` | chat-svc | 消息中心 |
-| `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
-| `/api/v1/dictionary/**` | chat-svc | 词库管理兼容路径 |
-| `/api/v1/dictionaries/**` | chat-svc | 词库管理 |
+| `/api/v1/leaderboard/**` | game-core-svc | 排行榜。公开读不包含 `/my-rank` |
+| `/api/v1/dictionary/**` | dict-svc | 词库管理兼容路径 |
+| `/api/v1/dictionaries/**` | dict-svc | 词库管理 |
 | `/api/v1/model/**` | game-core-svc | 模型参数 |
 | `/api/v1/lab/**` | lab-svc | 群体智能算法与预设。算法 id：`boids`、`pso`、`ant-colony`、`genetic`。公开读：`GET /algorithms`、`GET /presets`。登录后可增删改自己的预设。后台 `/api/v1/admin/lab/**` 由 admin-svc 转发到 `/internal/admin/lab/**` |
 | `/uploads/**` | user-svc | 头像等上传文件 |
@@ -374,6 +381,9 @@ java -jar ai-svc/target/ai-svc-0.0.1-SNAPSHOT.jar
 
 # 启动聊天服务
 java -jar chat-svc/target/chat-svc-0.0.1-SNAPSHOT.jar
+
+# 启动词库服务
+java -jar dict-svc/target/dict-svc-0.0.1-SNAPSHOT.jar
 
 # 启动管理后台聚合服务
 java -jar admin-svc/target/admin-svc-0.0.1-SNAPSHOT.jar

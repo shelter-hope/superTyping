@@ -59,8 +59,8 @@
 ┌─────────┐ ┌──────────┐ ┌────────┐ ┌─────────┐ ┌──────────┐
 │user-svc │ │game-core │ │ ai-svc │ │chat-svc │ │admin-svc │
 │  8081   │ │   8082   │ │  8083  │ │  8084   │ │  8085    │
-│认证/资料│ │记录/统计 │ │对话/摘要│ │消息/词库│ │后台聚合  │
-│好友     │ │自适应    │ │        │ │排行榜/IM│ │          │
+│认证/资料│ │记录/统计 │ │对话/摘要│ │消息/IM  │ │后台聚合  │
+│好友     │ │排行榜    │ │        │ │         │ │          │
 └─────────┘ └──────────┘ └────────┘ └─────────┘ └──────────┘
      │            │          │           │            │
      └────────────┴──────────┴───────────┴────────────┘
@@ -82,6 +82,8 @@
 | ai-svc | 8083 | `/ai-svc` | `http://localhost:8083/ai-svc/actuator/health` |
 | chat-svc | 8084 | `/chat-svc` | `http://localhost:8084/chat-svc/actuator/health` |
 | admin-svc | 8085 | `/admin-svc` | `http://localhost:8085/admin-svc/actuator/health` |
+| lab-svc | 8086 | `/lab-svc` | `http://localhost:8086/lab-svc/actuator/health` |
+| dict-svc | 8087 | `/dict-svc` | `http://localhost:8087/dict-svc/actuator/health` |
 
 ---
 
@@ -143,10 +145,12 @@ superTyping/
 │   ├── common/                      # 实体、DTO、JWT、全局异常
 │   ├── api-gateway/                 # 8080
 │   ├── user-svc/                    # 8081 认证、资料、好友
-│   ├── game-core-svc/               # 8082 对局、统计、自适应
+│   ├── game-core-svc/               # 8082 对局、统计、自适应、排行榜
 │   ├── ai-svc/                      # 8083 对话与训练摘要
-│   ├── chat-svc/                    # 8084 消息、排行榜、词库、IM
+│   ├── chat-svc/                    # 8084 消息、通知、IM
 │   ├── admin-svc/                   # 8085 管理聚合，转发内部接口
+│   ├── lab-svc/                     # 8086 群体智能实验室
+│   ├── dict-svc/                    # 8087 系统词库、自定义词库、词库文件
 │   ├── DB/                          # 建库脚本与增量 SQL
 │   └── docker-compose.yml
 │
@@ -214,6 +218,8 @@ java -jar game-core-svc/target/game-core-svc-0.0.1-SNAPSHOT.jar
 java -jar ai-svc/target/ai-svc-0.0.1-SNAPSHOT.jar
 java -jar chat-svc/target/chat-svc-0.0.1-SNAPSHOT.jar
 java -jar admin-svc/target/admin-svc-0.0.1-SNAPSHOT.jar
+java -jar lab-svc/target/lab-svc-0.0.1-SNAPSHOT.jar
+java -jar dict-svc/target/dict-svc-0.0.1-SNAPSHOT.jar
 java -jar api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar
 ```
 
@@ -237,7 +243,7 @@ pnpm dev
 
 ### 4. 确认联通
 
-1. Nacos 控制台能看到 `user-svc`、`game-core-svc`、`ai-svc`、`chat-svc`、`admin-svc`、`api-gateway`。
+1. Nacos 控制台能看到 `user-svc`、`game-core-svc`、`ai-svc`、`chat-svc`、`admin-svc`、`lab-svc`、`dict-svc`、`api-gateway`。
 2. `curl http://localhost:8080/actuator/health` 返回 UP。
 3. 用下面的种子账号登录。管理页是 `/admin`，需要 `admin` 角色。
 
@@ -291,8 +297,8 @@ Compose 里的 Nacos 开启了鉴权，服务配置只写了地址、没有用�
 | `/api/v1/stats/**` | game-core-svc | 字符统计、趋势、训练建议 |
 | `/api/v1/ai/**` | ai-svc | AI 对话与摘要 |
 | `/api/v1/messages/**` | chat-svc | 消息中心 |
-| `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
-| `/api/v1/dictionary/**`、`/api/v1/dictionaries/**` | chat-svc | 词库 |
+| `/api/v1/leaderboard/**` | game-core-svc | 排行榜。公开读不包含 `/my-rank` |
+| `/api/v1/dictionary/**`、`/api/v1/dictionaries/**` | dict-svc | 词库。`/dictionary` 是兼容别名 |
 | `/ws/**` | chat-svc | IM WebSocket，实际处理器为 `/ws/im` |
 | `/api/v1/admin/**` | admin-svc | 管理后台。由 admin-svc 转发到各服务 `/api/v1/internal/admin/**` |
 
@@ -349,7 +355,7 @@ Compose 里的 Nacos 开启了鉴权，服务配置只写了地址、没有用�
 ### 统计、社交、AI 与后台
 
 - 字符级速度、准确率、趋势和训练建议来自 `game-core-svc`
-- 好友关系在 `user-svc`；消息、排行榜、词库和私聊在 `chat-svc`
+- 好友关系在 `user-svc`；消息和私聊在 `chat-svc`；排行榜读写在 `game-core-svc`；词库在 `dict-svc`
 - 私聊优先走 `ws://<网关>/ws/im`。连接断开时页面回退为 REST 轮询
 - AI 对话读取真实对局和字符统计。未配置 `AI_LLM_API_KEY` 时只返回配置提示
 - `/admin` 覆盖用户、记录、词库、排行榜、统计、模型参数和日志趋势。领域查询在各服务的内部管理接口中完成
