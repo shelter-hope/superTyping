@@ -1,5 +1,6 @@
 package com.typinggame.chat.controller;
 
+import com.typinggame.chat.im.MessagePolicy;
 import com.typinggame.chat.im.WsTicketService;
 import com.typinggame.chat.service.ChatAttachmentService;
 import com.typinggame.chat.service.MessageService;
@@ -83,7 +84,7 @@ public class MessageController {
     public ResponseEntity<FileSystemResource> downloadAttachment(@PathVariable("id") Integer id) {
         ChatAttachmentService.Download download = chatAttachmentService.loadFor(getCurrentUserId(), id);
         var attachment = download.attachment();
-        boolean inline = attachment.getKind() != null && attachment.getKind() == 5;
+        boolean inline = attachment.getKind() != null && attachment.getKind() == MessagePolicy.TYPE_IMAGE;
         ContentDisposition disposition = ContentDisposition.builder(inline ? "inline" : "attachment")
                 .filename(attachment.getOriginalName(), StandardCharsets.UTF_8)
                 .build();

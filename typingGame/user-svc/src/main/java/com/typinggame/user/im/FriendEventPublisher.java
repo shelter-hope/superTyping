@@ -1,6 +1,7 @@
 package com.typinggame.user.im;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.typinggame.common.im.ImContracts;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +21,7 @@ public class FriendEventPublisher {
 
     public void friendRequest(Integer senderId, Integer receiverId, Integer requestId, String applyMessage) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("type", "FRIEND_REQUEST");
+        payload.put("type", ImContracts.TYPE_FRIEND_REQUEST);
         payload.put("senderId", senderId);
         payload.put("requestId", requestId);
         payload.put("applyMessage", applyMessage);
@@ -28,7 +29,7 @@ public class FriendEventPublisher {
         envelope.put("targets", List.of(receiverId));
         envelope.put("payload", payload);
         try {
-            redisTemplate.convertAndSend("im.events", objectMapper.writeValueAsString(envelope));
+            redisTemplate.convertAndSend(ImContracts.CHANNEL, objectMapper.writeValueAsString(envelope));
         } catch (Exception ignored) {
             // The request is already stored; a missed push is recovered by the inbox.
         }

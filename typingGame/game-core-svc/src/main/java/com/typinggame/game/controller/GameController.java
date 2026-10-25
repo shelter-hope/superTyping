@@ -2,10 +2,16 @@ package com.typinggame.game.controller;
 
 import com.typinggame.vo.ResultMessage;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 兼容前端旧路径的空操作接口。真实对局逻辑在 {@link GameConfigController}、
+ * {@link GameRecordController}、{@link GameRoundController}。
+ * 保留这些端点是为了不让旧客户端收到 404；不要在这里扩展业务。
+ *
+ * @deprecated 新功能请使用 /api/v1/game/config/**、/records/**、/rounds/**
+ */
+@Deprecated
 @RestController
 @RequestMapping("/api/v1/game")
 public class GameController {
@@ -31,13 +37,9 @@ public class GameController {
     }
 
     @GetMapping("/export/{recordId}")
-    public ResponseEntity<ResultMessage<String>> exportGameData(@PathVariable Integer recordId, @RequestParam String format) {
+    public ResponseEntity<ResultMessage<String>> exportGameData(@PathVariable Integer recordId,
+                                                                @RequestParam String format) {
         return ResponseEntity.ok(ResultMessage.success("Export successful"));
-    }
-
-    private Integer getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return Integer.parseInt(authentication.getName());
     }
 
     private static class GameStateRequest {

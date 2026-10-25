@@ -10,6 +10,8 @@ public final class MessagePolicy {
     public static final int TYPE_FILE = 6;
     /** 系统私信。2 按表注释留给表情，旧数据里发给自己的 2 仍按系统消息读。 */
     public static final int TYPE_SYSTEM = 9;
+    /** 与 {@link com.typinggame.common.im.ImContracts#RECALL_MINUTES} 保持一致。 */
+    public static final int RECALL_MINUTES = com.typinggame.common.im.ImContracts.RECALL_MINUTES;
     public static final Set<String> STICKERS = Set.of("smile", "wave", "gg", "fire", "think");
 
     private MessagePolicy() {

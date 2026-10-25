@@ -1,5 +1,6 @@
 package com.typinggame.chat.im;
 
+import com.typinggame.common.im.ImContracts;
 import com.typinggame.dto.message.MessageDTO;
 import org.springframework.stereotype.Component;
 
@@ -9,15 +10,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 下行事件只写入 Redis im.events。本机和其他 chat-svc 实例的监听器再交给各自的连接。
+ * 下行事件只写入 Redis {@link ImContracts#CHANNEL}。本机和其他 chat-svc 实例的监听器再交给各自的连接。
  * 信封格式：{"targets":[用户id], "payload":{客户端事件}}。
  */
 @Component
-public class ImNotifier {
-    public static final String TYPE_MESSAGE = "MESSAGE";
-    public static final String TYPE_READ = "READ";
-    public static final String TYPE_RECALL = "RECALL";
-    public static final String TYPE_UNREAD = "UNREAD";
+public class ImNotifier implements ImEventBus {
+    public static final String TYPE_MESSAGE = ImContracts.TYPE_MESSAGE;
+    public static final String TYPE_READ = ImContracts.TYPE_READ;
+    public static final String TYPE_RECALL = ImContracts.TYPE_RECALL;
+    public static final String TYPE_UNREAD = ImContracts.TYPE_UNREAD;
 
     private final ImEventPublisher publisher;
 
