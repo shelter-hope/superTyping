@@ -1,21 +1,17 @@
 package com.typinggame.chat.service;
 
+import com.typinggame.chat.im.MessagePolicy;
 import com.typinggame.chat.repository.ChatAttachmentRepository;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
+import com.typinggame.chat.storage.ChatFileStore;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.dto.message.ChatAttachmentDTO;
 import com.typinggame.entity.message.ChatAttachment;
-import com.typinggame.chat.im.MessagePolicy;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
-import java.util.UUID;
 
 @Service
 public class ChatAttachmentService {
@@ -24,14 +20,14 @@ public class ChatAttachmentService {
 
     private final ChatAttachmentRepository repository;
     private final FriendChatMessageRepository messages;
-    private final Path directory;
+    private final ChatFileStore fileStore;
 
     public ChatAttachmentService(ChatAttachmentRepository repository,
                                  FriendChatMessageRepository messages,
-                                 @Value("${chat.files.dir:data/chat-files}") String directory) {
+                                 ChatFileStore fileStore) {
         this.repository = repository;
         this.messages = messages;
-        this.directory = Path.of(directory);
+        this.fileStore = fileStore;
     }
 
     public ChatAttachmentDTO store(Integer ownerId, MultipartFile file) {
@@ -46,20 +42,7 @@ public class ChatAttachmentService {
         if (size <= 0 || size > limit) {
             throw new IllegalArgumentException(kind.kind() == MessagePolicy.TYPE_IMAGE ? "图片不能超过 5MB" : "文件不能超过 10MB");
         }
-        String storedName = UUID.randomUUID() + "." + extension;
-        Path root = directory.toAbsolutePath().normalize();
-        Path target = root.resolve(storedName).normalize();
-        if (!target.startsWith(root)) {
-            throw new IllegalArgumentException("附件路径无效");
-        }
-        try {
-            Files.createDirectories(root);
-            try (InputStream input = file.getInputStream()) {
-                Files.copy(input, target);
-            }
-        } catch (IOException exception) {
-            throw new IllegalStateException("附件保存失败", exception);
-        }
+        String storedName = fileStore.save(file, extension);
         ChatAttachment attachment = new ChatAttachment();
         attachment.setOwnerId(ownerId);
         attachment.setOriginalName(originalName);
@@ -89,9 +72,8 @@ public class ChatAttachmentService {
         if (!canRead(userId, attachment)) {
             throw BusinessException.forbidden("无权下载该附件");
         }
-        Path root = directory.toAbsolutePath().normalize();
-        Path path = root.resolve(attachment.getStoredName()).normalize();
-        if (!path.startsWith(root) || !Files.isRegularFile(path)) {
+        Path path = fileStore.resolveExisting(attachment.getStoredName());
+        if (path == null) {
             throw BusinessException.notFound("附件文件不存在");
         }
         return new Download(attachment, path);

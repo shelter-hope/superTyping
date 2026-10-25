@@ -3,6 +3,7 @@ package com.typinggame.chat.service;
 import com.typinggame.chat.im.MessagePolicy;
 import com.typinggame.chat.repository.ChatAttachmentRepository;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
+import com.typinggame.chat.storage.ChatFileStore;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.entity.message.ChatAttachment;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,8 @@ class ChatAttachmentServiceTest {
 
     private final ChatAttachmentRepository repository = mock(ChatAttachmentRepository.class);
     private final FriendChatMessageRepository messages = mock(FriendChatMessageRepository.class);
-    private final ChatAttachmentService service = new ChatAttachmentService(repository, messages, "target/chat-files-test");
+    private final ChatFileStore fileStore = new ChatFileStore("target/chat-files-test");
+    private final ChatAttachmentService service = new ChatAttachmentService(repository, messages, fileStore);
 
     @Test
     void strangerCannotDownload() {

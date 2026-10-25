@@ -5,10 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typinggame.chat.repository.FriendRelationRepository;
 import com.typinggame.chat.repository.UserInfoRepository;
 import com.typinggame.chat.service.MessageService;
-import com.typinggame.common.im.PresenceKeys;
+import com.typinggame.common.im.ImContracts;
 import com.typinggame.dto.message.MessageDTO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -16,25 +15,23 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
- * /ws/im：JWT 握手。上行处理心跳、发送、正在输入和回执确认。
- * 消息先落库，再经 Redis 推给双方。
+ * /ws/im：JWT 握手。解析帧后委托 MessageService / ImEventBus / PresenceStore。
  */
 @Slf4j
 @Component
 public class OvernightImWebSocketHandler extends TextWebSocketHandler {
     static final String LAST_SEEN = "lastSeen";
-    private static final String PONG = "{\"type\":\"PONG\"}";
+    private static final String PONG = "{\"type\":\"" + ImContracts.TYPE_PONG + "\"}";
 
     private final ImSessionRegistry sessionRegistry;
     private final MessageService messageService;
     private final UserInfoRepository userInfoRepository;
     private final FriendRelationRepository friendRelationRepository;
-    private final ImNotifier imNotifier;
-    private final StringRedisTemplate redisTemplate;
+    private final ImEventBus imEventBus;
+    private final PresenceStore presenceStore;
     private final ObjectMapper objectMapper;
     private final SlidingRateLimiter rateLimiter = new SlidingRateLimiter(5, 1_000);
 
@@ -42,15 +39,15 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
                                        MessageService messageService,
                                        UserInfoRepository userInfoRepository,
                                        FriendRelationRepository friendRelationRepository,
-                                       ImNotifier imNotifier,
-                                       StringRedisTemplate redisTemplate,
+                                       ImEventBus imEventBus,
+                                       PresenceStore presenceStore,
                                        ObjectMapper objectMapper) {
         this.sessionRegistry = sessionRegistry;
         this.messageService = messageService;
         this.userInfoRepository = userInfoRepository;
         this.friendRelationRepository = friendRelationRepository;
-        this.imNotifier = imNotifier;
-        this.redisTemplate = redisTemplate;
+        this.imEventBus = imEventBus;
+        this.presenceStore = presenceStore;
         this.objectMapper = objectMapper;
     }
 
@@ -63,7 +60,7 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
         }
         sessionRegistry.add(userId, session);
         session.getAttributes().put(LAST_SEEN, System.currentTimeMillis());
-        markOnline(userId);
+        presenceStore.markOnline(userId);
         publishPresence(userId, true);
         log.debug("IM connected, userId={}, sessionId={}", userId, session.getId());
     }
@@ -82,28 +79,28 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
             String type = body.path("type").asText("");
             String action = body.path("action").asText("");
             clientMsgId = textOrNull(body, "clientMsgId");
-            if ("PING".equals(type)) {
-                markOnline(userId);
+            if (ImContracts.TYPE_PING.equals(type)) {
+                presenceStore.markOnline(userId);
                 sessionRegistry.sendToSession(userId, session.getId(), PONG);
                 return;
             }
-            if ("ack".equals(action)) {
+            if (ImContracts.ACTION_ACK.equals(action)) {
                 return;
             }
             if (!rateLimiter.allow(userId, System.currentTimeMillis())) {
                 send(session, error("发送过于频繁", clientMsgId));
                 return;
             }
-            if ("typing".equals(action)) {
+            if (ImContracts.ACTION_TYPING.equals(action)) {
                 int receiverId = body.path("receiverId").asInt();
                 Map<String, Object> payload = new LinkedHashMap<>();
-                payload.put("type", "TYPING");
+                payload.put("type", ImContracts.TYPE_TYPING);
                 payload.put("userId", userId);
                 payload.put("typing", body.path("typing").asBoolean());
-                imNotifier.publish(List.of(receiverId), payload);
+                imEventBus.publish(java.util.List.of(receiverId), payload);
                 return;
             }
-            if ("chat".equals(action)) {
+            if (ImContracts.ACTION_CHAT.equals(action)) {
                 MessageDTO saved = messageService.sendMessage(
                         userId,
                         body.path("receiverId").asInt(),
@@ -111,7 +108,7 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
                         body.path("type").asText("text"),
                         clientMsgId);
                 Map<String, Object> ack = new LinkedHashMap<>();
-                ack.put("type", "ACK");
+                ack.put("type", ImContracts.TYPE_ACK);
                 ack.put("clientMsgId", clientMsgId == null ? "" : clientMsgId);
                 ack.put("id", saved.getId());
                 ack.put("serverSeq", saved.getServerSeq() == null ? 0 : saved.getServerSeq());
@@ -157,21 +154,17 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void markOnline(Integer userId) {
-        redisTemplate.opsForValue().set(PresenceKeys.online(userId), "1", PresenceKeys.TTL);
-    }
-
     private void markOffline(Integer userId) {
-        redisTemplate.delete(PresenceKeys.online(userId));
+        presenceStore.markOffline(userId);
         publishPresence(userId, false);
     }
 
     private void publishPresence(Integer userId, boolean online) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("type", "PRESENCE");
+        payload.put("type", ImContracts.TYPE_PRESENCE);
         payload.put("userId", userId);
         payload.put("online", online);
-        imNotifier.publish(friendRelationRepository.findFriendIds(userId), payload);
+        imEventBus.publish(friendRelationRepository.findFriendIds(userId), payload);
     }
 
     private boolean allowed(Integer userId) {
@@ -206,7 +199,7 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
 
     private static Map<String, Object> error(String message, String clientMsgId) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("type", "ERROR");
+        payload.put("type", ImContracts.TYPE_ERROR);
         payload.put("message", message);
         if (clientMsgId != null) {
             payload.put("clientMsgId", clientMsgId);

@@ -1,6 +1,16 @@
 package com.typinggame.chat.service.impl;
 
-import com.typinggame.chat.im.ImNotifier;
+import com.typinggame.chat.application.ConversationQueryService;
+import com.typinggame.chat.application.ConversationSupport;
+import com.typinggame.chat.application.MessageDtoMapper;
+import com.typinggame.chat.application.MessageReadService;
+import com.typinggame.chat.application.NotificationQueryService;
+import com.typinggame.chat.application.RecallMessageService;
+import com.typinggame.chat.application.SendMessageService;
+import com.typinggame.chat.friends.CanMessageGuard;
+import com.typinggame.chat.friends.JpaCanMessageAdapter;
+import com.typinggame.chat.friends.UserSvcCanMessageAdapter;
+import com.typinggame.chat.im.ImEventBus;
 import com.typinggame.chat.im.MessagePolicy;
 import com.typinggame.chat.repository.ChatAttachmentRepository;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
@@ -17,10 +27,10 @@ import com.typinggame.entity.message.FriendRelation;
 import com.typinggame.entity.message.SystemNotification;
 import com.typinggame.entity.message.UserConversation;
 import com.typinggame.enums.ReadStatus;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -35,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -47,11 +58,36 @@ class MessageServiceImplTest {
     @Mock private UserConversationRepository userConversationRepository;
     @Mock private UserInfoRepository userInfoRepository;
     @Mock private FriendRelationRepository friendRelationRepository;
-    @Mock private ImNotifier imNotifier;
+    @Mock private ImEventBus imEventBus;
     @Mock private SystemNotificationRepository systemNotificationRepository;
     @Mock private ChatAttachmentService chatAttachmentService;
     @Mock private ChatAttachmentRepository chatAttachmentRepository;
-    @InjectMocks private MessageServiceImpl service;
+
+    private MessageServiceImpl service;
+
+    @BeforeEach
+    void setUp() {
+        MessageDtoMapper mapper = new MessageDtoMapper(userInfoRepository, chatAttachmentRepository);
+        ConversationSupport conversationSupport = new ConversationSupport(userConversationRepository);
+        NotificationQueryService notificationQueryService = new NotificationQueryService(
+                friendChatMessageRepository, systemNotificationRepository, userConversationRepository, mapper);
+        CanMessageGuard canMessageGuard = new CanMessageGuard(
+                new JpaCanMessageAdapter(friendRelationRepository),
+                mock(UserSvcCanMessageAdapter.class),
+                "local");
+        SendMessageService sendMessageService = new SendMessageService(
+                friendChatMessageRepository, canMessageGuard, chatAttachmentService,
+                conversationSupport, mapper, imEventBus);
+        RecallMessageService recallMessageService = new RecallMessageService(
+                friendChatMessageRepository, userConversationRepository, mapper, imEventBus);
+        ConversationQueryService conversationQueryService = new ConversationQueryService(
+                userConversationRepository, friendChatMessageRepository, userInfoRepository, mapper);
+        MessageReadService messageReadService = new MessageReadService(
+                friendChatMessageRepository, userConversationRepository, imEventBus);
+        service = new MessageServiceImpl(
+                sendMessageService, recallMessageService, conversationQueryService,
+                messageReadService, notificationQueryService);
+    }
 
     private static UserConversation conversation(Integer unread) {
         UserConversation c = new UserConversation();
@@ -155,7 +191,7 @@ class MessageServiceImplTest {
 
         assertTrue(senderRow.getIsRecall());
         assertTrue(receiverRow.getIsRecall());
-        verify(imNotifier).pushRecall(eq(List.of(3, 5)), eq("c1"));
+        verify(imEventBus).pushRecall(eq(List.of(3, 5)), eq("c1"));
 
         senderRow.setIsRecall(false);
         senderRow.setSendTime(LocalDateTime.now().minusMinutes(3));
@@ -193,7 +229,7 @@ class MessageServiceImplTest {
         assertEquals(ReadStatus.READ.getCode(), onMine.getReadStatus());
         assertEquals(ReadStatus.READ.getCode(), onTheirs.getReadStatus());
         assertEquals(ReadStatus.UNREAD.getCode(), elsewhere.getReadStatus());
-        verify(imNotifier).pushRead(3, 5);
+        verify(imEventBus).pushRead(3, 5);
     }
 
     private void stubAcceptedPair() {
