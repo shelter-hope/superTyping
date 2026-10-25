@@ -6,6 +6,7 @@ import com.typinggame.entity.config.SystemParam;
 import com.typinggame.entity.game.SystemMonsterConfig;
 import com.typinggame.game.repository.CharacterStatsRepository;
 import com.typinggame.game.repository.ConfigTemplateRepository;
+import com.typinggame.game.repository.GameLeaderboardEntryRepository;
 import com.typinggame.game.repository.GameModeConfigRepository;
 import com.typinggame.game.repository.GameRecordRepository;
 import com.typinggame.game.repository.ModelConstantRepository;
@@ -49,7 +50,7 @@ class InternalAdminServiceImplTest {
                 mock(SystemMonsterTypeConfigRepository.class), mock(SystemMonsterCommoConfigRepository.class),
                 monsterConfigRepository, mock(ModelConstantRepository.class), mock(ModelInitParamsRepository.class),
                 mock(GameModeConfigRepository.class), mock(UserModelAdaptLogRepository.class),
-                mock(ConfigTemplateRepository.class), new ObjectMapper());
+                mock(ConfigTemplateRepository.class), mock(GameLeaderboardEntryRepository.class), new ObjectMapper());
     }
 
     @Test

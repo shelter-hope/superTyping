@@ -1,7 +1,7 @@
-package com.typinggame.chat.service.impl;
+package com.typinggame.game.service.impl;
 
-import com.typinggame.chat.repository.LeaderboardEntryRepository;
-import com.typinggame.chat.service.LeaderboardService;
+import com.typinggame.game.repository.GameLeaderboardEntryRepository;
+import com.typinggame.game.service.LeaderboardService;
 import com.typinggame.dto.leaderboard.LeaderboardDTO;
 import com.typinggame.entity.leaderboard.LeaderboardEntry;
 import com.typinggame.enums.GameMode;
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class LeaderboardServiceImpl implements LeaderboardService {
 
-    private final LeaderboardEntryRepository leaderboardEntryRepository;
+    private final GameLeaderboardEntryRepository leaderboardEntryRepository;
 
     @Override
     public List<LeaderboardDTO> getGlobalLeaderboard(String mode, int limit) {

@@ -1,11 +1,6 @@
 package com.typinggame.chat.service.impl;
 
-import com.typinggame.chat.repository.CustomDictionaryRepository;
-import com.typinggame.chat.repository.DictionaryWordRepository;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
-import com.typinggame.chat.repository.LeaderboardEntryRepository;
-import com.typinggame.chat.repository.SystemDictionaryRepository;
-import com.typinggame.chat.repository.SystemDictionaryWordRepository;
 import com.typinggame.chat.repository.SystemNotificationRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
 import com.typinggame.chat.repository.UserInfoRepository;
@@ -36,11 +31,8 @@ class InternalAdminServiceImplTest {
     void setUp() {
         notificationRepository = mock(SystemNotificationRepository.class);
         userInfoRepository = mock(UserInfoRepository.class);
-        service = new InternalAdminServiceImpl(mock(SystemDictionaryRepository.class),
-                mock(CustomDictionaryRepository.class), mock(LeaderboardEntryRepository.class),
-                mock(UserConversationRepository.class), mock(FriendChatMessageRepository.class),
-                mock(SystemDictionaryWordRepository.class), mock(DictionaryWordRepository.class),
-                notificationRepository, userInfoRepository);
+        service = new InternalAdminServiceImpl(mock(UserConversationRepository.class),
+                mock(FriendChatMessageRepository.class), notificationRepository, userInfoRepository);
     }
 
     @SuppressWarnings("unchecked")

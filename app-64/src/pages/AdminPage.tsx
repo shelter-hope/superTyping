@@ -181,8 +181,9 @@ function DashboardView() {
   const users = overview?.users;
   const games = overview?.games;
   const chat = overview?.chat;
+  const dictionaries = overview?.dictionaries;
   const unavailable = overview
-    ? [!users && '用户服务', !games && '游戏服务', !chat && '聊天服务'].filter(Boolean)
+    ? [!users && '用户服务', !games && '游戏服务', !chat && '聊天服务', !dictionaries && '词库服务'].filter(Boolean)
     : [];
 
   return (
@@ -211,8 +212,8 @@ function DashboardView() {
         <StatCard title="聊天消息总数" value={chat?.messageCount} sub={chat ? `今日 ${chat.messagesToday} 条` : undefined} />
         <StatCard
           title="词库数量"
-          value={chat ? chat.systemDictionaryCount + chat.customDictionaryCount : undefined}
-          sub={chat ? `系统 ${chat.systemDictionaryCount} / 自定义 ${chat.customDictionaryCount}` : undefined}
+          value={dictionaries ? dictionaries.systemDictionaryCount + dictionaries.customDictionaryCount : undefined}
+          sub={dictionaries ? `系统 ${dictionaries.systemDictionaryCount} / 自定义 ${dictionaries.customDictionaryCount}` : undefined}
         />
         <StatCard title="已发送通知" value={chat?.notificationCount} />
       </div>

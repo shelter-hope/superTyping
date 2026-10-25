@@ -1,0 +1,14 @@
+server:
+  port: 8087
+  servlet:
+    context-path: /dict-svc
+
+spring:
+  application:
+    name: dict-svc
+  profiles:
+    default: local
+  config:
+    import:
+      - optional:classpath:config/config.properties
+      - optional:classpath:config/jdbc.properties

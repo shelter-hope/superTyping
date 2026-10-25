@@ -14,6 +14,7 @@ import com.typinggame.entity.config.SystemParam;
 import com.typinggame.entity.game.GameRecord;
 import com.typinggame.entity.game.StringParent;
 import com.typinggame.entity.game.SystemMonsterConfig;
+import com.typinggame.entity.leaderboard.LeaderboardEntry;
 import com.typinggame.game.admin.PartialUpdate;
 import com.typinggame.entity.model.ModelConstant;
 import com.typinggame.entity.model.ModelInitParams;
@@ -21,6 +22,7 @@ import com.typinggame.entity.model.UserModelAdaptLog;
 import com.typinggame.entity.user.CharacterStats;
 import com.typinggame.game.repository.CharacterStatsRepository;
 import com.typinggame.game.repository.ConfigTemplateRepository;
+import com.typinggame.game.repository.GameLeaderboardEntryRepository;
 import com.typinggame.game.repository.GameModeConfigRepository;
 import com.typinggame.game.repository.GameRecordRepository;
 import com.typinggame.game.repository.ModelConstantRepository;
@@ -81,6 +83,7 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     private final GameModeConfigRepository gameModeConfigRepository;
     private final UserModelAdaptLogRepository userModelAdaptLogRepository;
     private final ConfigTemplateRepository configTemplateRepository;
+    private final GameLeaderboardEntryRepository leaderboardEntryRepository;
     private final ObjectMapper objectMapper;
 
     public InternalAdminServiceImpl(GameRecordRepository gameRecordRepository,
@@ -96,6 +99,7 @@ public class InternalAdminServiceImpl implements InternalAdminService {
                                     GameModeConfigRepository gameModeConfigRepository,
                                     UserModelAdaptLogRepository userModelAdaptLogRepository,
                                     ConfigTemplateRepository configTemplateRepository,
+                                    GameLeaderboardEntryRepository leaderboardEntryRepository,
                                     ObjectMapper objectMapper) {
         this.gameRecordRepository = gameRecordRepository;
         this.monsterDataRepository = monsterDataRepository;
@@ -110,6 +114,7 @@ public class InternalAdminServiceImpl implements InternalAdminService {
         this.gameModeConfigRepository = gameModeConfigRepository;
         this.userModelAdaptLogRepository = userModelAdaptLogRepository;
         this.configTemplateRepository = configTemplateRepository;
+        this.leaderboardEntryRepository = leaderboardEntryRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -336,6 +341,14 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     public void deleteConfigTemplate(Integer id) {
         if (!configTemplateRepository.existsById(id)) throw BusinessException.notFound("配置模板不存在");
         configTemplateRepository.deleteById(id);
+    }
+
+    @Override
+    public Map<String, Object> getLeaderboardEntries(int page, int pageSize, Integer userId, String gameMode) {
+        AdminFilter<LeaderboardEntry> filter = AdminFilter.of(LeaderboardEntry.class).eq("userId", userId).eq("gameMode", gameMode);
+        int size = Math.min(200, Math.max(1, pageSize));
+        PageRequest pageRequest = PageRequest.of(Math.max(0, page - 1), size, Sort.by(Sort.Direction.DESC, "totalScore"));
+        return AdminPageSupport.pageMap("items", leaderboardEntryRepository.findAll(filter, pageRequest));
     }
 
     @Override

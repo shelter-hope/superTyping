@@ -49,8 +49,9 @@
 - `typingGame/common/`：公共实体、DTO、工具与跨服务共享代码。
 - `typingGame/api-gateway/`：统一网关入口。
 - `typingGame/user-svc/`：用户、登录、配置、好友关系等用户域能力。
-- `typingGame/game-core-svc/`：游戏记录、统计、自适应、怪物、模型配置等游戏核心能力。
-- `typingGame/chat-svc/`：词库、排行榜、好友消息、通知等社交与内容能力。
+- `typingGame/game-core-svc/`：游戏记录、统计、自适应、怪物、模型配置、排行榜等游戏核心能力。
+- `typingGame/chat-svc/`：好友消息、通知、即时通讯。
+- `typingGame/dict-svc/`：系统词库、自定义词库、词条与词库文件。对局抽词仍由 game-core-svc 直接读同一张词库表。
 - `typingGame/ai-svc/`：AI 会话、训练摘要、AI 消息等能力。
 - `typingGame/admin-svc/`：管理后台聚合服务，只做聚合/代理，不承载领域规则。
 

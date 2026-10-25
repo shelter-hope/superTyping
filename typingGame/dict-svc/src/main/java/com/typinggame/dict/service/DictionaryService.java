@@ -1,4 +1,4 @@
-package com.typinggame.chat.service;
+package com.typinggame.dict.service;
 
 import com.typinggame.dto.dictionary.DictionaryCreateDTO;
 import com.typinggame.entity.dictionaries.CustomDictionary;

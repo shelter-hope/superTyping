@@ -1,9 +1,8 @@
-package com.typinggame.chat.controller;
+package com.typinggame.game.controller;
 
-import com.typinggame.chat.service.LeaderboardService;
+import com.typinggame.game.service.LeaderboardService;
 import com.typinggame.dto.leaderboard.LeaderboardDTO;
 import com.typinggame.vo.ResultMessage;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,8 +14,11 @@ import java.util.List;
 @RequestMapping("/api/v1/leaderboard")
 public class LeaderboardController {
 
-    @Autowired
-    private LeaderboardService leaderboardService;
+    private final LeaderboardService leaderboardService;
+
+    public LeaderboardController(LeaderboardService leaderboardService) {
+        this.leaderboardService = leaderboardService;
+    }
 
     @GetMapping
     public ResponseEntity<ResultMessage<List<LeaderboardDTO>>> getLeaderboard(

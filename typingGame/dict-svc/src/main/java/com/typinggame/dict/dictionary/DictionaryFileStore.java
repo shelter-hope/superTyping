@@ -1,4 +1,4 @@
-package com.typinggame.chat.dictionary;
+package com.typinggame.dict.dictionary;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

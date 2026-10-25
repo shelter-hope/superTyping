@@ -1,11 +1,6 @@
 package com.typinggame.chat.service.impl;
 
-import com.typinggame.chat.repository.CustomDictionaryRepository;
-import com.typinggame.chat.repository.DictionaryWordRepository;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
-import com.typinggame.chat.repository.LeaderboardEntryRepository;
-import com.typinggame.chat.repository.SystemDictionaryRepository;
-import com.typinggame.chat.repository.SystemDictionaryWordRepository;
 import com.typinggame.chat.repository.SystemNotificationRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
 import com.typinggame.chat.repository.UserInfoRepository;
@@ -13,9 +8,6 @@ import com.typinggame.chat.service.InternalAdminService;
 import com.typinggame.common.admin.AdminFilter;
 import com.typinggame.common.admin.AdminPageSupport;
 import com.typinggame.common.exception.BusinessException;
-import com.typinggame.entity.dictionaries.CustomDictionary;
-import com.typinggame.entity.dictionaries.SystemDictionary;
-import com.typinggame.entity.leaderboard.LeaderboardEntry;
 import com.typinggame.entity.message.FriendChatMessage;
 import com.typinggame.entity.message.SystemNotification;
 import com.typinggame.entity.message.UserConversation;
@@ -34,84 +26,38 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     /** system_notification.notification_type：2-系统公告 */
     static final int TYPE_ANNOUNCEMENT = 2;
 
-    private final SystemDictionaryRepository systemDictionaryRepository;
-    private final CustomDictionaryRepository customDictionaryRepository;
-    private final LeaderboardEntryRepository leaderboardEntryRepository;
     private final UserConversationRepository userConversationRepository;
     private final FriendChatMessageRepository friendChatMessageRepository;
-    private final SystemDictionaryWordRepository systemDictionaryWordRepository;
-    private final DictionaryWordRepository dictionaryWordRepository;
     private final SystemNotificationRepository systemNotificationRepository;
     private final UserInfoRepository userInfoRepository;
 
-    public InternalAdminServiceImpl(SystemDictionaryRepository systemDictionaryRepository,
-                                    CustomDictionaryRepository customDictionaryRepository,
-                                    LeaderboardEntryRepository leaderboardEntryRepository,
-                                    UserConversationRepository userConversationRepository,
+    public InternalAdminServiceImpl(UserConversationRepository userConversationRepository,
                                     FriendChatMessageRepository friendChatMessageRepository,
-                                    SystemDictionaryWordRepository systemDictionaryWordRepository,
-                                    DictionaryWordRepository dictionaryWordRepository,
                                     SystemNotificationRepository systemNotificationRepository,
                                     UserInfoRepository userInfoRepository) {
-        this.systemDictionaryRepository = systemDictionaryRepository;
-        this.customDictionaryRepository = customDictionaryRepository;
-        this.leaderboardEntryRepository = leaderboardEntryRepository;
         this.userConversationRepository = userConversationRepository;
         this.friendChatMessageRepository = friendChatMessageRepository;
-        this.systemDictionaryWordRepository = systemDictionaryWordRepository;
-        this.dictionaryWordRepository = dictionaryWordRepository;
         this.systemNotificationRepository = systemNotificationRepository;
         this.userInfoRepository = userInfoRepository;
     }
 
     @Override
-    public Map<String, Object> getSystemDictionaries(int page, int pageSize, String name, String category, Boolean isActive) {
-        AdminFilter<SystemDictionary> f = AdminFilter.of(SystemDictionary.class)
-                .like("name", name).like("category", category).eq("isActive", isActive);
-        return AdminPageSupport.pageMap("items", systemDictionaryRepository.findAll(f, pageable(page, pageSize, "dictId")));
-    }
-
-    @Override
-    public Map<String, Object> getCustomDictionaries(int page, int pageSize, Integer userId, String name, Boolean isPublic) {
-        AdminFilter<CustomDictionary> f = AdminFilter.of(CustomDictionary.class)
-                .eq("userId", userId).like("name", name).eq("isPublic", isPublic);
-        return AdminPageSupport.pageMap("items", customDictionaryRepository.findAll(f, pageable(page, pageSize, "dictId")));
-    }
-
-    @Override
-    public Map<String, Object> getLeaderboardEntries(int page, int pageSize, Integer userId, String gameMode) {
-        AdminFilter<LeaderboardEntry> f = AdminFilter.of(LeaderboardEntry.class).eq("userId", userId).eq("gameMode", gameMode);
-        PageRequest pr = PageRequest.of(Math.max(0, page - 1), clamp(pageSize), Sort.by(Sort.Direction.DESC, "totalScore"));
-        return AdminPageSupport.pageMap("items", leaderboardEntryRepository.findAll(f, pr));
-    }
-
-    @Override
     public Map<String, Object> getUserConversations(int page, int pageSize, Integer userId) {
-        AdminFilter<UserConversation> f = AdminFilter.of(UserConversation.class).eq("userId", userId);
-        return AdminPageSupport.pageMap("items", userConversationRepository.findAll(f, pageable(page, pageSize, "id")));
+        AdminFilter<UserConversation> filter = AdminFilter.of(UserConversation.class).eq("userId", userId);
+        return AdminPageSupport.pageMap("items", userConversationRepository.findAll(filter, pageable(page, pageSize, "id")));
     }
 
     @Override
     public Map<String, Object> getFriendChatMessages(int page, int pageSize, Integer conversationId) {
-        AdminFilter<FriendChatMessage> f = AdminFilter.of(FriendChatMessage.class).eq("conversationId", conversationId);
-        return AdminPageSupport.pageMap("items", friendChatMessageRepository.findAll(f, pageable(page, pageSize, "id")));
+        AdminFilter<FriendChatMessage> filter = AdminFilter.of(FriendChatMessage.class).eq("conversationId", conversationId);
+        return AdminPageSupport.pageMap("items", friendChatMessageRepository.findAll(filter, pageable(page, pageSize, "id")));
     }
 
     @Override
     public Map<String, Object> getSystemNotifications(int page, int pageSize, Integer userId, Integer notificationType, Boolean isRead) {
-        AdminFilter<SystemNotification> f = AdminFilter.of(SystemNotification.class)
+        AdminFilter<SystemNotification> filter = AdminFilter.of(SystemNotification.class)
                 .eq("userId", userId).eq("notificationType", notificationType).eq("isRead", isRead);
-        return AdminPageSupport.pageMap("items", systemNotificationRepository.findAll(f, pageable(page, pageSize, "id")));
-    }
-
-    @Override
-    public Map<String, Object> getSystemDictionaryWords(Integer dictId, int page, int pageSize) {
-        return AdminPageSupport.pageMap("items", systemDictionaryWordRepository.findByDictId(dictId, pageable(page, pageSize, null)));
-    }
-
-    @Override
-    public Map<String, Object> getCustomDictionaryWords(Integer dictId, int page, int pageSize) {
-        return AdminPageSupport.pageMap("items", dictionaryWordRepository.findByDictId(dictId, pageable(page, pageSize, null)));
+        return AdminPageSupport.pageMap("items", systemNotificationRepository.findAll(filter, pageable(page, pageSize, "id")));
     }
 
     @Override
@@ -161,19 +107,12 @@ public class InternalAdminServiceImpl implements InternalAdminService {
         return AdminPageSupport.map(
                 "messageCount", friendChatMessageRepository.count(),
                 "messagesToday", friendChatMessageRepository.count(AdminFilter.of(FriendChatMessage.class).between("sendTime", todayStart, null)),
-                "systemDictionaryCount", systemDictionaryRepository.count(),
-                "customDictionaryCount", customDictionaryRepository.count(),
                 "notificationCount", systemNotificationRepository.count());
     }
 
     private PageRequest pageable(int page, int pageSize, String sortDescField) {
         int p = Math.max(0, page - 1);
-        return sortDescField == null
-                ? PageRequest.of(p, clamp(pageSize))
-                : PageRequest.of(p, clamp(pageSize), Sort.by(Sort.Direction.DESC, sortDescField));
-    }
-
-    private static int clamp(int pageSize) {
-        return Math.min(200, Math.max(1, pageSize));
+        int size = Math.min(200, Math.max(1, pageSize));
+        return PageRequest.of(p, size, Sort.by(Sort.Direction.DESC, sortDescField));
     }
 }

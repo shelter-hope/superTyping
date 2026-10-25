@@ -1,6 +1,6 @@
-package com.typinggame.chat.controller;
+package com.typinggame.dict.controller;
 
-import com.typinggame.chat.service.DictionaryAdminService;
+import com.typinggame.dict.service.DictionaryAdminService;
 import com.typinggame.entity.dictionaries.CustomDictionary;
 import com.typinggame.entity.dictionaries.SystemDictionary;
 import com.typinggame.entity.dictionaries.SystemDictionaryWord;

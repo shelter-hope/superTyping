@@ -12,7 +12,7 @@
     <artifactId>chat-svc</artifactId>
     <packaging>jar</packaging>
     <name>chat-svc</name>
-    <description>社交聊天服务 - 好友聊天、排行榜、消息通知、词典管理</description>
+    <description>社交聊天服务 - 好友聊天、消息通知、即时通讯</description>
     
     <dependencies>
         <dependency>

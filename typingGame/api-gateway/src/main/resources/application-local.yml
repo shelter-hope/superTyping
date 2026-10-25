@@ -51,10 +51,24 @@ spring:
             - Path=/ws/**
           filters:
             - PrefixPath=/chat-svc
+        - id: dict-service
+          uri: lb://dict-svc
+          predicates:
+            - Path=/api/v1/dictionary/**,/api/v1/dictionaries/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/dict-svc
+        - id: game-leaderboard
+          uri: lb://game-core-svc
+          predicates:
+            - Path=/api/v1/leaderboard/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/game-core-svc
         - id: chat-service
           uri: lb://chat-svc
           predicates:
-            - Path=/api/v1/messages/**,/api/v1/leaderboard/**,/api/v1/dictionary/**,/api/v1/dictionaries/**
+            - Path=/api/v1/messages/**
           filters:
             - StripPrefix=0
             - PrefixPath=/chat-svc

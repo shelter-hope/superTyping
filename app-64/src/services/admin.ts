@@ -268,15 +268,18 @@ export interface AdminOverview {
   chat: {
     messageCount: number;
     messagesToday: number;
+    notificationCount: number;
+  } | null;
+  /** 词库数量来自 dict-svc 的 overview/dictionaries，不跟聊天统计混在一起。 */
+  dictionaries: {
     systemDictionaryCount: number;
     customDictionaryCount: number;
-    notificationCount: number;
   } | null;
 }
 
 export async function adminGetOverview(): Promise<AdminOverview> {
   const response = await apiClient.get('/admin/overview');
-  return response.data.data ?? { users: null, games: null, chat: null };
+  return response.data.data ?? { users: null, games: null, chat: null, dictionaries: null };
 }
 
 export interface AdminOperationLogEntry {

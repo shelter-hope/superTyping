@@ -73,9 +73,10 @@
 |----------|------|------|------|
 | api-gateway | 8080 | 统一入口、路由转发 | ✅ |
 | user-svc | 8081 | 用户认证、用户管理、好友管理 | ✅ |
-| game-core-svc | 8082 | 游戏核心逻辑、游戏记录、自适应算法、统计分析 | ✅ |
+| game-core-svc | 8082 | 游戏核心逻辑、游戏记录、自适应算法、统计分析、排行榜 | ✅ |
 | ai-svc | 8083 | AI 对话、训练建议、LLM 集成 | ✅ |
-| chat-svc | 8084 | 消息中心、排行榜、词库管理 | ✅ |
+| chat-svc | 8084 | 消息中心、通知、IM | ✅ |
+| dict-svc | 8087 | 系统词库、自定义词库、词库文件 | ✅ |
 
 ---
 
@@ -157,9 +158,9 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 | `/api/v1/stats/**` | game-core-svc | 统计分析 |
 | `/api/v1/ai/**` | ai-svc | AI 助手对话 |
 | `/api/v1/messages/**` | chat-svc | 消息中心 |
-| `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
-| `/api/v1/dictionaries/**` | chat-svc | 词库管理 |
-| `/api/v1/dictionary/**` | chat-svc | 词库管理历史兼容路径 |
+| `/api/v1/leaderboard/**` | game-core-svc | 排行榜 |
+| `/api/v1/dictionaries/**` | dict-svc | 词库管理 |
+| `/api/v1/dictionary/**` | dict-svc | 词库管理历史兼容路径 |
 
 ---
 
@@ -334,13 +335,13 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 | getConversationMessages | 获取会话消息 | Integer userId, Integer conversationId, Pageable | Page<MessageDTO> |
 | createConversation | 创建会话 | Integer userId, Integer targetUserId | ConversationDTO |
 
-### 6.10 排行榜服务 (LeaderboardService) - chat-svc
+### 6.10 排行榜服务 (LeaderboardService) - game-core-svc
 
 | 方法名 | 功能说明 | 参数 | 返回值 |
 | :--- | :--- | :--- | :--- |
 | getLeaderboard | 获取排行榜 | String gameMode, Integer limit | List<LeaderboardDTO> |
 
-### 6.11 词库服务 (DictionaryService) - chat-svc
+### 6.11 词库服务 (DictionaryService) - dict-svc
 
 | 方法名 | 功能说明 | 参数 | 返回值 |
 | :--- | :--- | :--- | :--- |
@@ -419,13 +420,13 @@ API 网关统一入口：`http://localhost:8080/typingWord`
 | GET | /api/v1/messages/conversations/{conversationId} | 获取会话消息 | 是 |
 | POST | /api/v1/messages/send | 发送消息 | 是 |
 
-### 7.9 排行榜控制器 (LeaderboardController) - chat-svc
+### 7.9 排行榜控制器 (LeaderboardController) - game-core-svc
 
 | HTTP方法 | 路径 | 功能 | 需要认证 |
 | :--- | :--- | :--- | :--- |
 | GET | /api/v1/leaderboard/{gameMode} | 获取排行榜 | 否 |
 
-### 7.10 词库控制器 (DictionaryController) - chat-svc
+### 7.10 词库控制器 (DictionaryController) - dict-svc
 
 | HTTP方法 | 路径 | 功能 | 需要认证 |
 | :--- | :--- | :--- | :--- |
@@ -559,7 +560,7 @@ spring:
         - id: chat-svc
           uri: lb://chat-svc
           predicates:
-            - Path=/api/v1/messages/**,/api/v1/leaderboard/**,/api/v1/dictionary/**,/api/v1/dictionaries/**
+            - Path=/api/v1/messages/**
 ```
 
 #### 用户服务 (user-svc)

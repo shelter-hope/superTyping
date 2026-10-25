@@ -30,7 +30,8 @@ public class AdminLocalController {
     private static final Map<String, String> OVERVIEW_SOURCES = Map.of(
             "users", "user-svc",
             "games", "game-core-svc",
-            "chat", "chat-svc");
+            "chat", "chat-svc",
+            "dictionaries", "dict-svc");
 
     private final RestTemplate restTemplate;
     private final OperationLogService operationLogService;

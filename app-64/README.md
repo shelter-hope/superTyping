@@ -55,8 +55,8 @@
 | `/api/v1/admin/**` | admin-svc | 管理后台聚合接口 |
 | `/api/v1/ai/**` | ai-svc | AI 助手 |
 | `/api/v1/messages/**` | chat-svc | 消息中心 |
-| `/api/v1/leaderboard/**` | chat-svc | 排行榜 |
-| `/api/v1/dictionary/**`、`/api/v1/dictionaries/**` | chat-svc | 词库管理 |
+| `/api/v1/leaderboard/**` | game-core-svc | 排行榜 |
+| `/api/v1/dictionary/**`、`/api/v1/dictionaries/**` | dict-svc | 词库管理 |
 
 ---
 
@@ -117,7 +117,7 @@ app-64/
 │   │   ├── user.ts              # 用户服务 → user-svc
 │   │   ├── game.ts              # 游戏服务 → game-core-svc
 │   │   ├── stats.ts             # 统计服务 → game-core-svc
-│   │   ├── dictionary.ts        # 词库服务 → chat-svc
+│   │   ├── dictionary.ts        # 词库服务 → dict-svc
 │   │   ├── social.ts            # 社交服务 → user-svc / chat-svc
 │   │   ├── ai.ts                # AI 服务 → ai-svc
 │   │   └── admin.ts             # 管理服务 → 各服务
@@ -239,9 +239,9 @@ API 服务按业务域拆分为独立模块，每个模块负责特定业务的�
 |------|------|------|----------|
 | 认证 | services/auth.ts | 登录、注册、令牌刷新 | user-svc |
 | 用户 | services/user.ts | 用户资料、设置 | user-svc |
-| 游戏 | services/game.ts | 游戏核心、记录、配置、排行榜封装 | game-core-svc / chat-svc |
+| 游戏 | services/game.ts | 游戏核心、记录、配置、排行榜封装 | game-core-svc |
 | 统计 | services/stats.ts | 数据统计、趋势分析 | game-core-svc |
-| 词库 | services/dictionary.ts | 词库管理、单词查询 | chat-svc |
+| 词库 | services/dictionary.ts | 词库管理、单词查询 | dict-svc |
 | 社交 | services/social.ts | 好友、聊天、消息 | user-svc / chat-svc |
 | AI | services/ai.ts | AI 助手对话 | ai-svc |
 | 管理 | services/admin.ts | 管理后台接口 | admin-svc（代理各领域服务内部管理接口） |

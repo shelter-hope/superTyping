@@ -38,5 +38,6 @@ public interface InternalAdminService {
     Map<String, Object> getConfigTemplate(Integer id);
     Map<String, Object> saveConfigTemplate(String name, Object config, Integer operatorId);
     void deleteConfigTemplate(Integer id);
+    Map<String, Object> getLeaderboardEntries(int page, int pageSize, Integer userId, String gameMode);
     Map<String, Object> getOverview();
 }

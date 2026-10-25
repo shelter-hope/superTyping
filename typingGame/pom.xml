@@ -19,6 +19,7 @@
         <module>chat-svc</module>
         <module>admin-svc</module>
         <module>lab-svc</module>
+        <module>dict-svc</module>
     </modules>
     
     <properties>
