@@ -5,11 +5,13 @@ import com.typinggame.common.exception.BusinessException;
 import com.typinggame.entity.config.SystemParam;
 import com.typinggame.entity.game.SystemMonsterConfig;
 import com.typinggame.game.admin.ConfigAdminService;
+import com.typinggame.game.admin.ConfusionAdminService;
 import com.typinggame.game.admin.LeaderboardAdminService;
 import com.typinggame.game.admin.RecordAdminService;
 import com.typinggame.game.admin.RuleAdminService;
 import com.typinggame.game.repository.CharacterStatsRepository;
 import com.typinggame.game.repository.ConfigTemplateRepository;
+import com.typinggame.game.repository.KeyConfusionRepository;
 import com.typinggame.game.repository.GameLeaderboardEntryRepository;
 import com.typinggame.game.repository.GameModeConfigRepository;
 import com.typinggame.game.repository.GameRecordRepository;
@@ -60,7 +62,8 @@ class InternalAdminServiceImplTest {
                 mock(GameModeConfigRepository.class), mock(UserModelAdaptLogRepository.class), objectMapper);
         RuleAdminService rules = new RuleAdminService(systemParamRepository, mock(ConfigTemplateRepository.class), objectMapper);
         LeaderboardAdminService leaderboard = new LeaderboardAdminService(mock(GameLeaderboardEntryRepository.class), records);
-        service = new InternalAdminServiceImpl(records, configs, rules, leaderboard);
+        service = new InternalAdminServiceImpl(records, configs, rules, leaderboard,
+                new ConfusionAdminService(mock(KeyConfusionRepository.class)));
     }
 
     @Test

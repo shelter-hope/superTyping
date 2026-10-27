@@ -53,6 +53,11 @@ public class InternalAdminController {
         return ok(internalAdminService.getCharacterStats(page, pageSize, userId, charType, charValue));
     }
 
+    @GetMapping("/key-confusion")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> keyConfusion(@RequestParam Integer userId, @RequestParam(defaultValue = "20") int limit) {
+        return ok(internalAdminService.getKeyConfusion(userId, limit));
+    }
+
     @GetMapping("/monster-data")
     public ResponseEntity<ResultMessage<Map<String, Object>>> monsterData(@RequestParam Integer recordId, @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "100") int pageSize) {
         return ok(internalAdminService.getMonsterData(recordId, page, pageSize));

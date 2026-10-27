@@ -107,6 +107,32 @@ export async function adminGetCharacterStats(params: {
   return response.data.data;
 }
 
+export interface KeyConfusionItem {
+  expectedChar: string;
+  typedChar: string;
+  confusionCount: number;
+}
+
+export interface KeyConfusionGroup {
+  expectedChar: string;
+  total: number;
+  items: KeyConfusionItem[];
+}
+
+export interface KeyConfusionResult {
+  userId: number | null;
+  limit: number;
+  total: number;
+  items: KeyConfusionItem[];
+  byExpected: KeyConfusionGroup[];
+}
+
+/** 管理端按用户查看按键混淆档案（来自逐键埋点 key_confusion）。 */
+export async function adminGetKeyConfusion(userId: number, limit = 20): Promise<KeyConfusionResult> {
+  const response = await apiClient.get('/admin/key-confusion', { params: { userId, limit } });
+  return response.data.data;
+}
+
 export async function adminGetUserDailyStats(params: {
   page?: number;
   pageSize?: number;

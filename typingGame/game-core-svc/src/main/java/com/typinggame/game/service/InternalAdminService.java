@@ -13,6 +13,8 @@ public interface InternalAdminService {
     void deleteGameRecord(Integer recordId);
     void deleteUserGameData(Integer userId);
     Map<String, Object> getCharacterStats(int page, int pageSize, Integer userId, String charType, String charValue);
+    /** 按用户查看按键混淆档案（逐键埋点聚合），limit 上限 100 */
+    Map<String, Object> getKeyConfusion(Integer userId, int limit);
     Map<String, Object> getMonsterData(Integer recordId, int page, int pageSize);
     Map<String, Object> getStringParents(int page, int pageSize, Integer userId);
     Map<String, Object> getSystemParams(int page, int pageSize, String paramName);

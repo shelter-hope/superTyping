@@ -162,7 +162,8 @@ mvn -pl game-core-svc -am test -Dtest='GeneticEngineTest+RuleEngineTest' -Dsuref
 
 ## 九、已知缺口
 
-1. **混淆对回看只做了个人页**——`GET /api/v1/stats/key-confusion?userId=&limit=` 已返回
-   「该打 A 却打成 B × 次数」，个人档案页有「最常打错的键」面板；管理端按用户查看还没做；
+1. **混淆对回看**——`GET /api/v1/stats/key-confusion?userId=&limit=` 已返回「该打 A 却打成 B × 次数」，
+   个人档案页有「最常打错的键」面板；管理端在「按键混淆」页签按用户查
+   `GET /api/v1/admin/key-confusion?userId=&limit=`（`ConfusionAdminService`，同时给出明细与按期望键聚合）；
 2. **适应度只用于局内**——跨局父本只有顺序，没有分数；若要跨局也做锦标赛，得把 `string_parents` 升级成带 fitness 的表；
 3. **精英只在单次调用内保留**——两次 `evolve` 调用之间没有代际记忆，代际目前只体现在 `monster_data.generation` 字段上。

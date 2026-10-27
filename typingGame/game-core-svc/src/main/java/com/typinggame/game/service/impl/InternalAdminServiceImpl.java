@@ -6,6 +6,7 @@ import com.typinggame.entity.game.GameRecord;
 import com.typinggame.entity.model.ModelConstant;
 import com.typinggame.entity.model.ModelInitParams;
 import com.typinggame.game.admin.ConfigAdminService;
+import com.typinggame.game.admin.ConfusionAdminService;
 import com.typinggame.game.admin.LeaderboardAdminService;
 import com.typinggame.game.admin.RecordAdminService;
 import com.typinggame.game.admin.RuleAdminService;
@@ -22,15 +23,18 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     private final ConfigAdminService configAdminService;
     private final RuleAdminService ruleAdminService;
     private final LeaderboardAdminService leaderboardAdminService;
+    private final ConfusionAdminService confusionAdminService;
 
     public InternalAdminServiceImpl(RecordAdminService recordAdminService,
                                     ConfigAdminService configAdminService,
                                     RuleAdminService ruleAdminService,
-                                    LeaderboardAdminService leaderboardAdminService) {
+                                    LeaderboardAdminService leaderboardAdminService,
+                                    ConfusionAdminService confusionAdminService) {
         this.recordAdminService = recordAdminService;
         this.configAdminService = configAdminService;
         this.ruleAdminService = ruleAdminService;
         this.leaderboardAdminService = leaderboardAdminService;
+        this.confusionAdminService = confusionAdminService;
     }
 
     @Override
@@ -56,6 +60,11 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     @Override
     public Map<String, Object> getCharacterStats(int page, int pageSize, Integer userId, String charType, String charValue) {
         return recordAdminService.getCharacterStats(page, pageSize, userId, charType, charValue);
+    }
+
+    @Override
+    public Map<String, Object> getKeyConfusion(Integer userId, int limit) {
+        return confusionAdminService.getKeyConfusion(userId, limit);
     }
 
     @Override

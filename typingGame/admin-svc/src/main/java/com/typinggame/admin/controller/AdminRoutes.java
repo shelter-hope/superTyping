@@ -26,6 +26,7 @@ final class AdminRoutes {
             Route.prefix("/custom-dictionaries", "dict-svc"),
             Route.prefix("/custom-dictionary-words", "dict-svc"),
             Route.prefix("/leaderboard-entries", "game-core-svc"),
+            Route.prefix("/key-confusion", "game-core-svc"),
             Route.prefix("/user-conversations", "chat-svc"),
             Route.prefix("/friend-chat-messages", "chat-svc"),
             Route.prefix("/system-notifications", "chat-svc"),

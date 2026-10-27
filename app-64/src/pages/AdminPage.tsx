@@ -16,6 +16,7 @@ import {
   Settings2,
   FlaskConical,
   Microscope,
+  KeyRound,
 } from 'lucide-react';
 import GameRuleManagement from '@/components/admin/GameRuleManagement';
 import UserManagement from '@/components/admin/UserManagement';
@@ -27,6 +28,7 @@ import SystemParamsManagement from '@/components/admin/SystemParamsManagement';
 import SystemDictionaryManagement from '@/components/admin/SystemDictionaryManagement';
 import LeaderboardManagement from '@/components/admin/LeaderboardManagement';
 import CharacterStatsOverview from '@/components/admin/CharacterStatsOverview';
+import KeyConfusionManagement from '@/components/admin/KeyConfusionManagement';
 import NotificationManagement from '@/components/admin/NotificationManagement';
 import OperationLogView from '@/components/admin/OperationLogView';
 import AdvancedConfigManagement from '@/components/admin/AdvancedConfigManagement';
@@ -44,6 +46,7 @@ type TabType =
   | 'systemDicts'
   | 'leaderboard'
   | 'charStats'
+  | 'keyConfusion'
   | 'notifications'
   | 'advanced'
   | 'logs'
@@ -60,6 +63,7 @@ const TAB_IDS: TabType[] = [
   'systemDicts',
   'leaderboard',
   'charStats',
+  'keyConfusion',
   'notifications',
   'advanced',
   'logs',
@@ -86,6 +90,7 @@ export default function AdminPage() {
     { id: 'systemDicts' as TabType, name: '系统词库', icon: BookOpen },
     { id: 'leaderboard' as TabType, name: '排行榜条目', icon: BarChart3 },
     { id: 'charStats' as TabType, name: '字符统计', icon: BarChart3 },
+    { id: 'keyConfusion' as TabType, name: '按键混淆', icon: KeyRound },
     { id: 'notifications' as TabType, name: '系统公告', icon: Megaphone },
     { id: 'logs' as TabType, name: '操作日志', icon: ScrollText },
     { id: 'rules' as TabType, name: '规则引擎', icon: FlaskConical },
@@ -145,6 +150,7 @@ export default function AdminPage() {
         {activeTab === 'systemDicts' && <SystemDictionaryManagement />}
         {activeTab === 'leaderboard' && <LeaderboardManagement />}
         {activeTab === 'charStats' && <CharacterStatsOverview />}
+        {activeTab === 'keyConfusion' && <KeyConfusionManagement />}
         {activeTab === 'notifications' && <NotificationManagement />}
         {activeTab === 'logs' && <OperationLogView />}
         {activeTab === 'rules' && <GameRuleManagement />}
