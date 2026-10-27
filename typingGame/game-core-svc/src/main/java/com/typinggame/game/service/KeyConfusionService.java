@@ -1,5 +1,6 @@
 package com.typinggame.game.service;
 
+import com.typinggame.dto.stats.KeyConfusionPairDTO;
 import com.typinggame.dto.stats.KeyConfusionUpdateDTO;
 
 import java.util.List;
@@ -23,4 +24,11 @@ public interface KeyConfusionService {
 
     /** 条数上限校验用：返回该用户档案总条数 */
     long countByUserId(Integer userId);
+
+    /**
+     * 取该用户最强的混淆对（本该输入的字符 → 实际打成什么 + 次数），按累计次数降序。
+     *
+     * @param limit 最多返回多少对，服务端会再做一次上限保护
+     */
+    List<KeyConfusionPairDTO> getTopConfusions(Integer userId, int limit);
 }

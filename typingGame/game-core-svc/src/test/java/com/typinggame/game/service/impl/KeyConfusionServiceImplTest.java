@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -108,6 +109,35 @@ class KeyConfusionServiceImplTest {
     void countIsZeroForAnonymousUser() {
         assertEquals(0L, service.countByUserId(null));
         assertTrue(service.getConfusionMap(null, 5, 3).isEmpty());
+        assertTrue(service.getTopConfusions(null, 5).isEmpty());
+    }
+
+    @Test
+    void topConfusionsMapRowsAndCapLimit() {
+        when(repository.findByUserIdOrderByConfusionCountDesc(eq(7), any()))
+                .thenReturn(List.of(row("i", "t", 12), row("e", "r", 5)));
+
+        var pairs = service.getTopConfusions(7, 2);
+
+        assertEquals(2, pairs.size());
+        assertEquals("i", pairs.get(0).getExpectedChar());
+        assertEquals("t", pairs.get(0).getTypedChar());
+        assertEquals(12, pairs.get(0).getCount());
+
+        ArgumentCaptor<PageRequest> captor = ArgumentCaptor.forClass(PageRequest.class);
+        verify(repository, times(1)).findByUserIdOrderByConfusionCountDesc(eq(7), captor.capture());
+        assertEquals(2, captor.getValue().getPageSize());
+    }
+
+    @Test
+    void topConfusionsClampLimitIntoRange() {
+        service.getTopConfusions(7, 0);
+        service.getTopConfusions(7, 500);
+
+        ArgumentCaptor<PageRequest> captor = ArgumentCaptor.forClass(PageRequest.class);
+        verify(repository, times(2)).findByUserIdOrderByConfusionCountDesc(eq(7), captor.capture());
+        assertEquals(1, captor.getAllValues().get(0).getPageSize());
+        assertEquals(50, captor.getAllValues().get(1).getPageSize());
     }
 
     private static KeyConfusionUpdateDTO update(String expected, String typed, int count) {

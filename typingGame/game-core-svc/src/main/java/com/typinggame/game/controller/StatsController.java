@@ -1,9 +1,11 @@
 package com.typinggame.game.controller;
 
 import com.typinggame.dto.stats.ErrorComparisonDTO;
+import com.typinggame.dto.stats.KeyConfusionPairDTO;
 import com.typinggame.dto.stats.TrainingSuggestionDTO;
 import com.typinggame.dto.stats.TrendPointDTO;
 import com.typinggame.dto.stats.TypingBehaviorDTO;
+import com.typinggame.game.service.KeyConfusionService;
 import com.typinggame.game.service.StatsService;
 import com.typinggame.vo.ResultMessage;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +25,11 @@ import java.util.List;
 public class StatsController {
 
     private final StatsService statsService;
+    private final KeyConfusionService keyConfusionService;
 
-    public StatsController(StatsService statsService) {
+    public StatsController(StatsService statsService, KeyConfusionService keyConfusionService) {
         this.statsService = statsService;
+        this.keyConfusionService = keyConfusionService;
     }
 
     @GetMapping("/typing-behavior/{userId}")
@@ -76,6 +80,15 @@ public class StatsController {
     public ResponseEntity<ResultMessage<ErrorComparisonDTO>> getErrorComparison(@RequestParam("userId") Integer userId) {
         ensureSelf(userId);
         return ResponseEntity.ok(ResultMessage.success(statsService.getErrorComparison(userId)));
+    }
+
+    /** 个人页「最常打错的键」：按累计次数降序返回混淆对 */
+    @GetMapping("/key-confusion")
+    public ResponseEntity<ResultMessage<List<KeyConfusionPairDTO>>> getKeyConfusion(
+            @RequestParam("userId") Integer userId,
+            @RequestParam(value = "limit", defaultValue = "5") int limit) {
+        ensureSelf(userId);
+        return ResponseEntity.ok(ResultMessage.success(keyConfusionService.getTopConfusions(userId, limit)));
     }
 
     private Integer getCurrentUserId() {

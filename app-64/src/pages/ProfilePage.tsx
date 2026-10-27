@@ -15,8 +15,10 @@ import {
   getAiTrainingSummary,
   getErrorComparison,
   getMostErrorCharacters,
+  getTopKeyConfusions,
   getUserGameRecords,
   getUserStats,
+  type KeyConfusionPair,
   type UserStats,
 } from '@/db/api';
 import type { AiTrainingSummary } from '@/db/api';
@@ -63,6 +65,7 @@ export default function ProfilePage() {
   const [charStats, setCharStats] = useState<CharacterStat[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [errorComparison, setErrorComparison] = useState<{ thisWeekErrors: number; lastWeekErrors: number; change: number; changeRate?: number } | null>(null);
+  const [confusions, setConfusions] = useState<KeyConfusionPair[]>([]);
   const [loading, setLoading] = useState(true);
   const [aiSummary, setAiSummary] = useState<AiTrainingSummary | null>(null);
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
@@ -120,6 +123,14 @@ export default function ProfilePage() {
           change: errComp.change ?? 0,
           changeRate: errComp.changeRate,
         });
+      }
+
+      // 按键混淆档案单独兜底：老后端还没有这个接口时，其余区块照常显示
+      try {
+        const pairs = await getTopKeyConfusions(user.userId, 6);
+        setConfusions(pairs);
+      } catch (confusionError) {
+        console.warn('加载按键混淆档案失败:', confusionError);
       }
     } catch (error) {
       console.error('加载数据失败:', error);
@@ -318,6 +329,36 @@ export default function ProfilePage() {
             ) : (
               <p className="mt-4 border-t border-border py-6 text-[13px] text-muted-foreground">
                 还没有字符数据：打完一局，错过的字会记在这里。
+              </p>
+            )}
+          </section>
+
+          <section className="mt-10 border-t border-border pt-6">
+            <SectionHeading title="最常打错的键" note="confusion · 该打 A 却打成 B" />
+            {confusions.length > 0 ? (
+              <ol className="mt-4 grid border-t border-l border-border sm:grid-cols-2">
+                {confusions.map((pair, index) => (
+                  <li
+                    key={`${pair.expectedChar}>${pair.typedChar}`}
+                    className="flex items-baseline justify-between gap-3 border-r border-b border-border px-4 py-3"
+                  >
+                    <div className="flex min-w-0 items-baseline gap-2">
+                      <span className="label-mono text-[9px]">{String(index + 1).padStart(2, '0')}</span>
+                      <span className="font-serif text-[19px] leading-none">
+                        {pair.expectedChar === ' ' ? '空格' : pair.expectedChar}
+                      </span>
+                      <span className="text-[12px] text-muted-foreground">→</span>
+                      <span className="font-serif text-[19px] leading-none text-accent">
+                        {pair.typedChar === ' ' ? '空格' : pair.typedChar}
+                      </span>
+                    </div>
+                    <span className="mono-num shrink-0 text-[12px] text-muted-foreground">{pair.count} 次</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-4 border-t border-border py-6 text-[13px] text-muted-foreground">
+                还没有混淆记录：打错时会一并记下「本该打什么」，攒几局就能看出你的固定手误。
               </p>
             )}
           </section>

@@ -65,6 +65,9 @@
 > 每组最多 3 个替代字符，注入 `GeneticEngine.Request.confusion`。局内遗传
 > （`GameConfigServiceImpl.buildGeneticMonsters`）和跨局遗传
 > （`EndlessAdaptiveWordSourceStrategy`）都走同一份映射。
+>
+> 回看：`GET /api/v1/stats/key-confusion?userId=&limit=` 按累计次数返回混淆对，
+> 个人档案页的「最常打错的键」直接读它。
 
 ### 3.4 选择与精英
 
@@ -159,7 +162,7 @@ mvn -pl game-core-svc -am test -Dtest='GeneticEngineTest+RuleEngineTest' -Dsuref
 
 ## 九、已知缺口
 
-1. **混淆对已有数据、但还缺「回看」**——埋点、落库、注入引擎都已完成；还差把 `key_confusion`
-   展示出来（个人页「你最常打错的键」）和管理端支持按用户查看；
+1. **混淆对回看只做了个人页**——`GET /api/v1/stats/key-confusion?userId=&limit=` 已返回
+   「该打 A 却打成 B × 次数」，个人档案页有「最常打错的键」面板；管理端按用户查看还没做；
 2. **适应度只用于局内**——跨局父本只有顺序，没有分数；若要跨局也做锦标赛，得把 `string_parents` 升级成带 fitness 的表；
 3. **精英只在单次调用内保留**——两次 `evolve` 调用之间没有代际记忆，代际目前只体现在 `monster_data.generation` 字段上。

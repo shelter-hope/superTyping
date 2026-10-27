@@ -1,5 +1,6 @@
 package com.typinggame.game.service.impl;
 
+import com.typinggame.dto.stats.KeyConfusionPairDTO;
 import com.typinggame.dto.stats.KeyConfusionUpdateDTO;
 import com.typinggame.entity.user.KeyConfusion;
 import com.typinggame.game.repository.KeyConfusionRepository;
@@ -26,6 +27,8 @@ public class KeyConfusionServiceImpl implements KeyConfusionService {
     private static final int MAX_UPDATES_PER_REPORT = 2000;
     /** 单条混淆一次最多累加多少，避免脏数据把权重拉爆 */
     private static final int MAX_COUNT_PER_ENTRY = 1000;
+    /** 个人页回看一次最多返回多少对，防止接口被用来翻全表 */
+    private static final int MAX_TOP_CONFUSIONS = 50;
 
     private final KeyConfusionRepository keyConfusionRepository;
 
@@ -109,6 +112,23 @@ public class KeyConfusionServiceImpl implements KeyConfusionService {
     @Override
     public long countByUserId(Integer userId) {
         return userId == null ? 0L : keyConfusionRepository.countByUserId(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<KeyConfusionPairDTO> getTopConfusions(Integer userId, int limit) {
+        if (userId == null) {
+            return List.of();
+        }
+        int safeLimit = Math.min(Math.max(limit, 1), MAX_TOP_CONFUSIONS);
+        return keyConfusionRepository
+                .findByUserIdOrderByConfusionCountDesc(userId, PageRequest.of(0, safeLimit))
+                .stream()
+                .map(row -> new KeyConfusionPairDTO(
+                        row.getExpectedChar(),
+                        row.getTypedChar(),
+                        nullSafe(row.getConfusionCount())))
+                .toList();
     }
 
     private KeyConfusion create(Integer userId, String expectedChar, String typedChar) {

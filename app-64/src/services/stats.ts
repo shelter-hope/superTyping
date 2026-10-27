@@ -83,3 +83,18 @@ export async function getErrorComparison(userId: number): Promise<any> {
   });
   return response.data.data;
 }
+
+/** 一个「本该打 A 却打成 B」的混淆对（个人页回看用） */
+export interface KeyConfusionPair {
+  expectedChar: string;
+  typedChar: string;
+  count: number;
+}
+
+/** 取本人最强的若干混淆对，按累计次数降序 */
+export async function getTopKeyConfusions(userId: number, limit = 5): Promise<KeyConfusionPair[]> {
+  const response = await apiClient.get('/stats/key-confusion', {
+    params: { userId, limit }
+  });
+  return response.data.data || [];
+}
