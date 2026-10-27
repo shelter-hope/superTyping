@@ -2,12 +2,13 @@ import * as React from "react";
 
 import { cn } from "@/utils";
 
+/* 卡片 = 一条发丝线围起来的纸面，不加阴影、不发光 */
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "industrial-panel flex flex-col gap-6 py-6 text-card-foreground",
+        "industrial-panel flex flex-col gap-5 py-6 text-card-foreground",
         className
       )}
       {...props}
@@ -20,7 +21,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-header"
       className={cn(
-        "@container/card-header relative grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 border-b border-border/70 px-6 pb-4 has-data-[slot=card-action]:grid-cols-[1fr_auto] before:absolute before:bottom-0 before:left-6 before:h-px before:w-24 before:bg-primary/60 before:shadow-[0_0_10px_hsl(var(--primary)/0.4)]",
+        "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 border-b border-border px-6 pb-4 has-data-[slot=card-action]:grid-cols-[1fr_auto]",
         className
       )}
       {...props}
@@ -32,7 +33,10 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("industrial-heading leading-none", className)}
+      className={cn(
+        "display-serif text-[15px] leading-snug tracking-[0.01em]",
+        className
+      )}
       {...props}
     />
   );
@@ -42,7 +46,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-description"
-      className={cn("text-muted-foreground text-sm tracking-[0.04em]", className)}
+      className={cn("text-muted-foreground text-[13px] leading-relaxed", className)}
       {...props}
     />
   );

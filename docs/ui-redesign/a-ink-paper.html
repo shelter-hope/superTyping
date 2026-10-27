@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>方向 A · 纸与墨</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --paper:#F7F4ED; --paper2:#EEE8DB; --ink:#17150F; --ink2:#332E24;
+    --muted:#6E6659; --line:#D8D0BF; --red:#CE3A2A; --teal:#1E4B45; --gold:#A8842C;
+    --serif:"Songti SC","Noto Serif SC","Source Han Serif SC",SimSun,Georgia,serif;
+    --sans:"Inter","PingFang SC","Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;
+    --mono:"JetBrains Mono","Cascadia Code",Consolas,"Courier New",monospace;
+  }
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.68;letter-spacing:.012em;font-feature-settings:"tnum"}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:9;opacity:.35;
+    background-image:radial-gradient(rgba(23,21,15,.06) .5px,transparent .5px);background-size:4px 4px}
+  .label{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .screen{position:relative;padding:0 0 0}
+  /* ---------- top bar ---------- */
+  .bar{display:flex;align-items:center;gap:40px;padding:26px 64px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:baseline;gap:9px;font-family:var(--serif);font-size:23px;letter-spacing:.06em}
+  .brand i{width:7px;height:7px;background:var(--red);border-radius:50%;display:inline-block;transform:translateY(-4px)}
+  .nav{display:flex;gap:30px;font-size:13px;letter-spacing:.06em;color:var(--muted)}
+  .nav b{font-weight:500;color:var(--ink);border-bottom:1.5px solid var(--red);padding-bottom:4px}
+  .bar .right{margin-left:auto;display:flex;align-items:center;gap:22px;font-size:13px;color:var(--muted)}
+  /* ---------- hero ---------- */
+  .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:72px;padding:78px 64px 54px}
+  .eyebrow{display:flex;align-items:center;gap:14px;margin-bottom:34px}
+  .eyebrow::before{content:"";width:46px;height:1px;background:var(--ink);opacity:.5}
+  h1{font-family:var(--serif);font-weight:400;font-size:76px;line-height:1.1;letter-spacing:.01em;margin-bottom:26px}
+  h1 em{font-style:normal;color:var(--red)}
+  h1 .k{display:inline-block;border-bottom:1px solid var(--ink);padding-bottom:2px}
+  .sub{max-width:35ch;color:var(--muted);font-size:15.5px;margin-bottom:38px}
+  .sub b{color:var(--ink);font-weight:500}
+  .cta{display:flex;align-items:center;gap:26px}
+  .btn{display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:var(--paper);
+    font-size:14px;letter-spacing:.06em;padding:15px 26px;border-radius:1px;border:1px solid var(--ink);cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:transparent;border-bottom:1px solid var(--ink2);border-radius:0;padding:8px 2px}
+  .meta{margin-top:46px;display:flex;gap:0;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em}
+  .meta span{padding:0 16px;border-left:1px solid var(--line)}
+  .meta span:first-child{padding-left:0;border-left:0}
+  /* ---------- specimen ---------- */
+  .sheet{background:var(--paper2);border:1px solid var(--line);padding:30px 30px 22px;position:relative}
+  .sheet::before{content:"D";position:absolute;top:-1px;right:-1px;background:var(--ink);color:var(--paper);
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;padding:5px 9px}
+  .sheet .cap{display:flex;justify-content:space-between;margin-bottom:18px}
+  .ln{display:flex;align-items:baseline;gap:16px;padding:13px 0;border-top:1px solid var(--line)}
+  .ln:first-of-type{border-top:0}
+  .ln .no{font-family:var(--mono);font-size:11px;color:var(--muted);width:16px}
+  .ln .word{font-family:var(--mono);font-size:18px;letter-spacing:.14em}
+  .ln .word s{color:var(--red);text-decoration:none;border-bottom:2px solid var(--red)}
+  .ln .st{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .ln .st bad{color:var(--red)}
+  .caret{display:inline-block;width:2px;height:19px;background:var(--red);transform:translateY(4px);margin-left:2px;animation:none}
+  .hint{margin-top:20px;font-size:12.5px;color:var(--muted);border-left:2px solid var(--red);padding-left:12px}
+  /* ---------- stat strip ---------- */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);margin:0 64px;border-top:1px solid var(--ink);border-bottom:1px solid var(--line)}
+  .stat{padding:30px 0 28px 30px;border-left:1px solid var(--line)}
+  .stat:first-child{border-left:0;padding-left:0}
+  .stat .num{font-family:var(--serif);font-size:44px;line-height:1;letter-spacing:.01em}
+  .stat .num small{font-size:20px;color:var(--muted);margin-left:3px}
+  .stat .label{margin-top:10px}
+  /* ---------- ink screen ---------- */
+  .ink{background:#121110;color:#EEE7D8;padding:54px 64px 40px;position:relative;overflow:hidden}
+  .ink::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(700px 320px at 15% 0%,rgba(206,58,42,.16),transparent 70%)}
+  .ink .label{color:#8B8477}
+  .inktop{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #2A2721;padding-bottom:20px;margin-bottom:36px}
+  .inktop h2{font-family:var(--serif);font-weight:400;font-size:30px}
+  .field{display:flex;align-items:flex-end;gap:26px;margin-bottom:34px}
+  .foe{font-family:var(--serif);font-size:52px;letter-spacing:.02em;color:#6F6A5F;position:relative;padding-bottom:6px}
+  .foe.on{color:#F3ECDC}
+  .foe.on::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:2px;background:var(--red);box-shadow:0 0 14px rgba(206,58,42,.7)}
+  .foe .bad{color:var(--red)}
+  .inkrow{display:flex;gap:56px;border-top:1px solid #2A2721;padding-top:26px}
+  .inkstat{min-width:150px}
+  .inkstat .v{font-family:var(--mono);font-size:30px;letter-spacing:.04em}
+  .inkstat .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:#8B8477;margin-top:8px}
+  .meter{margin-top:12px;height:2px;background:#2A2721;position:relative}
+  .meter i{position:absolute;left:0;top:0;bottom:0;background:var(--red)}
+  .foot{display:flex;gap:26px;margin-top:34px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#8B8477}
+  .foot kbd{border:1px solid #3A362E;padding:2px 7px;color:#C9C1AF;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="bar">
+    <div class="brand"><i></i>打字进化</div>
+    <div class="nav"><b>首页</b><span>群体智能实验室</span><span>排行榜</span></div>
+    <div class="right"><span>登录</span><span>注册</span></div>
+  </div>
+
+  <div class="hero">
+    <div>
+      <div class="eyebrow label">群体智能 · 打字训练</div>
+      <h1>每一局，<br>都为你<em>重新排版</em>。</h1>
+      <p class="sub">系统记录你的误触与速度，用遗传算法重排字符，用难度模型把你的准确率稳定在 <b>85%</b>——那个学得最快的区间。</p>
+      <div class="cta">
+        <button class="btn">开始一局 →</button>
+        <button class="btn ghost">先看看我的弱点</button>
+      </div>
+      <div class="meta"><span>A 0.85</span><span>v 120 cpm</span><span>D 0.42</span><span>第 7 轮</span></div>
+    </div>
+
+    <div class="sheet">
+      <div class="cap"><span class="label">本轮字帖 · 已校</span><span class="label">0.42s / 字</span></div>
+      <div class="ln"><span class="no">01</span><span class="word">rhythm</span><span class="st">✓ 0.42s</span></div>
+      <div class="ln"><span class="no">02</span><span class="word">wai<s>†</s>scoat<span class="caret"></span></span><span class="st"><bad>错 i→t</bad></span></div>
+      <div class="ln"><span class="no">03</span><span class="word">throughput</span><span class="st">✓ 0.38s</span></div>
+      <p class="hint">下一轮会把 <b>i / t</b> 的混淆编进怪物序列——错过的字符，会回来找你。</p>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="num">85.2<small>%</small></div><div class="label">准确率 · Accuracy</div></div>
+    <div class="stat"><div class="num">98<small>cpm</small></div><div class="label">速度 · Speed</div></div>
+    <div class="stat"><div class="num">7<small>个</small></div><div class="label">弱点字符 · Weak Keys</div></div>
+  </div>
+</div>
+
+<div class="ink screen">
+  <div class="inktop">
+    <div><div class="label">对局中 · 第 7 轮</div><h2>字符正在靠近</h2></div>
+    <div class="label">00:42</div>
+  </div>
+  <div class="field">
+    <div class="foe on">th<span class="bad">e</span>r</div>
+    <div class="foe">wai†</div>
+    <div class="foe">sa·ma</div>
+    <div class="foe">ri</div>
+  </div>
+  <div class="inkrow">
+    <div class="inkstat"><div class="v">0.83</div><div class="k">ACCURACY</div><div class="meter"><i style="width:83%"></i></div></div>
+    <div class="inkstat"><div class="v">27</div><div class="k">COMBO</div><div class="meter"><i style="width:68%"></i></div></div>
+    <div class="inkstat"><div class="v">0.42</div><div class="k">DIFFICULTY D</div><div class="meter"><i style="width:42%"></i></div></div>
+  </div>
+  <div class="foot"><span><kbd>Tab</kbd>换目标</span><span><kbd>Shift</kbd>中 / 英</span><span><kbd>Caps</kbd>大小写</span></div>
+</div>
+</body>
+</html>

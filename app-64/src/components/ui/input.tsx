@@ -8,9 +8,14 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex h-9 w-full min-w-0 rounded-[1.25rem] border border-primary/30 bg-card/80 px-3 py-1 text-base text-foreground transition-[border-color,box-shadow,background] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        "focus-visible:border-ring focus-visible:ring-ring/30 focus-visible:ring-[2px]",
-        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+        "flex h-10 w-full min-w-0 rounded-[2px] border border-border bg-transparent px-3 py-2 text-[14px] text-foreground outline-none transition-[border-color,background]",
+        "placeholder:text-muted-foreground/70 placeholder:tracking-[0.02em]",
+        "selection:bg-accent selection:text-accent-foreground",
+        "file:mr-2 file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
+        "hover:border-foreground/35",
+        "focus-visible:border-foreground focus-visible:bg-foreground/[0.02]",
+        "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+        "aria-invalid:border-destructive",
         className
       )}
       {...props}

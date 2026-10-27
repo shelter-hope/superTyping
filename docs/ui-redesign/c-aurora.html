@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>方向 C · 霞光玻璃</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0C0F15; --text:#EEF1F6; --muted:#98A1B0; --mint:#7DF7D3; --violet:#A78BFA;
+    --line:rgba(255,255,255,.09); --glass:rgba(255,255,255,.045);
+    --sans:"Inter","PingFang SC","Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;
+    --mono:"JetBrains Mono","Cascadia Code",Consolas,monospace;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.65;letter-spacing:.01em;overflow-x:hidden}
+  body::before{content:"";position:fixed;inset:-20%;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(560px 420px at 16% 8%,rgba(125,247,211,.20),transparent 70%),
+      radial-gradient(620px 460px at 86% 2%,rgba(167,139,250,.20),transparent 70%),
+      radial-gradient(520px 420px at 60% 42%,rgba(125,247,211,.08),transparent 70%);
+    filter:blur(8px)}
+  .screen{position:relative;z-index:1}
+  .glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+  /* bar */
+  .bar{display:flex;align-items:center;gap:34px;padding:20px 48px;margin:22px 40px 0;border-radius:18px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:.04em}
+  .brand .dot{width:26px;height:26px;border-radius:9px;background:linear-gradient(135deg,var(--mint),var(--violet));box-shadow:0 6px 18px rgba(125,247,211,.28)}
+  .nav{display:flex;gap:26px;font-size:13.5px;color:var(--muted)}
+  .nav .on{color:var(--text)}
+  .bar .right{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:13px;color:var(--muted)}
+  .pill{font-size:12px;padding:7px 14px;border-radius:999px;border:1px solid var(--line);color:var(--text)}
+  .pill.fill{background:linear-gradient(135deg,var(--mint),#4ED0AE);color:#07231C;border:0;font-weight:600;box-shadow:0 8px 24px rgba(125,247,211,.22)}
+  /* hero */
+  .hero{padding:74px 48px 20px;text-align:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);
+    border:1px solid var(--line);background:var(--glass);padding:7px 14px;border-radius:999px;margin-bottom:28px}
+  .eyebrow b{color:var(--mint);font-weight:600}
+  h1{font-size:62px;line-height:1.1;letter-spacing:-.02em;font-weight:600;margin-bottom:22px}
+  h1 .grad{background:linear-gradient(100deg,var(--mint),#9AD9FF 45%,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{max-width:56ch;margin:0 auto 34px;color:var(--muted);font-size:16px}
+  .sub b{color:var(--text);font-weight:500}
+  .cta{display:flex;justify-content:center;gap:14px;margin-bottom:58px}
+  .btn{font-size:14px;padding:14px 26px;border-radius:999px;border:1px solid var(--line);background:var(--glass);color:var(--text);cursor:pointer}
+  .btn.primary{background:linear-gradient(135deg,var(--mint),#5BE0BC);color:#062A21;border:0;font-weight:600;
+    box-shadow:0 12px 34px rgba(125,247,211,.25), inset 0 1px 0 rgba(255,255,255,.5)}
+  /* cards */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding:0 48px}
+  .card{border-radius:22px;padding:26px 24px 28px}
+  .card .ic{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;font-family:var(--mono);font-size:13px;
+    background:rgba(125,247,211,.10);border:1px solid rgba(125,247,211,.22);color:var(--mint);margin-bottom:18px}
+  .card h3{font-size:16px;font-weight:600;margin-bottom:8px}
+  .card p{font-size:13.5px;color:var(--muted);line-height:1.7}
+  .card .v{font-family:var(--mono);font-size:26px;letter-spacing:.01em;margin-top:16px}
+  .card .v small{font-size:12px;color:var(--muted);margin-left:6px;letter-spacing:.08em}
+  /* game */
+  .game{margin:44px 48px 0;border-radius:26px;padding:24px 26px 26px;position:relative;overflow:hidden}
+  .game::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(520px 260px at 22% 0%,rgba(167,139,250,.16),transparent 70%)}
+  .ghead{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;position:relative}
+  .ghead .l{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+  .live{font-size:11px;letter-spacing:.1em;color:#062A21;background:var(--mint);padding:5px 10px;border-radius:999px;font-weight:700}
+  .arena{height:186px;border-radius:18px;border:1px solid rgba(255,255,255,.06);
+    background:linear-gradient(180deg,rgba(8,11,16,.6),rgba(8,11,16,.25));position:relative;overflow:hidden}
+  .arena::before{content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 34px)}
+  .foe{position:absolute;font-family:var(--mono);font-size:20px;letter-spacing:.16em;color:#A9B3C4;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:5px 11px;border-radius:12px}
+  .foe.locked{color:#062A21;background:linear-gradient(135deg,var(--mint),#6FEBD0);border-color:transparent;
+    box-shadow:0 10px 28px rgba(125,247,211,.3);transform:scale(1.06)}
+  .foe.fade{opacity:.55}
+  .gstats{display:flex;gap:14px;margin-top:18px}
+  .gstat{flex:1;border-radius:16px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);padding:14px 16px}
+  .gstat .k{font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+  .gstat .v{font-family:var(--mono);font-size:24px;margin-top:6px}
+  .bar2{height:6px;border-radius:999px;background:rgba(255,255,255,.07);margin-top:12px;overflow:hidden}
+  .bar2 i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--mint),var(--violet))}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="bar glass">
+    <div class="brand"><span class="dot"></span>打字进化</div>
+    <div class="nav"><span class="on">首页</span><span>群体智能实验室</span><span>排行榜</span></div>
+    <div class="right"><span>登录</span><span class="pill fill">注册</span></div>
+  </div>
+
+  <div class="hero">
+    <div class="eyebrow">✦ 难度 <b>0.42</b> · 正在第 7 轮</div>
+    <h1>你的错字，<br>会变成<span class="grad">下一局的敌人</span>。</h1>
+    <p class="sub">每打一局，系统都在你身上多做一次实验：记录误触、估算技能、重排字符。<b>难度永远比你快半步</b>，所以你总在成长的边缘。</p>
+    <div class="cta"><button class="btn primary">开始一局 →</button><button class="btn">看看我的进化史</button></div>
+
+    <div class="cards">
+      <div class="card glass">
+        <div class="ic">01</div><h3>自适应难度</h3>
+        <p>准确率偏多少，难度就走多少，每步封顶 0.05，永远不会把你甩下车。</p>
+        <div class="v">D 0.42 <small>从 0.30 起</small></div>
+      </div>
+      <div class="card glass">
+        <div class="ic">02</div><h3>遗传进化</h3>
+        <p>打错的字符被写进变异池，优秀字符做父本，下一轮怪物带着你的习惯出生。</p>
+        <div class="v">G 12 <small>代</small></div>
+      </div>
+      <div class="card glass">
+        <div class="ic">03</div><h3>逐键档案</h3>
+        <p>每个键的准确率、停顿、混淆方向，都能查到具体数字，不只是感觉。</p>
+        <div class="v">7 <small>个弱点键</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="game glass">
+    <div class="ghead">
+      <div class="l"><span class="live">LIVE</span><span>第 7 轮 · 00:42</span></div>
+      <div class="l">锁定目标后直接输入 · <b style="color:var(--mint)">Tab</b> 换目标</div>
+    </div>
+    <div class="arena">
+      <div class="foe" style="left:40px;bottom:44px">ther</div>
+      <div class="foe locked" style="left:212px;bottom:74px">waits</div>
+      <div class="foe fade" style="left:390px;bottom:36px">sam</div>
+      <div class="foe" style="left:512px;bottom:104px">coat</div>
+    </div>
+    <div class="gstats">
+      <div class="gstat"><div class="k">Accuracy</div><div class="v">0.83</div><div class="bar2"><i style="width:83%"></i></div></div>
+      <div class="gstat"><div class="k">Combo</div><div class="v">27</div><div class="bar2"><i style="width:64%"></i></div></div>
+      <div class="gstat"><div class="k">Difficulty</div><div class="v">0.42</div><div class="bar2"><i style="width:42%"></i></div></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

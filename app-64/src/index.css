@@ -3,90 +3,175 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-  font-family: 'DM Sans';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('../node_modules/@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff2') format('woff2');
-}
+/*
+ * 打字进化 · 设计系统 v2
+ * 主叙事：纸与墨（Paper & Ink）
+ *   - 纸张（浏览 / 档案 / 排行）= 暖白底 + 墨黑字 + 朱红点缀
+ *   - 墨色（对局 / 仪表盘）  = 容器挂 .dark，自动切成近黑底 + 宣纸色字
+ * 规则：
+ *   1) 阴影几乎不用；层级靠 1px 发丝线与留白建立
+ *   2) 圆角只有 2px；数字一律等宽、tabular
+ *   3) 一屏只用一种强调色：朱红。青墨与赭金仅用于数据语义
+ */
 
 @layer base {
-  :root,
-  .dark {
-    --radius: 1.25rem;
+  :root {
+    --radius: 0.125rem;
 
-    --background: 164 42% 6%;
-    --foreground: 160 30% 88%;
+    /* —— 纸 —— */
+    --background: 44 41% 95%;
+    --foreground: 43 19% 7%;
 
-    --card: 216 15% 12%;
-    --card-foreground: 214 18% 82%;
+    --card: 42 38% 91%;
+    --card-foreground: 43 19% 9%;
 
-    --popover: 216 16% 10%;
-    --popover-foreground: 214 18% 82%;
+    --popover: 44 41% 96%;
+    --popover-foreground: 43 19% 9%;
 
-    --primary: 168 100% 62%;
-    --primary-foreground: 168 40% 8%;
-    --primary-glow: 168 100% 74%;
+    --primary: 43 19% 7%;
+    --primary-foreground: 44 41% 96%;
+    --primary-glow: 43 19% 7%;
 
-    --secondary: 221 15% 24%;
-    --secondary-foreground: 211 19% 78%;
+    --secondary: 42 26% 87%;
+    --secondary-foreground: 43 19% 12%;
 
-    --muted: 216 13% 17%;
-    --muted-foreground: 214 9% 56%;
+    --muted: 42 24% 89%;
+    --muted-foreground: 40 11% 37%;
 
-    --accent: 326 100% 66%;
-    --accent-foreground: 326 40% 10%;
+    /* 朱红：唯一强调色 */
+    --accent: 6 66% 49%;
+    --accent-foreground: 44 41% 97%;
 
-    --destructive: 3 34% 45%;
-    --destructive-foreground: 214 18% 86%;
+    --destructive: 3 60% 44%;
+    --destructive-foreground: 44 41% 97%;
 
-    --border: 210 14% 26%;
-    --input: 214 13% 18%;
-    --ring: 195 48% 62%;
+    --border: 42 23% 81%;
+    --input: 42 24% 88%;
+    --ring: 6 66% 49%;
 
-    --chart-1: 168 100% 62%;
-    --chart-2: 326 100% 66%;
-    --chart-3: 38 100% 67%;
-    --chart-4: 168 80% 74%;
-    --chart-5: 164 42% 18%;
+    --chart-1: 43 19% 7%;
+    --chart-2: 6 66% 49%;
+    --chart-3: 168 32% 26%;
+    --chart-4: 42 55% 40%;
+    --chart-5: 40 11% 58%;
 
-    --sidebar: 216 18% 8%;
-    --sidebar-foreground: 214 18% 78%;
-    --sidebar-primary: 198 42% 62%;
-    --sidebar-primary-foreground: 214 25% 8%;
-    --sidebar-accent: 216 13% 16%;
-    --sidebar-accent-foreground: 214 18% 78%;
-    --sidebar-border: 210 14% 25%;
-    --sidebar-ring: 195 48% 62%;
+    --sidebar: 42 30% 92%;
+    --sidebar-foreground: 43 19% 15%;
+    --sidebar-primary: 43 19% 7%;
+    --sidebar-primary-foreground: 44 41% 96%;
+    --sidebar-accent: 42 24% 87%;
+    --sidebar-accent-foreground: 43 19% 15%;
+    --sidebar-border: 42 23% 81%;
+    --sidebar-ring: 6 66% 49%;
 
-    --game-bg: 164 48% 5%;
-    --monster-normal: 168 100% 62%;
-    --monster-attacker: 326 100% 66%;
-    --monster-evasive: 168 80% 74%;
-    --monster-smart: 38 100% 67%;
+    /* —— 数据语义 —— */
+    --ink: 43 19% 7%;
+    --vermilion: 6 66% 49%;
+    --seal-teal: 168 32% 26%;
+    --ochre: 42 55% 40%;
+    --amber: 42 55% 40%;
+    --success: 168 32% 30%;
+    --warning: 42 55% 40%;
+    --info: 200 30% 38%;
 
-    --steel-900: 216 21% 5%;
-    --steel-800: 219 18% 9%;
-    --steel-700: 216 15% 13%;
-    --steel-600: 215 12% 20%;
-    --steel-500: 214 10% 34%;
-    --steel-300: 214 13% 68%;
-    --cold-light: 194 55% 72%;
-    --violet-cold: 232 24% 56%;
+    /* —— 对局（墨色）—— */
+    --game-bg: 40 6% 5%;
+    --monster-normal: 43 19% 18%;
+    --monster-attacker: 6 66% 46%;
+    --monster-evasive: 168 34% 26%;
+    --monster-smart: 42 62% 34%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(168 100% 62% / 0.9), hsl(326 100% 66% / 0.55));
-    --gradient-card: linear-gradient(145deg, hsl(164 32% 12% / 0.96), hsl(164 42% 6% / 0.98));
+    /* —— 旧命名兼容（钢青体系已废弃，映射到纸墨）—— */
+    --steel-900: 43 19% 7%;
+    --steel-800: 43 16% 12%;
+    --steel-700: 40 12% 20%;
+    --steel-600: 40 12% 32%;
+    --steel-500: 40 11% 45%;
+    --steel-300: 40 11% 68%;
+    --cold-light: 168 26% 62%;
+    --violet-cold: 40 10% 62%;
+    --education-blue: 200 30% 38%;
+    --education-green: 168 32% 30%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(43 19% 9%), hsl(43 14% 24%));
+    --gradient-card: linear-gradient(180deg, hsl(var(--card)), hsl(42 32% 89%));
     --gradient-background:
-      radial-gradient(circle at 18% 10%, hsl(168 80% 32% / 0.22), transparent 34rem),
-      radial-gradient(circle at 82% 4%, hsl(326 80% 36% / 0.16), transparent 28rem),
-      linear-gradient(180deg, hsl(164 42% 7%), hsl(164 48% 4%));
+      radial-gradient(1100px 520px at 50% -12%, hsl(42 44% 88% / 0.85), transparent 72%),
+      linear-gradient(180deg, hsl(44 41% 96%), hsl(43 33% 93%));
 
-    --shadow-card: 0 18px 42px hsl(164 40% 2% / 0.56), inset 0 1px 0 hsl(168 80% 70% / 0.08);
-    --shadow-hover: 0 0 0 1px hsl(168 100% 62% / 0.35), 0 18px 46px hsl(168 80% 30% / 0.18);
-    --shadow-glow: 0 0 26px hsl(168 100% 62% / 0.28);
+    --shadow-card: 0 1px 2px hsl(40 30% 55% / 0.14);
+    --shadow-hover: 0 2px 0 hsl(var(--foreground) / 0.08);
+    --shadow-glow: none;
     --transition-smooth: all 160ms cubic-bezier(0.2, 0, 0.1, 1);
-    --amber: 38 100% 67%;
+
+    /* —— 字体族 —— */
+    --font-serif: 'Noto Serif SC', 'Songti SC', 'Source Han Serif SC', SimSun, Georgia, serif;
+    --font-sans: 'Inter', 'PingFang SC', 'Microsoft YaHei UI', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, 'Courier New', monospace;
+
+    color-scheme: light;
+  }
+
+  /* —— 墨色作用域：对局、仪表盘、任何挂 .dark 的容器 —— */
+  .dark {
+    --background: 40 6% 6%;
+    --foreground: 40 22% 90%;
+
+    --card: 40 6% 9%;
+    --card-foreground: 40 20% 88%;
+
+    --popover: 40 6% 9%;
+    --popover-foreground: 40 20% 88%;
+
+    --primary: 40 22% 90%;
+    --primary-foreground: 40 8% 8%;
+    --primary-glow: 40 22% 90%;
+
+    --secondary: 40 6% 14%;
+    --secondary-foreground: 40 18% 84%;
+
+    --muted: 40 6% 13%;
+    --muted-foreground: 40 9% 58%;
+
+    --accent: 6 72% 58%;
+    --accent-foreground: 40 8% 8%;
+
+    --destructive: 6 62% 52%;
+    --destructive-foreground: 40 22% 94%;
+
+    --border: 40 7% 19%;
+    --input: 40 7% 14%;
+    --ring: 6 72% 58%;
+
+    --chart-1: 40 22% 90%;
+    --chart-2: 6 72% 58%;
+    --chart-3: 168 36% 52%;
+    --chart-4: 42 60% 58%;
+    --chart-5: 40 9% 48%;
+
+    --sidebar: 40 6% 8%;
+    --sidebar-foreground: 40 18% 84%;
+    --sidebar-primary: 40 22% 90%;
+    --sidebar-primary-foreground: 40 8% 8%;
+    --sidebar-accent: 40 6% 13%;
+    --sidebar-accent-foreground: 40 18% 84%;
+    --sidebar-border: 40 7% 17%;
+    --sidebar-ring: 6 72% 58%;
+
+    --gradient-background:
+      radial-gradient(900px 460px at 22% -10%, hsl(6 60% 24% / 0.55), transparent 70%),
+      linear-gradient(180deg, hsl(40 6% 7%), hsl(40 6% 5%));
+    --gradient-card: linear-gradient(180deg, hsl(40 6% 10%), hsl(40 6% 7%));
+    --shadow-card: 0 1px 0 hsl(0 0% 100% / 0.04);
+    --shadow-hover: 0 0 0 1px hsl(var(--accent) / 0.35);
+
+    /* 墨色底上的怪物色（纸面版本见 :root） */
+    --monster-normal: 43 15% 72%;
+    --monster-attacker: 6 72% 58%;
+    --monster-evasive: 168 26% 62%;
+    --monster-smart: 42 60% 62%;
+
+    color-scheme: dark;
   }
 
   * {
@@ -94,135 +179,204 @@
   }
 
   html {
-    color-scheme: dark;
     background: hsl(var(--background));
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   body {
     @apply bg-background text-foreground;
     min-height: 100vh;
     overflow-x: hidden;
-    font-family: "DM Sans", "Microsoft YaHei UI", sans-serif;
-    letter-spacing: 0.015em;
+    font-family: var(--font-sans);
+    letter-spacing: 0.012em;
+    font-feature-settings: "tnum" 1, "ss01" 1;
     background: var(--gradient-background);
+    background-attachment: fixed;
   }
 
+  /* 纸纹：极轻点阵，去掉数码感 */
   body::before {
     position: fixed;
     inset: 0;
     z-index: 2147483640;
     pointer-events: none;
     content: "";
-    background:
-      linear-gradient(hsl(0 0% 100% / 0.025) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(0 0% 100% / 0.018) 1px, transparent 1px),
-      repeating-linear-gradient(180deg, transparent 0 3px, hsl(194 55% 72% / 0.025) 4px 5px);
-    background-size: 56px 56px, 56px 56px, 100% 7px;
+    opacity: 0.5;
+    background-image: radial-gradient(hsl(var(--foreground) / 0.055) 0.5px, transparent 0.5px);
+    background-size: 4px 4px;
+    mix-blend-mode: multiply;
+  }
+
+  .dark body::before {
+    opacity: 0.35;
     mix-blend-mode: screen;
   }
 
-  body::after {
-    position: fixed;
-    inset: 0;
-    z-index: 2147483639;
-    pointer-events: none;
-    content: "";
-    opacity: 0.19;
-    background-image:
-      radial-gradient(circle at 12% 30%, hsl(0 0% 100% / 0.12) 0 1px, transparent 1px),
-      radial-gradient(circle at 70% 20%, hsl(0 0% 100% / 0.08) 0 1px, transparent 1px),
-      radial-gradient(circle at 40% 80%, hsl(0 0% 100% / 0.08) 0 1px, transparent 1px);
-    background-size: 83px 71px, 109px 97px, 151px 131px;
+  h1, h2, h3, h4 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: 0.005em;
   }
 
   ::selection {
-    color: hsl(var(--primary-foreground));
-    background: hsl(var(--primary) / 0.82);
+    color: hsl(var(--accent-foreground));
+    background: hsl(var(--accent) / 0.9);
+  }
+
+  :focus-visible {
+    outline: 1px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 }
 
 @layer components {
+  /* 面板：不再发光，靠发丝线 */
   .industrial-panel {
     position: relative;
-    overflow: hidden;
+    border: 1px solid hsl(var(--border));
     border-radius: var(--radius);
-    background:
-      radial-gradient(circle at 20% 0%, hsl(168 100% 62% / 0.08), transparent 18rem),
-      linear-gradient(180deg, hsl(var(--card) / 0.98), hsl(164 42% 6% / 0.98));
-    border: 1px solid hsl(var(--primary) / 0.28);
-    box-shadow: var(--shadow-card);
-  }
-
-  .industrial-panel::before {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    content: "";
-    background: radial-gradient(circle at 80% 120%, hsl(326 100% 66% / 0.08), transparent 16rem);
+    background: hsl(var(--card));
+    box-shadow: none;
   }
 
   .industrial-heading {
     color: hsl(var(--foreground));
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-shadow: 0 0 18px hsl(var(--primary) / 0.18);
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    text-shadow: none;
   }
 
   .status-light {
-    width: 0.45rem;
-    height: 0.45rem;
-    border: 1px solid hsl(var(--primary) / 0.75);
-    background: hsl(var(--primary) / 0.72);
-    box-shadow: 0 0 12px hsl(var(--primary) / 0.42);
+    width: 0.4rem;
+    height: 0.4rem;
+    background: hsl(var(--accent));
+    border-radius: 999px;
+  }
+
+  /* 编辑式小标签：等宽、大写、宽字距 */
+  .label-mono {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* 章节眉题：— 01 / 机制 */
+  .section-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .section-eyebrow::before {
+    content: "";
+    width: 2.5rem;
+    height: 1px;
+    background: hsl(var(--foreground) / 0.55);
+  }
+
+  .rule {
+    height: 1px;
+    width: 100%;
+    background: hsl(var(--border));
+  }
+
+  .rule-strong {
+    height: 1px;
+    width: 100%;
+    background: hsl(var(--foreground) / 0.75);
+  }
+
+  .keycap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75rem;
+    padding: 0.125rem 0.4rem;
+    border: 1px solid hsl(var(--border));
+    border-bottom-width: 2px;
+    border-radius: 2px;
+    background: hsl(var(--card));
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    color: hsl(var(--foreground));
   }
 }
 
 @layer utilities {
+  /* 旧类名保留，语义改为「墨色衬线」，不再发光 */
   .gradient-text {
-    color: hsl(var(--primary));
-    text-shadow: 0 0 18px hsl(var(--primary) / 0.32);
+    color: hsl(var(--foreground));
+    background: none;
+    text-shadow: none;
   }
 
   .game-canvas {
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
+    image-rendering: auto;
   }
 
   .pixel-font {
-    font-family: "Rajdhani", "Bahnschrift", "Courier New", monospace;
-    font-weight: 700;
+    font-family: var(--font-mono);
+    font-weight: 600;
   }
 
   .glass-effect {
-    background: hsl(var(--card) / 0.78);
+    background: hsl(var(--card) / 0.86);
     border: 1px solid hsl(var(--border));
     backdrop-filter: blur(8px);
   }
 
   .glow-effect {
-    box-shadow: var(--shadow-glow);
+    box-shadow: none;
   }
 
   .smooth-transition {
     transition: var(--transition-smooth);
   }
 
-  @keyframes scan-line {
-    0% { transform: translateY(-100%); opacity: 0; }
-    18% { opacity: 0.65; }
-    100% { transform: translateY(220%); opacity: 0; }
+  .display-serif {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: 0.005em;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  .mono-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+
+  /* 编辑式引文：朱红左线 */
+  .pull-quote {
+    border-left: 2px solid hsl(var(--accent));
+    padding-left: 0.875rem;
   }
 
   @keyframes armor-slide-in {
-    0% { opacity: 0; transform: translateY(10px) scaleX(0.985); clip-path: inset(0 55% 0 0); }
-    100% { opacity: 1; transform: translateY(0) scaleX(1); clip-path: inset(0); }
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes data-flicker {
     0%, 100% { opacity: 1; }
-    42% { opacity: 0.72; }
-    45% { opacity: 0.92; }
-    48% { opacity: 0.6; }
+    42% { opacity: 0.82; }
+    45% { opacity: 0.95; }
+    48% { opacity: 0.75; }
   }
 
   @keyframes shake {
@@ -245,8 +399,8 @@
   }
 
   @keyframes combo-pulse {
-    0%, 100% { transform: scale(1); filter: brightness(1); }
-    50% { transform: scale(1.04); filter: brightness(1.25); }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
   }
 
   .animate-combo {
@@ -254,11 +408,29 @@
   }
 
   .animate-armor-slide-in {
-    animation: armor-slide-in 240ms cubic-bezier(0.2, 0, 0.1, 1);
+    animation: armor-slide-in 200ms cubic-bezier(0.2, 0, 0.1, 1);
   }
 
   .animate-data-flicker {
     animation: data-flicker 2.8s steps(1, end) infinite;
+  }
+
+  @keyframes caret-blink {
+    0%, 45% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  .animate-caret {
+    animation: caret-blink 1.1s steps(1, end) infinite;
+  }
+
+  @keyframes loading-sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
+  }
+
+  .animate-loading-sweep {
+    animation: loading-sweep 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 }
 

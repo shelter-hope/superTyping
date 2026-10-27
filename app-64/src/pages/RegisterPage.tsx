@@ -1,13 +1,18 @@
-// 注册页面
+// 注册页面：左宣言 / 右表单
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+
+const RULES = [
+  ['用户名', '字母、数字与下划线'],
+  ['密码', '至少 6 个字符'],
+  ['数据', '逐键记录只存在本机'],
+];
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -84,18 +89,43 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">注册</CardTitle>
-          <CardDescription className="text-center">
-            创建您的账号以开始游戏
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+    <div className="container grid min-h-[calc(100vh-9rem)] items-center gap-14 py-14 lg:grid-cols-12 lg:gap-8">
+      <div className="lg:col-span-6">
+        <p className="section-eyebrow">账户 · create</p>
+        <h1 className="mt-8 display-serif text-[clamp(2.3rem,4.6vw,3.5rem)] leading-[1.08] tracking-[-0.01em]">
+          建一份档案
+        </h1>
+        <p className="mt-6 max-w-md text-[14px] leading-[2] text-muted-foreground">
+          从第一局开始，它会记录你在哪个键上犹豫、在哪里停顿。
+          三十局之后，你会看见一条只属于你的错字曲线。
+        </p>
+
+        <dl className="mt-10 max-w-md divide-y divide-border border-t border-border">
+          {RULES.map(([k, v]) => (
+            <div key={k} className="flex items-baseline gap-6 py-3">
+              <dt className="label-mono w-16 shrink-0 text-[10px]">{k}</dt>
+              <dd className="text-[12.5px] text-muted-foreground">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+
+      <div className="lg:col-span-5 lg:col-start-8">
+        <form
+          onSubmit={handleSubmit}
+          className="border border-border bg-card p-7 sm:p-9"
+          noValidate
+        >
+          <div className="flex items-baseline justify-between border-b border-border pb-4">
+            <p className="display-serif text-[15px]">注册</p>
+            <span className="label-mono text-[9px]">new profile</span>
+          </div>
+
+          <div className="mt-7 space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="username">用户名</Label>
+              <Label htmlFor="username" className="label-mono text-[10px]">
+                用户名
+              </Label>
               <Input
                 id="username"
                 type="text"
@@ -107,11 +137,13 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">密码</Label>
+              <Label htmlFor="password" className="label-mono text-[10px]">
+                密码
+              </Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="至少6个字符"
+                placeholder="至少 6 个字符"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
@@ -119,7 +151,9 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">确认密码</Label>
+              <Label htmlFor="confirmPassword" className="label-mono text-[10px]">
+                确认密码
+              </Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -130,21 +164,24 @@ export default function RegisterPage() {
                 autoComplete="new-password"
               />
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              注册
-            </Button>
-            <div className="text-sm text-center text-muted-foreground">
-              已有账号？{' '}
-              <Link to="/login" className="text-primary hover:underline">
-                立即登录
-              </Link>
-            </div>
-          </CardFooter>
+          </div>
+
+          <Button type="submit" size="lg" className="mt-8 w-full" disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            注册
+          </Button>
+
+          <p className="mt-6 text-center text-[12px] text-muted-foreground">
+            已有档案？{' '}
+            <Link
+              to="/login"
+              className="text-foreground underline decoration-accent decoration-2 underline-offset-4 hover:text-accent"
+            >
+              立即登录
+            </Link>
+          </p>
         </form>
-      </Card>
+      </div>
     </div>
   );
 }

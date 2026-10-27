@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>方向 B · 精密仪器</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0A0B0D; --panel:#111318; --panel2:#0D0F13; --line:#24272E; --line2:#31353E;
+    --text:#E9EBEF; --muted:#868D9A; --dim:#5A616D; --lime:#C9F24C; --cyan:#6FE3F2;
+    --sans:"Inter","PingFang SC","Microsoft YaHei UI","Segoe UI",system-ui,sans-serif;
+    --mono:"JetBrains Mono","Cascadia Code",Consolas,"Courier New",monospace;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;letter-spacing:.01em;font-feature-settings:"tnum"}
+  .label{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .screen{padding:0}
+  /* bar */
+  .bar{display:flex;align-items:center;height:64px;padding:0 40px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:600;letter-spacing:.08em;font-size:15px}
+  .brand .mark{width:22px;height:22px;border:1px solid var(--lime);display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--lime)}
+  .nav{display:flex;gap:4px;margin-left:44px}
+  .nav a{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);text-decoration:none;padding:8px 12px}
+  .nav a.on{color:var(--text);background:#181B21;box-shadow:inset 0 -1px 0 var(--lime)}
+  .bar .right{margin-left:auto;display:flex;align-items:center;gap:18px;font-size:12px;color:var(--muted)}
+  .tag{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--lime);border:1px solid #3B441F;background:#171D0E;padding:4px 8px}
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.25fr .75fr;gap:56px;padding:64px 40px 48px}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;color:var(--lime);margin-bottom:26px;display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:5px;height:5px;background:var(--lime);display:inline-block}
+  h1{font-size:60px;line-height:1.04;letter-spacing:-.025em;font-weight:600;margin-bottom:22px;max-width:16ch}
+  h1 .thin{color:var(--dim);font-weight:400}
+  .sub{color:var(--muted);font-size:14.5px;max-width:46ch;margin-bottom:32px}
+  .sub b{color:var(--text);font-weight:500}
+  .cta{display:flex;gap:12px;align-items:center}
+  .btn{background:var(--lime);color:#0A0B0D;border:1px solid var(--lime);padding:12px 18px;font-size:13px;font-weight:600;letter-spacing:.02em;cursor:pointer;border-radius:2px}
+  .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line2);font-weight:400}
+  .pre{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:26px;letter-spacing:.06em}
+  .pre span{color:var(--cyan)}
+  /* gauge panel */
+  .panel{background:var(--panel);border:1px solid var(--line);padding:22px 22px 18px}
+  .panel .ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px}
+  .gauge{display:flex;align-items:flex-end;gap:2px;height:86px;margin-bottom:16px}
+  .gauge i{flex:1;background:#1D2128}
+  .gauge i.on{background:linear-gradient(180deg,var(--lime),#7C9A2C)}
+  .gauge i.cur{background:var(--cyan)}
+  .rows{border-top:1px solid var(--line)}
+  .row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+  .row span{color:var(--muted)}
+  .row b{font-family:var(--mono);font-weight:500;letter-spacing:.02em}
+  .row b.up{color:var(--lime)} .row b.dn{color:#F2785F}
+  /* feature cards */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);margin:0 40px;border:1px solid var(--line)}
+  .card{background:var(--panel2);padding:24px 22px 26px}
+  .card .ic{width:26px;height:26px;border:1px solid var(--line2);display:grid;place-items:center;color:var(--cyan);font-family:var(--mono);font-size:11px;margin-bottom:16px}
+  .card h3{font-size:14px;font-weight:600;letter-spacing:.02em;margin-bottom:8px}
+  .card p{font-size:12.5px;color:var(--muted);line-height:1.65}
+  .card .foot{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim);margin-top:16px}
+  /* game hud */
+  .hud{background:#0B0D10;border-top:1px solid var(--line);margin-top:44px;padding:26px 40px 30px}
+  .hudtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+  .hudtop .l{display:flex;align-items:center;gap:14px}
+  .pill{font-family:var(--mono);font-size:10px;letter-spacing:.14em;border:1px solid var(--line2);padding:4px 9px;color:var(--muted)}
+  .pill.live{color:#0A0B0D;background:var(--lime);border-color:var(--lime)}
+  .board{display:grid;grid-template-columns:1fr 260px;gap:18px}
+  .arena{border:1px solid var(--line);background:
+      linear-gradient(90deg,transparent 49.5%,#14171C 50%,transparent 50.5%) 0 0/100% 100%,
+      repeating-linear-gradient(0deg,#0E1014 0 39px,#101318 39px 40px);
+    height:190px;position:relative;padding:20px}
+  .foe{position:absolute;font-family:var(--mono);font-size:19px;letter-spacing:.18em;color:#9AA1AE}
+  .foe.locked{color:#0A0B0D;background:var(--lime);padding:2px 8px;box-shadow:0 0 0 1px var(--lime),0 0 22px rgba(201,242,76,.25)}
+  .foe.hit{color:var(--cyan)}
+  .side{border:1px solid var(--line);padding:16px}
+  .side .k{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim)}
+  .side .v{font-family:var(--mono);font-size:26px;letter-spacing:.02em;margin:6px 0 12px}
+  .spark{display:flex;gap:2px;align-items:flex-end;height:34px;margin-bottom:6px}
+  .spark i{flex:1;background:#2A3038}
+  .spark i.on{background:var(--cyan)}
+  .keys{display:flex;gap:4px;margin-top:14px}
+  .keys b{font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line2);padding:3px 6px;font-weight:400}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="bar">
+    <div class="brand"><span class="mark">T</span>打字进化</div>
+    <div class="nav"><a class="on" href="#">01 首页</a><a href="#">02 实验室</a><a href="#">03 排行榜</a></div>
+    <div class="right"><span class="tag">D 0.42 · R7</span><span>登录</span><span>注册</span></div>
+  </div>
+
+  <div class="hero">
+    <div>
+      <div class="eyebrow">adaptive typing engine</div>
+      <h1>把准确率<br>钉在 <span style="color:var(--lime)">85%</span><span class="thin">，<br>剩下的交给模型。</span></h1>
+      <p class="sub">每轮结算后，难度 D 沿误差梯度走一步，步长封顶 0.05。速度单独成轴，不再挤进同一个设定点。你只负责打字。</p>
+      <div class="cta"><button class="btn">进入对局</button><button class="btn ghost">查看我的曲线</button></div>
+      <div class="pre">$ D_t = clip(D_{t-1} + k·(A - A*), ±δ)  <span>// A* = 0.85, δ = 0.05</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="ph"><span class="label">Difficulty trajectory</span><span class="label" style="color:var(--cyan)">last 24</span></div>
+      <div class="gauge">
+        <i style="height:22%"></i><i style="height:28%" class="on"></i><i style="height:34%" class="on"></i>
+        <i style="height:31%" class="on"></i><i style="height:40%" class="on"></i><i style="height:46%" class="on"></i>
+        <i style="height:44%" class="on"></i><i style="height:52%" class="on"></i><i style="height:58%" class="on"></i>
+        <i style="height:56%" class="on"></i><i style="height:49%" class="on"></i><i style="height:55%" class="on"></i>
+        <i style="height:61%" class="on"></i><i style="height:58%" class="on"></i><i style="height:52%" class="on"></i>
+        <i style="height:57%" class="on"></i><i style="height:64%" class="on"></i><i style="height:60%" class="on"></i>
+        <i style="height:66%" class="on"></i><i style="height:63%" class="on"></i><i style="height:59%" class="on"></i>
+        <i style="height:65%" class="on"></i><i style="height:70%" class="on"></i><i style="height:74%" class="cur"></i>
+      </div>
+      <div class="rows">
+        <div class="row"><span>准确率 A</span><b class="up">0.852</b></div>
+        <div class="row"><span>目标 A*</span><b>0.850</b></div>
+        <div class="row"><span>速度 v</span><b class="up">98 cpm</b></div>
+        <div class="row"><span>难度 D</span><b>0.42</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card"><div class="ic">D</div><h3>饱和积分器</h3><p>每轮一次积分，单步不超过 0.05，永远留在 [0.15, 0.95]。</p><div class="foot">bounded · no drift</div></div>
+    <div class="card"><div class="ic">G</div><h3>定向遗传</h3><p>父本按错误与长度打分，交叉后把易错字符写回变异池。</p><div class="foot">crossover · targeted mutation</div></div>
+    <div class="card"><div class="ic">A</div><h3>字符级档案</h3><p>每个键的准确率、平均停顿和混淆对，逐键可查。</p><div class="foot">per-key telemetry</div></div>
+  </div>
+
+  <div class="hud">
+    <div class="hudtop">
+      <div class="l"><span class="pill live">LIVE</span><span class="pill">ROUND 07</span><span class="pill">00:42</span></div>
+      <span class="label">锁定目标后直接输入</span>
+    </div>
+    <div class="board">
+      <div class="arena">
+        <div class="foe" style="left:36px;bottom:96px">ther</div>
+        <div class="foe locked" style="left:200px;bottom:60px">waits</div>
+        <div class="foe hit" style="left:340px;bottom:120px">sam</div>
+        <div class="foe" style="left:470px;bottom:40px">ri</div>
+        <div class="foe" style="left:560px;bottom:132px">coat</div>
+      </div>
+      <div class="side">
+        <div class="k">ACCURACY</div><div class="v">0.83</div>
+        <div class="k">COMBO</div><div class="v">27</div>
+        <div class="spark">
+          <i class="on" style="height:40%"></i><i class="on" style="height:55%"></i><i class="on" style="height:48%"></i>
+          <i class="on" style="height:70%"></i><i class="on" style="height:62%"></i><i class="on" style="height:80%"></i>
+          <i class="on" style="height:74%"></i><i style="height:66%"></i><i style="height:72%"></i><i style="height:78%"></i>
+        </div>
+        <div class="k">INPUT</div>
+        <div class="keys"><b>TAB</b><b>SHIFT</b><b>CAPS</b></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

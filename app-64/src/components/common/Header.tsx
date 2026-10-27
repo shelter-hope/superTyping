@@ -1,4 +1,4 @@
-// 头部导航组件
+// 头部导航组件：报头式（brand + 竖线 + 目录），层级靠发丝线，不靠阴影
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -66,50 +66,73 @@ export default function Header() {
   const visibleRoutes = routes.filter(route => route.visible && (!route.requireAuth || user));
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background/80 shadow-card backdrop-blur">
-      <div className="container relative flex h-16 items-center justify-between before:absolute before:bottom-0 before:left-8 before:h-px before:w-40 before:bg-primary/50 before:shadow-[0_0_12px_hsl(var(--primary)/0.35)]">
-        <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-3">
-            <span className="status-light" />
-            <img src="/favicon.png" alt="Logo" className="h-8 w-8 rounded-full border border-primary/40 bg-muted/50 p-1" />
-            <span className="industrial-heading text-2xl gradient-text">打字进化</span>
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/85 backdrop-blur-sm">
+      <div className="container flex h-[60px] items-center justify-between gap-6">
+        <div className="flex min-w-0 items-center gap-6">
+          <Link to="/" className="group flex items-baseline gap-2">
+            <span className="mb-[3px] h-[6px] w-[6px] shrink-0 rounded-full bg-accent" aria-hidden />
+            <span className="display-serif whitespace-nowrap text-[17px] tracking-[0.02em]">打字进化</span>
+            <span className="label-mono hidden text-[10px] text-muted-foreground/70 lg:inline">
+              type·evolve
+            </span>
           </Link>
-          
+
           <details className="relative md:hidden">
-            <summary className="cursor-pointer list-none rounded-full border border-border px-3 py-1 text-sm">菜单</summary>
-            <div className="absolute left-0 z-50 mt-2 flex w-48 flex-col gap-1 rounded-2xl border bg-background p-2 shadow-lg">
+            <summary className="label-mono cursor-pointer list-none border border-border px-2 py-1 text-[10px] text-foreground">
+              目录
+            </summary>
+            <div className="absolute left-0 z-50 mt-2 flex w-52 flex-col border border-border bg-popover p-1 shadow-sm">
               {visibleRoutes.map(route => (
-                <Link key={route.path} to={route.path} className="rounded-xl px-3 py-2 text-sm hover:bg-muted">{route.name}</Link>
+                <Link
+                  key={route.path}
+                  to={route.path}
+                  className="px-3 py-2 text-[13px] text-foreground hover:bg-muted"
+                >
+                  {route.name}
+                </Link>
               ))}
             </div>
           </details>
-          <nav className="hidden items-center gap-2 md:flex">
-            {visibleRoutes.map(route => (
-              <Link key={route.path} to={route.path}>
-                <Button
-                  variant={location.pathname === route.path ? 'default' : 'ghost'}
-                  size="sm"
+
+          <nav className="hidden items-center gap-5 md:flex">
+            {visibleRoutes.map(route => {
+              const active = location.pathname === route.path;
+              return (
+                <Link
+                  key={route.path}
+                  to={route.path}
+                  className={`group relative border-b-2 py-1 text-[13px] tracking-[0.02em] transition-colors ${
+                    active
+                      ? 'border-accent text-foreground'
+                      : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                  }`}
                 >
                   {route.name}
-                </Button>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-3">
           {user ? (
-            <Link to="/messages" className="relative">
-              <Button variant="ghost" size="sm">消息{unread > 0 ? ` ${unread}` : ''}</Button>
-              {unread > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">{unread}</span>}
+            <Link to="/messages" className="hidden items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground sm:flex">
+              消息
+              {unread > 0 && (
+                <span className="mono-num flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-accent px-1 text-[10px] leading-none text-accent-foreground">
+                  {unread}
+                </span>
+              )}
             </Link>
           ) : null}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2">
+                <Button variant="ghost" size="sm" className="h-9 gap-2 px-2">
                   <UserAvatar profile={profile} size="sm" />
-                  <span className="hidden sm:inline">{getDisplayName(profile)}</span>
+                  <span className="hidden max-w-[9rem] truncate text-[13px] sm:inline">
+                    {getDisplayName(profile)}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
@@ -139,15 +162,14 @@ export default function Header() {
             </DropdownMenu>
           ) : (
             <>
-              <Link to="/login">
-                <Button variant="ghost" size="sm">
-                  登录
-                </Button>
+              <Link
+                to="/login"
+                className="text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                登录
               </Link>
               <Link to="/register">
-                <Button size="sm">
-                  注册
-                </Button>
+                <Button size="sm">注册</Button>
               </Link>
             </>
           )}
