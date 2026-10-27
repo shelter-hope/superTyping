@@ -101,6 +101,18 @@ public class LabRunService {
         return catalog.createUserPreset(userId, new PresetRequest(run.getAlgorithmId(), presetName, params, false));
     }
 
+    /** 管理端只读检索：用户、算法、时间；列表不含 metrics。 */
+    @Transactional(readOnly = true)
+    public Page<LabRunView> adminSearch(Integer userId, String algorithmId, String from, String to, int page, int size) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(50, Math.max(1, size));
+        String algo = algorithmId == null || algorithmId.isBlank() ? null : algorithmId.trim();
+        LocalDateTime fromTime = from == null || from.isBlank() ? null : parseTime(from);
+        LocalDateTime toTime = to == null || to.isBlank() ? null : parseTime(to);
+        return runs.adminSearch(userId, algo, fromTime, toTime, PageRequest.of(safePage, safeSize))
+                .map(run -> toView(run, false));
+    }
+
     private void apply(LabRun run, LabRunRequest request, boolean creating) {
         if (request == null) {
             throw new IllegalArgumentException("请求体不能为空");

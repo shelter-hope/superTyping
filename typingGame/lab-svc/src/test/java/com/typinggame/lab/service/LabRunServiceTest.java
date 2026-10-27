@@ -117,4 +117,27 @@ class LabRunServiceTest {
 
         verify(runs).delete(run);
     }
+
+    @Test
+    void adminSearchFiltersWithoutMetrics() {
+        LabRun run = new LabRun();
+        run.setId(2L);
+        run.setUserId(8);
+        run.setAlgorithmId("pso");
+        run.setPluginId("pso");
+        run.setSchemaVersion(1);
+        run.setEngineKind("client_snapshot");
+        run.setSeed(3);
+        run.setParamsJson("{\"count\":80,\"inertia\":0.7,\"cognitive\":1.4,\"social\":1.4,\"maxSpeed\":3}");
+        run.setStatus("completed");
+        run.setMetricsJson("{\"t\":[0],\"series\":{\"bestFitness\":[1]}}");
+        run.setCreatedAt(LocalDateTime.now());
+        when(runs.adminSearch(any(), any(), any(), any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(run)));
+
+        Page<LabRunView> page = service.adminSearch(8, "pso", null, null, 0, 20);
+
+        assertEquals(8, page.getContent().get(0).userId());
+        assertNull(page.getContent().get(0).metrics());
+    }
 }

@@ -89,6 +89,18 @@ export async function deleteSystemLabPreset(id: number): Promise<void> {
   await apiClient.delete(`/admin/lab/presets/${id}`);
 }
 
+export async function fetchAdminLabRuns(params?: {
+  userId?: number;
+  algorithmId?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  size?: number;
+}): Promise<LabRunPage> {
+  const response = await apiClient.get('/admin/lab/runs', { params });
+  return response.data.data;
+}
+
 // ── 实验快照 runs ──────────────────────────────────────
 
 export interface LabRunDto {

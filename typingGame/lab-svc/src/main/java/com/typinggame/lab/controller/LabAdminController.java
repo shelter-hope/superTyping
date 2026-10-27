@@ -2,10 +2,13 @@ package com.typinggame.lab.controller;
 
 import com.typinggame.lab.dto.AlgorithmUpdateRequest;
 import com.typinggame.lab.dto.AlgorithmView;
+import com.typinggame.lab.dto.LabRunView;
 import com.typinggame.lab.dto.PresetRequest;
 import com.typinggame.lab.dto.PresetView;
 import com.typinggame.lab.service.LabCatalogService;
+import com.typinggame.lab.service.LabRunService;
 import com.typinggame.vo.ResultMessage;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -22,9 +26,11 @@ import java.util.List;
 @RequestMapping("/api/v1/internal/admin/lab")
 public class LabAdminController {
     private final LabCatalogService catalog;
+    private final LabRunService runs;
 
-    public LabAdminController(LabCatalogService catalog) {
+    public LabAdminController(LabCatalogService catalog, LabRunService runs) {
         this.catalog = catalog;
+        this.runs = runs;
     }
 
     @GetMapping("/algorithms")
@@ -51,5 +57,16 @@ public class LabAdminController {
     public ResponseEntity<ResultMessage<Void>> delete(@PathVariable Long id) {
         catalog.deleteSystemPreset(id);
         return ResponseEntity.ok(ResultMessage.success());
+    }
+
+    @GetMapping("/runs")
+    public ResponseEntity<ResultMessage<Page<LabRunView>>> searchRuns(
+            @RequestParam(name = "userId", required = false) Integer userId,
+            @RequestParam(name = "algorithmId", required = false) String algorithmId,
+            @RequestParam(name = "from", required = false) String from,
+            @RequestParam(name = "to", required = false) String to,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size) {
+        return ResponseEntity.ok(ResultMessage.success(runs.adminSearch(userId, algorithmId, from, to, page, size)));
     }
 }

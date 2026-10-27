@@ -63,5 +63,6 @@
 | GET | `/api/v1/lab/runs/{id}` | 详情 |
 | DELETE | `/api/v1/lab/runs/{id}` | 本人 |
 | POST | `/api/v1/lab/runs/{id}/fork-preset` | 从 run 生成个人预设 |
+| GET | `/api/v1/admin/lab/runs` | Admin 只读检索：`userId` / `algorithmId` / `from` / `to`（列表无 metrics） |
 
 `schema_version` 与目录不一致仍允许入库；列表标 `schemaStale`。
