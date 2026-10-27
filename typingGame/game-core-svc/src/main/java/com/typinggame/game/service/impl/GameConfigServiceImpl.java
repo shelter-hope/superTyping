@@ -41,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -354,26 +355,40 @@ public class GameConfigServiceImpl implements GameConfigService {
                                                        List<String> focusChars,
                                                        int roundNum) {
         GeneticRule genetic = ruleConfigProvider.activeGenetic();
-        Random random = ThreadLocalRandom.current();
-        List<MonsterAttempt> parents = GeneticEngine.limitParents(attempts.stream()
+        List<MonsterAttempt> ranked = attempts.stream()
                 .filter(attempt -> attempt.getTargetStr() != null && !attempt.getTargetStr().isBlank())
-                .collect(Collectors.toList()), genetic.getInRoundParentLimit());
+                .sorted(Comparator.comparingDouble((MonsterAttempt attempt) ->
+                        attempt.getFitness() == null ? 0d : attempt.getFitness().doubleValue()).reversed())
+                .collect(Collectors.toList());
+        List<MonsterAttempt> parents = GeneticEngine.limitParents(ranked, genetic.getInRoundParentLimit());
         if (parents.isEmpty()) {
             return baseMonsters;
         }
+        Random random = new Random(Objects.hash("in-round-genetic", roundNum,
+                parents.stream().map(MonsterAttempt::getAttemptId).toList()));
         for (int i = 0; i < baseMonsters.size(); i++) {
             MonsterDataDTO child = baseMonsters.get(i);
-            MonsterAttempt parentA = parents.get(random.nextInt(parents.size()));
+            MonsterAttempt parentA = GeneticEngine.tournamentPick(parents,
+                    attempt -> attempt.getFitness() == null ? 0d : attempt.getFitness().doubleValue(),
+                    genetic.getTournamentSize(), random);
             MonsterAttempt parentB = parents.size() > 1
-                    ? parents.get(random.nextInt(parents.size())) : null;
-            if (parentB != null && parents.size() > 1 && Objects.equals(parentA.getAttemptId(), parentB.getAttemptId())) {
+                    ? GeneticEngine.tournamentPick(parents,
+                    attempt -> attempt.getFitness() == null ? 0d : attempt.getFitness().doubleValue(),
+                    genetic.getTournamentSize(), random)
+                    : null;
+            if (parentA == null) {
+                continue;
+            }
+            if (parentB != null && Objects.equals(parentA.getAttemptId(), parentB.getAttemptId())) {
                 parentB = parents.get((parents.indexOf(parentA) + 1) % parents.size());
             }
             int targetLength = Math.max(1, child.getTargetStr() == null ? 1 : child.getTargetStr().length());
             String parentBText = parentB == null ? parentA.getTargetStr() : parentB.getTargetStr();
-            String crossed = GeneticEngine.crossover(parentA.getTargetStr(), parentBText, targetLength, random);
+            String crossed = GeneticEngine.crossover(parentA.getTargetStr(), parentBText, targetLength,
+                    genetic.getCrossover(), random);
             int crossoverPoint = Math.min(targetLength, parentA.getTargetStr().length());
-            GeneticEngine.Mutation mutation = GeneticEngine.mutate(crossed, focusChars, genetic.getInRoundMutationRate(), genetic.isPreferWeakChars(), random);
+            GeneticEngine.Mutation mutation = GeneticEngine.mutate(crossed, focusChars, Map.of(),
+                    genetic.getInRoundMutationRate(), random);
             String text = mutation.text();
             BigDecimal mutationRate = BigDecimal.valueOf(genetic.getInRoundMutationRate());
             List<Integer> mutationPositions = new ArrayList<>(mutation.positions());

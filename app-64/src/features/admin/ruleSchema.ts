@@ -73,8 +73,10 @@ export const geneticRuleSchema = z.object({
   crossRoundParentLimit: z.number().int().min(1).max(100),
   inRoundMutationRate: unit,
   crossRoundMutationRate: unit,
-  crossover: z.string().min(1),
+  crossover: z.enum(['SINGLE_POINT', 'TWO_POINT', 'UNIFORM']),
   preferWeakChars: z.boolean(),
+  eliteRatio: z.number().min(0).max(0.5),
+  tournamentSize: z.number().int().min(1).max(10),
 });
 
 export type DifficultyRuleForm = z.infer<typeof difficultyRuleSchema>;

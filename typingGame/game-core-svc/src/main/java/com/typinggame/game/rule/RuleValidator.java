@@ -55,8 +55,16 @@ public final class RuleValidator {
         }
         requireRange("局内变异率", rule.getInRoundMutationRate(), 0, 1);
         requireRange("跨局变异率", rule.getCrossRoundMutationRate(), 0, 1);
+        requireRange("精英保留比例", rule.getEliteRatio(), 0, 0.5);
+        requireRange("锦标赛规模", rule.getTournamentSize(), 1, 10);
         if (rule.getCrossover() == null || rule.getCrossover().isBlank()) {
             throw new IllegalArgumentException("交叉方式不能为空");
+        }
+        String crossover = rule.getCrossover().trim().toUpperCase();
+        if (!crossover.equals(GeneticEngine.CROSSOVER_SINGLE_POINT)
+                && !crossover.equals(GeneticEngine.CROSSOVER_TWO_POINT)
+                && !crossover.equals(GeneticEngine.CROSSOVER_UNIFORM)) {
+            throw new IllegalArgumentException("交叉方式必须是 SINGLE_POINT / TWO_POINT / UNIFORM");
         }
     }
 

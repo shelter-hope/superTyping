@@ -75,16 +75,34 @@ describe('difficultyRuleSchema', () => {
   });
 });
 
+const validGenetic = {
+  inRoundParentLimit: 10,
+  crossRoundParentLimit: 8,
+  inRoundMutationRate: 0.15,
+  crossRoundMutationRate: 0.25,
+  crossover: 'TWO_POINT',
+  preferWeakChars: true,
+  eliteRatio: 0.1,
+  tournamentSize: 3,
+};
+
 describe('geneticRuleSchema', () => {
+  it('accepts the shipped genetic defaults', () => {
+    expect(geneticRuleSchema.safeParse(validGenetic).success).toBe(true);
+  });
+
   it('rejects a mutation rate above one', () => {
-    const result = geneticRuleSchema.safeParse({
-      inRoundParentLimit: 10,
-      crossRoundParentLimit: 8,
-      inRoundMutationRate: 1.5,
-      crossRoundMutationRate: 0.25,
-      crossover: 'SINGLE_POINT',
-      preferWeakChars: true,
-    });
+    const result = geneticRuleSchema.safeParse({ ...validGenetic, inRoundMutationRate: 1.5 });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an unknown crossover mode', () => {
+    const result = geneticRuleSchema.safeParse({ ...validGenetic, crossover: 'THREE_POINT' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an elite ratio above one half', () => {
+    const result = geneticRuleSchema.safeParse({ ...validGenetic, eliteRatio: 0.8 });
     expect(result.success).toBe(false);
   });
 });

@@ -122,6 +122,8 @@ export default function GameRuleManagement() {
             <label className="space-y-1 text-sm">局内变异率<Input type="number" step="0.01" {...geneticForm.register('inRoundMutationRate', { valueAsNumber: true })} /></label>
             <label className="space-y-1 text-sm">跨局变异率<Input type="number" step="0.01" {...geneticForm.register('crossRoundMutationRate', { valueAsNumber: true })} /></label>
             <label className="space-y-1 text-sm">交叉方式<Input {...geneticForm.register('crossover')} /></label>
+            <label className="space-y-1 text-sm">精英保留比例<Input type="number" step="0.05" {...geneticForm.register('eliteRatio', { valueAsNumber: true })} /></label>
+            <label className="space-y-1 text-sm">锦标赛规模<Input type="number" step="1" {...geneticForm.register('tournamentSize', { valueAsNumber: true })} /></label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...geneticForm.register('preferWeakChars')} />优先弱项字符</label>
             <Button type="submit">保存草稿</Button>
           </form>

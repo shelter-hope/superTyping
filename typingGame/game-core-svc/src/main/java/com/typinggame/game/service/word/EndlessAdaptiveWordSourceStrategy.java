@@ -15,6 +15,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.concurrent.ThreadLocalRandom;
@@ -65,7 +67,7 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
         GeneticRule genetic = ruleConfigProvider.activeGenetic();
         List<String> limitedParents = GeneticEngine.limitParents(parentStrings, genetic.getCrossRoundParentLimit());
         if (context.getGameMode() == GameMode.ENDLESS_ADAPT && limitedParents.size() >= 2) {
-            List<String> evolved = GeneticEngine.evolve(limitedParents, context.getFocusChars(), context.getCount(), context.getLength(), genetic.getCrossRoundMutationRate(), ThreadLocalRandom.current());
+            List<String> evolved = evolveCrossRound(limitedParents, context, genetic, context.getCount(), context.getLength());
             if (evolved.size() >= context.getCount()) {
                 return evolved.subList(0, context.getCount());
             }
@@ -74,12 +76,46 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
         return buildFromPool(new ArrayList<>(pool), context.getFocusChars(), context.getCount(), context.getLength());
     }
 
+    /**
+     * 跨局进化：父本是历史字符串，只带顺序、没有局内适应度，因此精英比例为 0、锦标赛规模 1。
+     * 随机源用「用户 + 父本 + 目标参数」做种子，同一份历史与配置可以复现同一批怪物。
+     */
+    private List<String> evolveCrossRound(List<String> parents, WordSourceContext context,
+                                          GeneticRule genetic, int count, int length) {
+        int safeCount = Math.max(1, count);
+        int safeLength = Math.max(1, length);
+        Random random = new Random(Objects.hash(context.getUserId(), parents, safeCount, safeLength));
+        List<GeneticEngine.Parent> parentList = parents.stream()
+                .map(text -> new GeneticEngine.Parent(text, 0))
+                .toList();
+        return GeneticEngine.evolve(new GeneticEngine.Request(
+                parentList,
+                context.getFocusChars(),
+                Map.of(),
+                safeCount,
+                safeLength,
+                genetic.getCrossRoundMutationRate(),
+                0,
+                1,
+                genetic.getCrossover(),
+                random));
+    }
+
     private List<String> generateEvolvedWords(List<String> parents, List<String> weakChars,
                                                int count, int length, List<String> fallbackPool, GeneticRule genetic) {
         int safeCount = Math.max(3, Math.min(25, count));
         int safeLength = Math.max(1, Math.min(15, length));
-        Random random = ThreadLocalRandom.current();
-        Set<String> result = new LinkedHashSet<>(GeneticEngine.evolve(parents, weakChars, safeCount, safeLength, genetic.getCrossRoundMutationRate(), random));
+        Set<String> result = new LinkedHashSet<>(GeneticEngine.evolve(new GeneticEngine.Request(
+                parents.stream().map(text -> new GeneticEngine.Parent(text, 0)).toList(),
+                weakChars,
+                Map.of(),
+                safeCount,
+                safeLength,
+                genetic.getCrossRoundMutationRate(),
+                0,
+                1,
+                genetic.getCrossover(),
+                new Random(Objects.hash("cross-round-fallback", parents, safeCount, safeLength)))));
         int index = 0;
         while (result.size() < safeCount) {
             result.add(buildFromPool(fallbackPool, weakChars, index + 1, safeLength).get(index));
