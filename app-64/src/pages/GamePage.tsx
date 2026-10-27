@@ -37,7 +37,7 @@ export default function GamePage() {
   }, [toast, toggleFullscreen]);
 
   const handleBackToPrepare = useCallback(() => {
-    navigate('/prepare');
+    navigate('/apps/typing/prepare');
   }, [navigate]);
 
   if (user && session.startParams === null && session.gameState !== 'GAME_OVER') {

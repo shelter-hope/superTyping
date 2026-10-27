@@ -4,7 +4,16 @@ import { Application, Graphics } from 'pixi.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageBody, PageHeader } from '@/components/common/PageHeader';
-import { deleteLabPreset, fetchLabAlgorithms, fetchLabPresets, fetchMyLabPresets, saveLabPreset, type LabPresetDto } from '@/features/lab/api';
+import {
+  createLabRun,
+  deleteLabPreset,
+  fetchLabAlgorithms,
+  fetchLabPresets,
+  fetchMyLabPresets,
+  saveLabPreset,
+  type LabPresetDto,
+} from '@/features/lab/api';
+import { MetricsBuffer } from '@/features/lab/runs/metricsBuffer';
 import { labRegistry, visibleLabPlugins } from '@/features/lab/registry';
 import type { LabPlugin, ParamField, PointerForce } from '@/features/lab/plugin';
 
@@ -27,12 +36,18 @@ export default function LabPage() {
   const [seed, setSeed] = useState(7);
   const [paused, setPaused] = useState(false);
   const [presetName, setPresetName] = useState('我的预设');
+  const [runTitle, setRunTitle] = useState('');
   const [sharePublic, setSharePublic] = useState(true);
   const [notice, setNotice] = useState('');
+  const [savingRun, setSavingRun] = useState(false);
   const [presets, setPresets] = useState<LabPresetDto[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const metricsNode = useRef<HTMLParagraphElement>(null);
+  const metricsBuffer = useRef(new MetricsBuffer());
+  const runStartedAt = useRef(performance.now());
   const presetQuery = searchParams.get('preset');
+  const seedQuery = searchParams.get('seed');
+  const paramsQuery = searchParams.get('params');
   const stateRef = useRef({
     plugin: algorithm as LabPlugin<Record<string, number>, unknown>,
     params,
@@ -78,15 +93,27 @@ export default function LabPage() {
       setPresets([...merged.values()]);
       const match = merged.get(Number(presetQuery));
       if (match) applyPreset(match.params);
+      else if (paramsQuery) {
+        try {
+          applyPreset(JSON.parse(paramsQuery) as Record<string, number>);
+        } catch {
+          /* ignore bad query */
+        }
+      }
+      if (seedQuery && Number.isFinite(Number(seedQuery))) {
+        reset(Number(seedQuery));
+      }
     });
     return () => {
       cancelled = true;
     };
-  }, [algorithm.id, presetQuery]);
+  }, [algorithm.id, presetQuery, paramsQuery, seedQuery]);
 
   useEffect(() => {
     const plugin = stateRef.current.plugin;
     stateRef.current.sim = plugin.create(stateRef.current.params, seed, WIDTH, HEIGHT);
+    metricsBuffer.current.reset();
+    runStartedAt.current = performance.now();
   }, [algorithm.id, seed, params.count, params.ants, params.population]);
 
   useEffect(() => {
@@ -120,9 +147,12 @@ export default function LabPage() {
         }
         current.plugin.draw(graphics, current.sim, current.params);
         view.render();
-        if (nextMetrics && now - reported > 250 && metricsNode.current) {
-          reported = now;
-          metricsNode.current.textContent = formatMetrics(current.plugin, current.seed, nextMetrics);
+        if (nextMetrics) {
+          metricsBuffer.current.push(nextMetrics, now);
+          if (now - reported > 250 && metricsNode.current) {
+            reported = now;
+            metricsNode.current.textContent = formatMetrics(current.plugin, current.seed, nextMetrics);
+          }
         }
         frameId = requestAnimationFrame(frame);
       };
@@ -153,7 +183,40 @@ export default function LabPage() {
     setSeed(nextSeed);
     stateRef.current.seed = nextSeed;
     stateRef.current.sim = stateRef.current.plugin.create(stateRef.current.params, nextSeed, WIDTH, HEIGHT);
+    metricsBuffer.current.reset();
+    runStartedAt.current = performance.now();
     if (metricsNode.current) metricsNode.current.textContent = formatMetrics(stateRef.current.plugin, nextSeed, {});
+  }
+
+  async function saveRun() {
+    if (!parsed.success) {
+      setNotice('参数超出范围，不能保存实验');
+      return;
+    }
+    setSavingRun(true);
+    try {
+      const ended = performance.now();
+      const saved = await createLabRun({
+        algorithmId: algorithm.id,
+        pluginId: algorithm.id,
+        schemaVersion: 1,
+        title: runTitle || `${algorithm.name} · ${new Date().toLocaleString('zh-CN')}`,
+        seed,
+        params,
+        status: 'completed',
+        startedAt: new Date(Date.now() - (ended - runStartedAt.current)).toISOString().slice(0, 19),
+        endedAt: new Date().toISOString().slice(0, 19),
+        durationMs: Math.round(ended - runStartedAt.current),
+        summary: metricsBuffer.current.summary(),
+        metrics: metricsBuffer.current.envelope(),
+        clientMeta: { width: WIDTH, height: HEIGHT, engineKind: 'client_snapshot' },
+      });
+      setNotice(`实验已保存 #${saved.id}`);
+    } catch {
+      setNotice('保存实验失败，请先登录');
+    } finally {
+      setSavingRun(false);
+    }
   }
 
   function pointAt(event: PointerEvent<HTMLCanvasElement>): PointerForce {
@@ -211,7 +274,7 @@ export default function LabPage() {
     );
   }
   if (algorithm.id !== algorithmId) {
-    return <Navigate to={`/lab/${algorithm.id}`} replace />;
+    return <Navigate to={`/apps/lab/${algorithm.id}`} replace />;
   }
 
   return (
@@ -219,7 +282,7 @@ export default function LabPage() {
       <PageHeader
         eyebrow="实验室 · LAB"
         title="群体智能实验室"
-        description="在浏览器里观察鸟群、粒子群、蚁群与遗传算法的演化。拖动参数、保存预设，再回到同一组数字。"
+        description="在浏览器里观察鸟群、粒子群、蚁群与遗传算法的演化。拖动参数、保存预设与实验快照。"
       >
         <nav aria-label="实验切换" className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <span className="label-mono mr-1 text-[9px]">实验 · experiments</span>
@@ -228,7 +291,7 @@ export default function LabPage() {
             return (
               <Link
                 key={item.id}
-                to={`/lab/${item.id}`}
+                to={`/apps/lab/${item.id}`}
                 aria-current={active ? 'page' : undefined}
                 className={`flex items-baseline gap-2 border-b-2 pb-1 pt-1 text-[13px] tracking-[0.02em] transition-colors ${
                   active
@@ -241,6 +304,9 @@ export default function LabPage() {
               </Link>
             );
           })}
+          <Link to="/apps/lab/history" className="label-mono text-[10px] text-muted-foreground hover:text-accent">
+            实验历史
+          </Link>
         </nav>
       </PageHeader>
 
@@ -347,6 +413,21 @@ export default function LabPage() {
               公开分享
             </label>
             <Button size="sm" className="mt-3 w-full" onClick={() => void savePreset()}>保存预设</Button>
+            <div className="mt-6 border-t border-border pt-4">
+              <span className="label-mono text-[9px]">实验快照 · run</span>
+              <Input
+                value={runTitle}
+                onChange={(event) => setRunTitle(event.target.value)}
+                placeholder="本次实验标题（可空）"
+                className="mt-3 h-9"
+              />
+              <Button size="sm" className="mt-3 w-full" disabled={savingRun} onClick={() => void saveRun()}>
+                {savingRun ? '保存中…' : '保存本次实验'}
+              </Button>
+              <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+                写入参数、种子与降采样指标曲线；服务端只存不重跑。
+              </p>
+            </div>
             <div className="mt-4 divide-y divide-border border-t border-border">
               {presets.length === 0 ? (
                 <p className="py-3 text-[11.5px] text-muted-foreground">还没有保存过预设。</p>

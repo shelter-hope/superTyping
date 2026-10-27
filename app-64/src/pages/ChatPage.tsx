@@ -108,7 +108,7 @@ export default function ChatPage() {
         <PageHeader eyebrow="对话 · THREAD" title="单聊" description="未找到该用户。" />
         <div className="mt-10 border-t border-border pt-8">
           <p className="text-[13px] text-muted-foreground">这位用户可能已经不存在，或已被移除好友。</p>
-          <Button className="mt-5" onClick={() => navigate('/friends')}>
+          <Button className="mt-5" onClick={() => navigate('/apps/social/friends')}>
             返回好友列表
           </Button>
         </div>
@@ -124,11 +124,11 @@ export default function ChatPage() {
         description={STATUS_TEXT[imStatus]}
         actions={
           <>
-            <Button variant="outline" onClick={() => navigate('/messages')}>
+            <Button variant="outline" onClick={() => navigate('/apps/social/messages')}>
               <ArrowLeft className="h-4 w-4" />
               消息中心
             </Button>
-            <Button variant="ghost" onClick={() => navigate('/friends')}>
+            <Button variant="ghost" onClick={() => navigate('/apps/social/friends')}>
               好友列表
             </Button>
           </>

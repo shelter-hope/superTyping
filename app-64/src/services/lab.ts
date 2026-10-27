@@ -88,3 +88,82 @@ export async function createSystemLabPreset(body: LabPresetPayload): Promise<Lab
 export async function deleteSystemLabPreset(id: number): Promise<void> {
   await apiClient.delete(`/admin/lab/presets/${id}`);
 }
+
+// ── 实验快照 runs ──────────────────────────────────────
+
+export interface LabRunDto {
+  id: number;
+  userId: number;
+  algorithmId: string;
+  pluginId: string;
+  schemaVersion: number;
+  schemaStale: boolean;
+  engineKind: string;
+  title: string | null;
+  notes: string | null;
+  seed: number;
+  params: Record<string, number>;
+  presetId: number | null;
+  status: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  durationMs: number | null;
+  summary: Record<string, number> | null;
+  metrics: Record<string, unknown> | null;
+  clientMeta: Record<string, unknown> | null;
+  createdAt: string | null;
+}
+
+export interface LabRunPayload {
+  algorithmId: string;
+  pluginId?: string;
+  schemaVersion?: number;
+  title?: string;
+  notes?: string;
+  seed: number;
+  params: Record<string, number>;
+  presetId?: number | null;
+  status?: string;
+  startedAt?: string;
+  endedAt?: string;
+  durationMs?: number;
+  summary?: Record<string, number>;
+  metrics?: Record<string, unknown>;
+  clientMeta?: Record<string, unknown>;
+}
+
+export interface LabRunPage {
+  content: LabRunDto[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export async function createLabRun(body: LabRunPayload): Promise<LabRunDto> {
+  const response = await apiClient.post('/lab/runs', body);
+  return response.data.data;
+}
+
+export async function fetchLabRuns(params?: {
+  algorithmId?: string;
+  page?: number;
+  size?: number;
+}): Promise<LabRunPage> {
+  const response = await apiClient.get('/lab/runs', { params });
+  return response.data.data;
+}
+
+export async function fetchLabRun(id: number): Promise<LabRunDto> {
+  const response = await apiClient.get(`/lab/runs/${id}`);
+  return response.data.data;
+}
+
+export async function deleteLabRun(id: number): Promise<void> {
+  await apiClient.delete(`/lab/runs/${id}`);
+}
+
+export async function forkLabRunPreset(id: number, name?: string): Promise<LabPresetDto> {
+  const response = await apiClient.post(`/lab/runs/${id}/fork-preset`, name ? { name } : {});
+  return response.data.data;
+}

@@ -81,7 +81,7 @@ export default function HomePage() {
           <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
             {user ? (
               <Button size="lg" asChild>
-                <Link to="/prepare">
+                <Link to="/apps/typing/prepare">
                   开始一局
                   <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -401,7 +401,7 @@ export default function HomePage() {
                 </Link>
               </Button>
               <Link
-                to="/leaderboard"
+                to="/apps/typing/leaderboard"
                 className="text-[13px] underline decoration-accent decoration-2 underline-offset-[6px] transition-colors hover:text-accent"
               >
                 看排行榜

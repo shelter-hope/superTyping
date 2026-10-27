@@ -233,7 +233,7 @@ export default function PreparePage() {
     } else {
       updateConfig({ selectedChars: selectedCharsLabel(config) });
     }
-    navigate('/game');
+    navigate('/apps/typing/game');
   }
 
   const currentMode = MODES.find((m) => m.value === config.gameMode) ?? MODES[0];
@@ -335,7 +335,7 @@ export default function PreparePage() {
                             <p className="label-mono text-muted-foreground">
                               {systemDictionaries.length > 0 ? '暂无自定义词库，可改用系统词库' : '暂无自定义词库'}
                             </p>
-                            <Link to="/dictionary" className="mt-3 inline-block">
+                            <Link to="/apps/typing/dictionary" className="mt-3 inline-block">
                               <Button variant="outline" size="sm">
                                 前往上传词库 →
                               </Button>
@@ -388,7 +388,7 @@ export default function PreparePage() {
                           </div>
                         ) : null}
 
-                        <Link to="/dictionary" className="inline-block">
+                        <Link to="/apps/typing/dictionary" className="inline-block">
                           <Button variant="ghost" size="sm">
                             管理词库 →
                           </Button>

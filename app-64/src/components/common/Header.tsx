@@ -1,6 +1,6 @@
-// 头部导航组件：报头式（brand + 竖线 + 目录），层级靠发丝线，不靠阴影
+// 工作台顶栏：实验台品牌 + AppSwitcher + 消息/账户
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,19 +12,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { User, LogOut, Settings, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import routes from '@/routes';
 import UserAvatar from '@/components/profile/UserAvatar';
 import { getDisplayName } from '@/lib/avatars';
 import { getUnreadCount } from '@/services/social';
 import { useImSocket } from '@/hooks/use-im-socket';
 import type { ImEvent } from '@/services/imSocket';
+import AppSwitcher from '@/components/common/AppSwitcher';
+import { enabledApps } from '@/workbench/registry';
 
 export default function Header() {
   const { user, profile, signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
   const [unread, setUnread] = useState(0);
+  const apps = enabledApps({ user, isAdmin });
 
   const onImEvent = useCallback((event: ImEvent) => {
     if (event.type === 'UNREAD') {
@@ -63,60 +64,44 @@ export default function Header() {
     }
   }
 
-  const visibleRoutes = routes.filter(route => route.visible && (!route.requireAuth || user));
-
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
       <div className="container flex h-[60px] items-center justify-between gap-6">
         <div className="flex min-w-0 items-center gap-6">
           <Link to="/" className="group flex items-baseline gap-2">
             <span className="mb-[3px] h-[6px] w-[6px] shrink-0 rounded-full bg-accent" aria-hidden />
-            <span className="display-serif whitespace-nowrap text-[17px] tracking-[0.02em]">打字进化</span>
+            <span className="display-serif whitespace-nowrap text-[17px] tracking-[0.02em]">实验台</span>
             <span className="label-mono hidden text-[10px] text-muted-foreground/70 lg:inline">
-              type·evolve
+              workbench
             </span>
           </Link>
 
           <details className="relative md:hidden">
             <summary className="label-mono cursor-pointer list-none border border-border px-2 py-1 text-[10px] text-foreground">
-              目录
+              应用
             </summary>
             <div className="absolute left-0 z-50 mt-2 flex w-52 flex-col border border-border bg-popover p-1 shadow-sm">
-              {visibleRoutes.map(route => (
+              {apps.map((app) => (
                 <Link
-                  key={route.path}
-                  to={route.path}
+                  key={app.id}
+                  to={app.homePath}
                   className="px-3 py-2 text-[13px] text-foreground hover:bg-muted"
                 >
-                  {route.name}
+                  {app.title}
                 </Link>
               ))}
             </div>
           </details>
 
-          <nav className="hidden items-center gap-5 md:flex">
-            {visibleRoutes.map(route => {
-              const active = location.pathname === route.path;
-              return (
-                <Link
-                  key={route.path}
-                  to={route.path}
-                  className={`group relative border-b-2 py-1 text-[13px] tracking-[0.02em] transition-colors ${
-                    active
-                      ? 'border-accent text-foreground'
-                      : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
-                  }`}
-                >
-                  {route.name}
-                </Link>
-              );
-            })}
-          </nav>
+          <AppSwitcher />
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
           {user ? (
-            <Link to="/messages" className="hidden items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground sm:flex">
+            <Link
+              to="/apps/social/messages"
+              className="hidden items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground sm:flex"
+            >
               消息
               {unread > 0 && (
                 <span className="mono-num flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-accent px-1 text-[10px] leading-none text-accent-foreground">
@@ -136,18 +121,18 @@ export default function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                <DropdownMenuItem onClick={() => navigate('/apps/typing/profile')}>
                   <User className="w-4 h-4 mr-2" />
                   个人信息
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                <DropdownMenuItem onClick={() => navigate('/apps/settings')}>
                   <Settings className="w-4 h-4 mr-2" />
                   设置
                 </DropdownMenuItem>
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/admin')}>
+                    <DropdownMenuItem onClick={() => navigate('/apps/admin')}>
                       <Shield className="w-4 h-4 mr-2" />
                       管理后台
                     </DropdownMenuItem>

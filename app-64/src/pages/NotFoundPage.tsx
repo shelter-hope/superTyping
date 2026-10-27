@@ -27,10 +27,10 @@ export default function NotFoundPage() {
             <Link to="/" className="text-[13px] underline decoration-border underline-offset-4 hover:decoration-foreground">
               首页
             </Link>
-            <Link to="/prepare" className="text-[13px] underline decoration-border underline-offset-4 hover:decoration-foreground">
+            <Link to="/apps/typing/prepare" className="text-[13px] underline decoration-border underline-offset-4 hover:decoration-foreground">
               配置一局
             </Link>
-            <Link to="/leaderboard" className="text-[13px] underline decoration-border underline-offset-4 hover:decoration-foreground">
+            <Link to="/apps/typing/leaderboard" className="text-[13px] underline decoration-border underline-offset-4 hover:decoration-foreground">
               排行榜
             </Link>
           </div>

@@ -14,10 +14,10 @@ export default function ResultPage() {
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Button asChild>
-          <Link to="/prepare">再来一局 →</Link>
+          <Link to="/apps/typing/prepare">再来一局 →</Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link to="/profile">查看个人数据</Link>
+          <Link to="/apps/typing/profile">查看个人数据</Link>
         </Button>
       </div>
     </PageBody>

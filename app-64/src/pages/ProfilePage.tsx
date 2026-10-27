@@ -371,7 +371,7 @@ export default function ProfilePage() {
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <Button size="sm" asChild>
-                <Link to="/ai-assistant">
+                <Link to="/apps/assistant">
                   <MessageCircle />
                   打开 AI 对话
                 </Link>
