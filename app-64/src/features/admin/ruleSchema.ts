@@ -9,10 +9,16 @@ export const difficultyRuleSchema = z
     weightNormalizedSpeed: unit,
     weightHistorySpeed: unit,
     weightComposure: unit,
+    weakExposureGain: unit.default(1),
     weightRound: unit,
     targetAccuracy: unit,
     gain: z.number().min(0).max(2),
-    step: z.number().min(0).max(1),
+    step: z.number().min(0.001).max(0.5),
+    logitSlope: z.number().min(1).max(20).default(6),
+    deadband: z.number().min(0).max(0.2).default(0.03),
+    lambdaUp: unit.default(0.25),
+    lambdaDown: unit.default(0.5),
+    speedErrorScale: z.number().min(0.1).max(10).default(2),
     minDifficulty: unit,
     maxDifficulty: unit,
     initialDifficulty: unit,
@@ -72,6 +78,8 @@ export const geneticRuleSchema = z.object({
 });
 
 export type DifficultyRuleForm = z.infer<typeof difficultyRuleSchema>;
+/** 表单输入：带 `.default()` 的字段在输入侧是可选的，提交后由 resolver 补齐为 DifficultyRuleForm。 */
+export type DifficultyRuleInput = z.input<typeof difficultyRuleSchema>;
 export type GeneticRuleForm = z.infer<typeof geneticRuleSchema>;
 
 export const difficultyFieldGroups: Array<{
@@ -84,11 +92,15 @@ export const difficultyFieldGroups: Array<{
       { key: 'weightAccuracy', label: '准确率权重' },
       { key: 'weightNormalizedSpeed', label: '速度偏差权重' },
       { key: 'weightHistorySpeed', label: '峰值偏差权重' },
-      { key: 'weightComposure', label: '易错强化系数' },
-      { key: 'weightRound', label: '轮次保留（不参与计算）' },
       { key: 'targetAccuracy', label: '目标准确率' },
-      { key: 'gain', label: '增益' },
-      { key: 'step', label: '步长' },
+      { key: 'logitSlope', label: 'logit 斜率 k', step: '0.5' },
+      { key: 'deadband', label: '准确率死区' },
+      { key: 'lambdaUp', label: '上调阻尼 λ↑' },
+      { key: 'lambdaDown', label: '下调阻尼 λ↓' },
+      { key: 'speedErrorScale', label: '速度项折算' },
+      { key: 'step', label: '单步上限' },
+      { key: 'gain', label: '旧增益（不参与）' },
+      { key: 'weightComposure', label: '旧镇定系数（不参与）' },
     ],
   },
   {
@@ -105,6 +117,7 @@ export const difficultyFieldGroups: Array<{
       { key: 'maxReferenceSpeed', label: '最大参考速度', step: '1' },
       { key: 'refPeakSpeed', label: '参考峰值速度', step: '1' },
       { key: 'weakCharDivisor', label: '弱项字符除数', step: '1' },
+      { key: 'weakExposureGain', label: '易错抽样强化' },
       { key: 'roundLogBase', label: '轮次对数底', step: '1' },
       { key: 'speedSpan', label: '速度覆盖比例' },
     ],

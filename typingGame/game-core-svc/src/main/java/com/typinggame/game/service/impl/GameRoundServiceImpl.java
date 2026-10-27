@@ -138,7 +138,8 @@ public class GameRoundServiceImpl implements GameRoundService {
         DifficultyRule rule = ruleConfigProvider.activeDifficulty();
         double before = round.getDifficultyBefore() == null ? rule.getInitialDifficulty() : round.getDifficultyBefore().doubleValue();
         double speed = round.getAvgSpeed() == null ? 0 : round.getAvgSpeed().doubleValue();
-        double after = DifficultyEngine.nextDifficulty(rule, before, accuracy.doubleValue(), speed, round.getRoundNum(), 0);
+        Double observedAccuracy = hasTypedInput(attempts) ? accuracy.doubleValue() : null;
+        double after = DifficultyEngine.nextDifficulty(rule, before, observedAccuracy, speed, round.getRoundNum(), 0);
         BigDecimal beforeBd = BigDecimal.valueOf(before).setScale(4, RoundingMode.HALF_UP);
         BigDecimal afterBd = BigDecimal.valueOf(after).setScale(4, RoundingMode.HALF_UP);
         round.setDifficultyBefore(beforeBd);
@@ -148,7 +149,7 @@ public class GameRoundServiceImpl implements GameRoundService {
         round.setStatus("COMPLETED");
         round.setCompletedAt(new Date());
         gameRoundRepository.save(round);
-        writeRoundAdaptLog(session, round, rule, beforeBd, afterBd, accuracy, speed);
+        writeRoundAdaptLog(session, round, rule, beforeBd, afterBd, observedAccuracy, speed);
         session.setCurrentRound(Math.max(session.getCurrentRound() == null ? 0 : session.getCurrentRound(), request.getRoundNum()));
         session.setUpdatedAt(new Date());
         gameSessionRepository.save(session);
@@ -159,10 +160,12 @@ public class GameRoundServiceImpl implements GameRoundService {
     }
 
     private void writeRoundAdaptLog(GameSession session, GameRound round, DifficultyRule rule,
-                                    BigDecimal before, BigDecimal after, BigDecimal accuracy, double speed) {
+                                    BigDecimal before, BigDecimal after,
+                                    Double observedAccuracy, double speed) {
         DifficultyEngine.Outcome outcome = DifficultyEngine.outcome(rule, after.doubleValue(), 0.8, 3.0, 1, 15);
         int monsterCount = DifficultyEngine.monsterCount(rule, after.doubleValue(), round.getRoundNum());
-        String trigger = resolveRoundTrigger(accuracy, rule);
+        String trigger = resolveRoundTrigger(observedAccuracy, rule);
+        boolean observed = observedAccuracy != null;
         UserInfo user = new UserInfo();
         user.setUserId(session.getUserId());
         UserModelAdaptLog log = new UserModelAdaptLog();
@@ -175,10 +178,13 @@ public class GameRoundServiceImpl implements GameRoundService {
         log.setAfterDifficulty(after);
         log.setTriggerRule(trigger);
         log.setAdjustParams("{"
-                + "\"accuracy\":" + accuracy.toPlainString()
+                + "\"accuracy\":" + (observed ? observedAccuracy : "null")
                 + ",\"speed\":" + speed
                 + ",\"weakCharCount\":0"
                 + ",\"ruleVersion\":" + ruleConfigProvider.difficultyVersion()
+                + ",\"theta\":" + round4(DifficultyEngine.thetaAccuracy(rule, after.doubleValue()))
+                + ",\"targetDifficulty\":" + (observed ? round4(DifficultyEngine.targetDifficulty(rule, before.doubleValue(), observedAccuracy)) : "null")
+                + ",\"lambda\":" + (observed ? (observedAccuracy > rule.getTargetAccuracy() ? rule.getLambdaUp() : rule.getLambdaDown()) : "null")
                 + ",\"monsterCount\":" + monsterCount
                 + ",\"outcomeSpeed\":" + round4(outcome.speed())
                 + ",\"outcomeLength\":" + outcome.length()
@@ -191,9 +197,9 @@ public class GameRoundServiceImpl implements GameRoundService {
         adaptLogRepository.save(log);
     }
 
-    private static String resolveRoundTrigger(BigDecimal accuracy, DifficultyRule rule) {
+    private static String resolveRoundTrigger(Double accuracy, DifficultyRule rule) {
         if (accuracy == null) return "SMOOTH_ROUND_PROGRESS";
-        double percent = accuracy.doubleValue() > 1 ? accuracy.doubleValue() : accuracy.doubleValue() * 100.0;
+        double percent = accuracy > 1 ? accuracy : accuracy * 100.0;
         if (percent >= rule.getHighAccuracyAdvanceThreshold()) return "HIGH_ACCURACY_ADVANCE";
         if (percent <= rule.getLowAccuracyRollbackThreshold()) return "LOW_ACCURACY_ROLLBACK";
         return "SMOOTH_ROUND_PROGRESS";
@@ -256,6 +262,10 @@ public class GameRoundServiceImpl implements GameRoundService {
 
     private String normalizeResult(String result) {
         return result == null || result.isBlank() ? "ABANDONED" : result.toUpperCase();
+    }
+
+    private boolean hasTypedInput(List<MonsterAttempt> attempts) {
+        return attempts.stream().mapToInt(item -> nonNegative(item.getInputCount())).sum() > 0;
     }
 
     private int nonNegative(Integer value) {

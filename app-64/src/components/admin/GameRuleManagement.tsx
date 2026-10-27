@@ -19,6 +19,7 @@ import {
   difficultyRuleSchema,
   geneticRuleSchema,
   type DifficultyRuleForm,
+  type DifficultyRuleInput,
   type GeneticRuleForm,
 } from '@/features/admin/ruleSchema';
 
@@ -28,7 +29,9 @@ export default function GameRuleManagement() {
   const [curve, setCurve] = useState<Array<Record<string, number>>>([]);
   const [accuracies, setAccuracies] = useState('0.95,0.9,0.8,0.7');
   const [speeds, setSpeeds] = useState('140,120,90,60');
-  const difficultyForm = useForm<DifficultyRuleForm>({ resolver: zodResolver(difficultyRuleSchema) });
+  const difficultyForm = useForm<DifficultyRuleInput, unknown, DifficultyRuleForm>({
+    resolver: zodResolver(difficultyRuleSchema),
+  });
   const geneticForm = useForm<GeneticRuleForm>({ resolver: zodResolver(geneticRuleSchema) });
 
   useEffect(() => {

@@ -103,9 +103,15 @@ public class DifficultyModelServiceImpl implements DifficultyModelService {
         copy.setWeightNormalizedSpeed(source.getWeightNormalizedSpeed());
         copy.setWeightHistorySpeed(source.getWeightHistorySpeed());
         copy.setWeightComposure(source.getWeightComposure());
+        copy.setWeakExposureGain(source.getWeakExposureGain());
         copy.setWeightRound(source.getWeightRound());
         copy.setTargetAccuracy(source.getTargetAccuracy());
         copy.setGain(source.getGain());
+        copy.setLogitSlope(source.getLogitSlope());
+        copy.setDeadband(source.getDeadband());
+        copy.setLambdaUp(source.getLambdaUp());
+        copy.setLambdaDown(source.getLambdaDown());
+        copy.setSpeedErrorScale(source.getSpeedErrorScale());
         copy.setStep(source.getStep());
         copy.setMinDifficulty(source.getMinDifficulty());
         copy.setMaxDifficulty(source.getMaxDifficulty());

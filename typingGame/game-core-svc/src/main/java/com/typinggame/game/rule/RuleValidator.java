@@ -11,10 +11,19 @@ public final class RuleValidator {
             throw new IllegalArgumentException("准确率、速度、历史峰值权重之和必须为 1，当前为 " + regulator);
         }
         requireRange("易错强化系数", rule.getWeightComposure(), 0, 1);
+        requireRange("弱项抽样强化", rule.getWeakExposureGain(), 0, 1);
         requireRange("轮次保留权重", rule.getWeightRound(), 0, 1);
         requireRange("目标准确率", rule.getTargetAccuracy(), 0, 1);
-        requireRange("增益", rule.getGain(), 0, 2);
-        requireRange("步长", rule.getStep(), 0, 1);
+        requireRange("增益（v1 保留字段）", rule.getGain(), 0, 2);
+        requireRange("步长", rule.getStep(), 0, 0.5);
+        requirePositive("步长", rule.getStep());
+        if (rule.getLogitSlope() < 1 || rule.getLogitSlope() > 20) {
+            throw new IllegalArgumentException("logit 斜率 k 必须落在 [1, 20]");
+        }
+        requireRange("准确率死区", rule.getDeadband(), 0, 0.2);
+        requireRange("上调阻尼", rule.getLambdaUp(), 0, 1);
+        requireRange("下调阻尼", rule.getLambdaDown(), 0, 1);
+        requireRange("速度偏差折算", rule.getSpeedErrorScale(), 0, 10);
         if (rule.getMinDifficulty() < 0 || rule.getMaxDifficulty() > 1 || rule.getMinDifficulty() >= rule.getMaxDifficulty()) {
             throw new IllegalArgumentException("难度区间不合法");
         }

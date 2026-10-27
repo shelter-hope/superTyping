@@ -10,6 +10,12 @@ const validDifficulty = {
   targetAccuracy: 0.85,
   gain: 0.35,
   step: 0.05,
+  logitSlope: 6,
+  deadband: 0.03,
+  lambdaUp: 0.25,
+  lambdaDown: 0.5,
+  speedErrorScale: 2,
+  weakExposureGain: 1,
   minDifficulty: 0.15,
   maxDifficulty: 0.95,
   initialDifficulty: 0.3,
@@ -47,6 +53,25 @@ describe('difficultyRuleSchema', () => {
   it('rejects weights that do not sum to one', () => {
     const result = difficultyRuleSchema.safeParse({ ...validDifficulty, weightAccuracy: 0.9 });
     expect(result.success).toBe(false);
+  });
+
+  it('fills the v2 regulator defaults for payloads saved before the migration', () => {
+    const { logitSlope, deadband, lambdaUp, lambdaDown, speedErrorScale, weakExposureGain } =
+      validDifficulty;
+    const parsed = difficultyRuleSchema.parse({
+      ...validDifficulty,
+      logitSlope: undefined,
+      deadband: undefined,
+      lambdaUp: undefined,
+      lambdaDown: undefined,
+      speedErrorScale: undefined,
+      weakExposureGain: undefined,
+    });
+    expect([logitSlope, deadband, lambdaUp, lambdaDown, speedErrorScale, weakExposureGain]).toEqual([
+      6, 0.03, 0.25, 0.5, 2, 1,
+    ]);
+    expect(parsed.logitSlope).toBe(6);
+    expect(parsed.lambdaDown).toBe(0.5);
   });
 });
 

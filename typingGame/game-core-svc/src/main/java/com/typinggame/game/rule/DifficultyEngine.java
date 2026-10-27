@@ -9,9 +9,19 @@ public final class DifficultyEngine {
     }
 
     /**
-     * 饱和积分器。误差只含相对设定点的偏差，默认权重下就是准确率偏差。
-     * 轮次和易错字符不进入误差。准确率缺失时保持难度。
-     * roundNum、weakCharCount 保留给调用方，不参与本步更新。
+     * 能力感知的对数几率调节器（v2）。
+     *
+     * <p>把准确率偏差换算到对数几率空间：e = ln(p ÷ (1-p)) − ln(p* ÷ (1 − p*))。
+     * 在 logistic 响应模型 p = σ(k(θ − D)) 下，玩家达到目标准确率所需的难度是
+     * D* = D + e / k；每轮只朝 D* 走 λ（上调慢、下调快），再用 step 封顶，最后夹在 [min,max]。</p>
+     *
+     * <p>准确率落在 deadband 内时准确率项计 0，避免单轮噪声来回抖。
+     * 速度、峰值速度是可选的副信号，按 weight×speedErrorScale 折算到同一量级；
+     * 权重为 0 时它们完全不参与，因此「只看准确率」和「只看速度」的配置都能工作。</p>
+     *
+     * <p>与 v1 的区别：v1 是线性的有界积分器，均衡点由权重和目标隐式决定，
+     * 且任何非零误差都会推动难度，长期在目标附近抖动；v2 在目标附近有死区，
+     * 并让调整幅度随误差呈对数增长，离目标越远一步走得越多、越近越稳。</p>
      */
     public static double nextDifficulty(DifficultyRule rule, double previous, Double accuracy, Double speed, int roundNum, int weakCharCount) {
         return nextDifficulty(rule, previous, accuracy, speed, null, roundNum, weakCharCount);
@@ -22,18 +32,55 @@ public final class DifficultyEngine {
         if (accuracy == null) {
             return safePrevious;
         }
-        double normalizedAccuracy = normalizeAccuracy(accuracy, 0);
-        double error = rule.getWeightAccuracy() * (normalizedAccuracy - rule.getTargetAccuracy());
-        double speedSetpoint = speedSetpoint(rule);
-        if (speed != null && rule.getWeightNormalizedSpeed() != 0) {
-            error += rule.getWeightNormalizedSpeed() * (normalizeSpeed(speed, rule.getMaxReferenceSpeed()) - speedSetpoint);
+        double target = accuracyBound(rule.getTargetAccuracy());
+        double observed = accuracyBound(normalizeAccuracy(accuracy, target));
+        double accuracyError = 0.0;
+        if (rule.getWeightAccuracy() != 0 && Math.abs(observed - target) > Math.max(0.0, rule.getDeadband())) {
+            accuracyError = rule.getWeightAccuracy() * (logit(observed) - logit(target));
         }
-        if (peakSpeed != null && rule.getWeightHistorySpeed() != 0) {
-            error += rule.getWeightHistorySpeed() * (normalizeSpeed(peakSpeed, rule.getMaxReferenceSpeed()) - speedSetpoint);
+        double error = accuracyError
+                + speedError(rule, speed, rule.getWeightNormalizedSpeed())
+                + speedError(rule, peakSpeed, rule.getWeightHistorySpeed());
+        if (Math.abs(error) < 1e-9) {
+            return safePrevious;
         }
-        double raw = safePrevious + rule.getGain() * error;
-        double stepped = safePrevious + clamp(raw - safePrevious, -rule.getStep(), rule.getStep());
-        return clamp(stepped, rule.getMinDifficulty(), rule.getMaxDifficulty());
+        double lambda = error > 0 ? clamp(rule.getLambdaUp(), 0, 1) : clamp(rule.getLambdaDown(), 0, 1);
+        double move = lambda * error / Math.max(0.5, rule.getLogitSlope());
+        double step = Math.max(0.0, rule.getStep());
+        return clamp(safePrevious + clamp(move, -step, step), rule.getMinDifficulty(), rule.getMaxDifficulty());
+    }
+
+    /**
+     * 从当前难度反推玩家能力 θ：p* = σ(k(θ − D*))，故 θ = D + ln(p* ÷ (1 − p*)) / k。
+     * 只用于观测与后台展示，不参与积分。
+     */
+    public static double thetaAccuracy(DifficultyRule rule, double difficulty) {
+        return difficulty + logit(accuracyBound(rule.getTargetAccuracy())) / Math.max(0.5, rule.getLogitSlope());
+    }
+
+    /** 本轮观测反推的目标难度 D* = D + logit 误差 / k；准确率缺失时返回原难度。 */
+    public static double targetDifficulty(DifficultyRule rule, double difficulty, Double accuracy) {
+        double safe = clamp(difficulty, rule.getMinDifficulty(), rule.getMaxDifficulty());
+        if (accuracy == null) {
+            return safe;
+        }
+        double target = accuracyBound(rule.getTargetAccuracy());
+        double observed = accuracyBound(normalizeAccuracy(accuracy, target));
+        return safe + (logit(observed) - logit(target)) / Math.max(0.5, rule.getLogitSlope());
+    }
+
+    /** logistic 响应模型：给定能力 θ 与难度 D 预测准确率，供管理台模拟器使用。 */
+    public static double predictedAccuracy(DifficultyRule rule, double theta, double difficulty) {
+        return logistic(Math.max(0.5, rule.getLogitSlope()) * (theta - difficulty));
+    }
+
+    public static double logit(double accuracy) {
+        double safe = clamp(accuracy, 1e-4, 1 - 1e-4);
+        return Math.log(safe / (1 - safe));
+    }
+
+    public static double logistic(double value) {
+        return 1.0 / (1.0 + Math.exp(-value));
     }
 
     public static Outcome outcome(DifficultyRule rule, double difficulty, double minSpeed, double maxSpeed, int minLength, int maxLength) {
@@ -74,10 +121,11 @@ public final class DifficultyEngine {
 
     /**
      * 易错字符抽样倍率。无易错字符时为 1；弱项比例为 1 且强化系数为 1 时为 2。
+     * 强化系数取自 weakExposureGain，与难度积分完全解耦（v1 曾借用 weightComposure）。
      */
     public static double weakExposureMultiplier(DifficultyRule rule, int weakCharCount) {
         double ratio = Math.min(1.0, Math.max(0.0, weakCharCount / Math.max(1.0, rule.getWeakCharDivisor())));
-        double gain = clamp(rule.getWeightComposure(), 0, 1);
+        double gain = clamp(rule.getWeakExposureGain(), 0, 1);
         return 1.0 + gain * ratio;
     }
 
@@ -155,6 +203,20 @@ public final class DifficultyEngine {
 
     private static double speedSetpoint(DifficultyRule rule) {
         return Math.min(1.0, Math.max(0, rule.getRefPeakSpeed()) / Math.max(1.0, rule.getMaxReferenceSpeed()));
+    }
+
+    /** 把速度偏差折算成对数几率误差：权重要么为 0（不参与），要么按 speedErrorScale 放大。 */
+    private static double speedError(DifficultyRule rule, Double speed, double weight) {
+        if (speed == null || weight == 0) {
+            return 0.0;
+        }
+        double scale = Math.max(0.0, rule.getSpeedErrorScale());
+        return weight * scale * (normalizeSpeed(speed, rule.getMaxReferenceSpeed()) - speedSetpoint(rule));
+    }
+
+    /** logistic 里 p 取对数前先夹到 (0,1) 内部，避免 0%/100% 把误差推到无穷。 */
+    private static double accuracyBound(double accuracy) {
+        return clamp(accuracy, 0.02, 0.98);
     }
 
     private static double normalizeSpeed(double speed, double reference) {

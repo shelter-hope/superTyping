@@ -11,18 +11,42 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RuleEngineTest {
     @Test
-    void difficultyMovesTowardTargetAndStaysInsideBounds() {
+    void logitRegulatorMovesTowardTargetAndStaysInsideBounds() {
         DifficultyRule rule = new DifficultyRule();
         double high = DifficultyEngine.nextDifficulty(rule, 0.30, 1.0, 150.0, 31, 0);
         double low = DifficultyEngine.nextDifficulty(rule, 0.30, 0.2, 10.0, 1, 10);
+        // 远离目标时单步被 step 封顶：上调 0.05、下调 0.05
         assertEquals(0.35, high, 0.0001);
-        assertTrue(low < 0.30);
+        assertEquals(0.25, low, 0.0001);
         assertTrue(low >= rule.getMinDifficulty());
-        double partial = DifficultyEngine.nextDifficulty(rule, 0.30, 0.95, 40.0, 1, 10);
-        assertEquals(0.335, partial, 0.0001);
         assertEquals(0.30, DifficultyEngine.nextDifficulty(rule, 0.30, 0.85, 200.0, 31, 10), 0.0001);
         assertEquals(0.30, DifficultyEngine.nextDifficulty(rule, 0.30, null, 0.0, 1, 0), 0.0001);
-        assertEquals(0.25, low, 0.0001);
+        // 边界外不越界
+        assertEquals(0.95, DifficultyEngine.nextDifficulty(rule, 0.94, 1.0, 0.0, 1, 0), 0.0001);
+        assertEquals(0.15, DifficultyEngine.nextDifficulty(rule, 0.16, 0.2, 0.0, 1, 0), 0.0001);
+    }
+
+    @Test
+    void deadbandAbsorbsNoiseNearTheTarget() {
+        DifficultyRule rule = new DifficultyRule();
+        // 0.875 距目标 2.5%，落在 3% 死区里，难度不动
+        assertEquals(0.30, DifficultyEngine.nextDifficulty(rule, 0.30, 0.875, 50.0, 1, 0), 0.0001);
+        // 同样偏离 5%：上调慢、下调快
+        double gentlyUp = DifficultyEngine.nextDifficulty(rule, 0.30, 0.90, 50.0, 1, 0);
+        double gentlyDown = DifficultyEngine.nextDifficulty(rule, 0.30, 0.80, 50.0, 1, 0);
+        assertTrue(gentlyUp > 0.30 && gentlyUp < 0.335);
+        assertTrue(gentlyDown < 0.30 && gentlyDown > 0.265);
+        assertTrue(0.30 - gentlyDown > gentlyUp - 0.30);
+    }
+
+    @Test
+    void thetaAndTargetDifficultyFollowTheLogisticModel() {
+        DifficultyRule rule = new DifficultyRule();
+        double theta = DifficultyEngine.thetaAccuracy(rule, 0.30);
+        assertEquals(0.85, DifficultyEngine.predictedAccuracy(rule, theta, 0.30), 0.001);
+        double target = DifficultyEngine.targetDifficulty(rule, 0.30, 0.90);
+        assertTrue(target > 0.30);
+        assertEquals(0.85, DifficultyEngine.predictedAccuracy(rule, DifficultyEngine.thetaAccuracy(rule, target), target), 0.001);
     }
 
     @Test
@@ -94,8 +118,9 @@ class RuleEngineTest {
         rule.setWeightNormalizedSpeed(1.0);
         double atReference = DifficultyEngine.nextDifficulty(rule, 0.30, 0.20, 120.0, 1, 0);
         double faster = DifficultyEngine.nextDifficulty(rule, 0.30, 0.20, 150.0, 1, 0);
+        // 权重全给速度时，准确率项为 0；速度按 speedErrorScale 折算后推动难度
         assertEquals(0.30, atReference, 0.0001);
-        assertTrue(faster > 0.30);
+        assertEquals(0.30 + 0.25 * (2.0 * 0.2) / 6.0, faster, 0.0001);
     }
 
     @Test

@@ -10,13 +10,26 @@ public class DifficultyRule {
     private double weightNormalizedSpeed = 0.0;
     /** 历史峰值相对同一参考速度的偏差权重。缺峰值时该项为 0。 */
     private double weightHistorySpeed = 0.0;
-    /** 易错字符抽样强化系数，范围 [0,1]。倍率 = 1 + 系数 × 弱项比例，不进入难度积分。 */
+    /** 旧字段：v2 起不再参与难度积分，弱项抽样改用 weakExposureGain。保留以便旧配置反序列化。 */
     private double weightComposure = 1.0;
     /** 保留字段。轮次不再进入难度积分，数量公式使用 countRoundFactor。 */
     private double weightRound = 0.0;
     private double targetAccuracy = 0.85;
+    /** 旧字段：v1 积分器增益。v2 用 lambdaUp / lambdaDown，保留以便旧配置反序列化。 */
     private double gain = 0.35;
     private double step = 0.05;
+    /** logistic 斜率 k：难度每变化 1，准确率的对数几率变化 k。越大越"陡"。 */
+    private double logitSlope = 6.0;
+    /** 准确率死区：|准确率 − 目标| 不超过该值时不动难度，避免单轮噪声来回抖。 */
+    private double deadband = 0.03;
+    /** 上调阻尼：准确率高于目标时，每轮走完误差的多少（慢）。 */
+    private double lambdaUp = 0.25;
+    /** 下调阻尼：准确率低于目标时，每轮走完误差的多少（快）。 */
+    private double lambdaDown = 0.5;
+    /** 速度偏差折算系数：把归一化速度偏差放大到 logit 误差同一量级。 */
+    private double speedErrorScale = 2.0;
+    /** 易错字符抽样强化系数，范围 [0,1]。倍率 = 1 + 系数 × 弱项比例，不进入难度积分。 */
+    private double weakExposureGain = 1.0;
     private double minDifficulty = 0.15;
     private double maxDifficulty = 0.95;
     private double initialDifficulty = 0.30;
