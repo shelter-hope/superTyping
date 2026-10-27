@@ -2,6 +2,7 @@ import type { GameRecordUploadResult } from '@/db/api';
 import type { CharacterStat, GameStats } from '@/game/types';
 import ErrorDistributionChart from '@/components/stats/ErrorDistributionChart';
 import { Button } from '@/components/ui/button';
+import { buildReviewDiagnosis, displayChar } from '@/features/game/reviewDiagnosis';
 
 interface GameResultViewProps {
   stats: GameStats;
@@ -113,6 +114,8 @@ export function GameResultView({
 }: GameResultViewProps) {
   const difficulty = uploadResult?.currentDifficulty != null ? Number(uploadResult.currentDifficulty) : null;
 
+  const diagnosis = buildReviewDiagnosis(stats, characterStats);
+
   const errorRanking = [...characterStats]
     .filter((stat) => stat.errorCount > 0)
     .sort((a, b) => b.errorCount - a.errorCount)
@@ -138,6 +141,27 @@ export function GameResultView({
         <div className="mt-8">
           <SummaryRow stats={stats} difficulty={difficulty} />
         </div>
+
+        <section className="mt-8 border border-border">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-5 py-3">
+            <span className="label-mono text-muted-foreground">复盘 · REVIEW</span>
+            <span className="label-mono text-muted-foreground">NEXT ROUND</span>
+          </div>
+          <div className="px-5 py-5">
+            <h2 className="font-serif text-[22px] leading-snug">{diagnosis.headline}</h2>
+            <p className="mt-2 max-w-2xl text-[13px] leading-6 text-muted-foreground">{diagnosis.detail}</p>
+            {diagnosis.focusChars.length > 0 ? (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="label-mono text-muted-foreground">下一轮重点</span>
+                {diagnosis.focusChars.map((char) => (
+                  <span key={char} className="keycap text-[12px] text-accent">
+                    {displayChar(char)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </section>
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Button onClick={onRestart}>再来一局</Button>
