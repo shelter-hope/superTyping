@@ -2,67 +2,74 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { apiClient } from '@/db/client';
-
-interface AlgorithmRow {
-  id: string;
-  name: string;
-  description: string;
-  enabled: boolean;
-  sortOrder: number;
-  defaultParams: Record<string, number>;
-  schemaVersion: number;
-}
-
-interface PresetRow {
-  id: number;
-  name: string;
-  algorithmId: string;
-  params: Record<string, number>;
-}
+import {
+  createSystemLabPreset,
+  deleteSystemLabPreset,
+  fetchAdminLabAlgorithms,
+  fetchAdminLabPresets,
+  updateLabAlgorithm,
+  type LabAlgorithmDto,
+  type LabPresetDto,
+} from '@/services/lab';
 
 export default function LabManagement() {
-  const [algorithms, setAlgorithms] = useState<AlgorithmRow[]>([]);
-  const [presets, setPresets] = useState<PresetRow[]>([]);
+  const [algorithms, setAlgorithms] = useState<LabAlgorithmDto[]>([]);
+  const [presets, setPresets] = useState<LabPresetDto[]>([]);
   const [name, setName] = useState('新系统预设');
   const [message, setMessage] = useState('');
 
   async function load() {
-    const [algorithmResponse, presetResponse] = await Promise.all([
-      apiClient.get('/admin/lab/algorithms'),
-      apiClient.get('/admin/lab/presets'),
+    const [algorithmRows, presetRows] = await Promise.all([
+      fetchAdminLabAlgorithms(),
+      fetchAdminLabPresets(),
     ]);
-    setAlgorithms(algorithmResponse.data.data);
-    setPresets(presetResponse.data.data);
+    setAlgorithms(algorithmRows);
+    setPresets(presetRows);
   }
 
   useEffect(() => {
     load().catch(() => setMessage('实验室服务不可用'));
   }, []);
 
-  async function saveAlgorithm(row: AlgorithmRow) {
-    await apiClient.put(`/admin/lab/algorithms/${row.id}`, {
-      name: row.name,
-      description: row.description,
-      enabled: row.enabled,
-      sortOrder: row.sortOrder,
-      defaultParams: row.defaultParams,
-      schemaVersion: row.schemaVersion,
-    });
-    setMessage('算法已更新');
-    await load();
+  async function saveAlgorithm(row: LabAlgorithmDto) {
+    try {
+      await updateLabAlgorithm(row.id, {
+        name: row.name,
+        description: row.description,
+        enabled: row.enabled,
+        sortOrder: row.sortOrder,
+        defaultParams: row.defaultParams,
+        schemaVersion: row.schemaVersion,
+      });
+      setMessage('算法已更新');
+      await load();
+    } catch {
+      setMessage('保存失败，检查参数区间');
+    }
   }
 
   async function addPreset(algorithmId: string, params: Record<string, number>) {
-    await apiClient.post('/admin/lab/presets', { algorithmId, name, params, isPublic: true });
-    setMessage('系统预设已创建');
-    await load();
+    try {
+      await createSystemLabPreset({ algorithmId, name, params, isPublic: true });
+      setMessage('系统预设已创建');
+      await load();
+    } catch {
+      setMessage('预设创建失败');
+    }
   }
 
   async function removePreset(id: number) {
-    await apiClient.delete(`/admin/lab/presets/${id}`);
-    setMessage('系统预设已删除');
-    await load();
+    try {
+      await deleteSystemLabPreset(id);
+      setMessage('系统预设已删除');
+      await load();
+    } catch {
+      setMessage('预设删除失败');
+    }
+  }
+
+  function update(id: string, patch: Partial<LabAlgorithmDto>) {
+    setAlgorithms((rows) => rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
   }
 
   return (
@@ -85,8 +92,8 @@ export default function LabManagement() {
               <input type="checkbox" checked={row.enabled} onChange={(event) => update(row.id, { enabled: event.target.checked })} />
               启用
             </label>
-            <Button onClick={() => void saveAlgorithm(row).catch(() => setMessage('保存失败，检查参数区间'))}>保存算法</Button>
-            <Button variant="outline" onClick={() => void addPreset(row.id, row.defaultParams).catch(() => setMessage('预设创建失败'))}>用默认参数新建系统预设</Button>
+            <Button onClick={() => void saveAlgorithm(row)}>保存算法</Button>
+            <Button variant="outline" onClick={() => void addPreset(row.id, row.defaultParams)}>用默认参数新建系统预设</Button>
           </CardContent>
         </Card>
       ))}
@@ -104,8 +111,4 @@ export default function LabManagement() {
       </Card>
     </div>
   );
-
-  function update(id: string, patch: Partial<AlgorithmRow>) {
-    setAlgorithms((rows) => rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
-  }
 }

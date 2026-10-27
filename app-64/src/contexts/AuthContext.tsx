@@ -2,7 +2,15 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Profile } from '@/types/database';
 import { getProfile } from '@/db/api';
-import { apiClient, type ApiError } from '@/db/client';
+import type { ApiError } from '@/db/client';
+import {
+  fetchCurrentUser,
+  resolveUserId,
+  signInRequest,
+  signOutRequest,
+  signUpRequest,
+  type AuthSession,
+} from '@/services/auth';
 
 interface AuthContextType {
   user: Profile | null;
@@ -22,30 +30,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkSession();
+    void checkSession();
   }, []);
 
   async function checkSession() {
     const token = localStorage.getItem('auth_token');
     if (token) {
       try {
-        const response = await apiClient.get('/auth/me');
-        const userData = response.data.data;
-        
-        const initialProfile = userData as unknown as Profile;
+        const account = await fetchCurrentUser();
+        const initialProfile = account as unknown as Profile;
         setUser(initialProfile);
         setProfile(initialProfile);
 
-        const userId = userData.userId || (userData as any).id;
-        
+        const userId = resolveUserId(account);
         if (userId) {
           await loadProfile(userId);
         } else {
-          console.error('User data missing userId:', userData);
+          console.error('账号数据缺少 userId:', account);
         }
       } catch (error) {
         const apiError = error as ApiError;
-        console.error('Session check failed:', apiError.message);
+        console.error('会话检查失败:', apiError.message);
         if (apiError.code === 401) {
           localStorage.removeItem('auth_token');
         }
@@ -70,20 +75,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  /** 写入会话并返回账号 id（token 的存储只在这里做）。 */
+  function applySession(session: AuthSession): number | undefined {
+    localStorage.setItem('auth_token', session.accessToken);
+    if (session.refreshToken) {
+      localStorage.setItem('refresh_token', session.refreshToken);
+    }
+    const initialProfile = session.user as unknown as Profile;
+    setUser(initialProfile);
+    setProfile(initialProfile);
+    return resolveUserId(session.user);
+  }
+
   async function signIn(username: string, password: string) {
     try {
-      const response = await apiClient.post('/auth/login', { username, password });
-      const { accessToken, refreshToken, user: userData } = response.data.data;
-      
-      localStorage.setItem('auth_token', accessToken);
-      if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
-      
-      const initialProfile = userData as unknown as Profile;
-      setUser(initialProfile);
-      setProfile(initialProfile);
-      
-      const userId = userData.userId || (userData as any).id;
-
+      const session = await signInRequest(username, password);
+      const userId = applySession(session);
       if (userId) {
         await loadProfile(userId);
       }
@@ -99,22 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await apiClient.post('/auth/signup', { 
-        username, 
-        password,
-        nickname: nickname || username 
-      });
-      const { accessToken, refreshToken, user: userData } = response.data.data;
-      
-      localStorage.setItem('auth_token', accessToken);
-      if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
-      
-      const initialProfile = userData as unknown as Profile;
-      setUser(initialProfile);
-      setProfile(initialProfile);
-      
-      const userId = userData.userId || (userData as any).id;
-
+      const session = await signUpRequest(username, password, nickname);
+      const userId = applySession(session);
       if (userId) {
         await loadProfile(userId);
       }
@@ -127,9 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     const refreshToken = localStorage.getItem('refresh_token');
     try {
-      await apiClient.post('/auth/logout', null, {
-        params: refreshToken ? { refreshToken } : undefined,
-      });
+      await signOutRequest(refreshToken);
     } finally {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
