@@ -138,4 +138,33 @@ class RuleEngineTest {
         rule.setInRoundMutationRate(1.5);
         assertThrows(IllegalArgumentException.class, () -> RuleValidator.validateGenetic(rule));
     }
+
+    @Test
+    void simulateRaisesDifficultyForStrongPlayerAndLowersForWeakPlayer() {
+        DifficultyRule rule = new DifficultyRule();
+        List<DifficultyEngine.SimulationPoint> strong = DifficultyEngine.simulate(rule,
+                List.of(0.96, 0.95, 0.94, 0.95, 0.96, 0.95), List.of(180.0), 6);
+        List<DifficultyEngine.SimulationPoint> weak = DifficultyEngine.simulate(rule,
+                List.of(0.55, 0.60, 0.58, 0.62, 0.60, 0.61), List.of(50.0), 6);
+
+        assertEquals(6, strong.size());
+        assertTrue(strong.get(5).difficulty() > strong.get(0).difficulty());
+        assertTrue(weak.get(5).difficulty() < weak.get(0).difficulty());
+        assertTrue(strong.get(5).difficulty() > weak.get(5).difficulty());
+        assertTrue(weak.get(5).difficulty() >= rule.getMinDifficulty());
+        assertTrue(strong.get(5).difficulty() <= rule.getMaxDifficulty());
+        DifficultyEngine.SimulationPoint first = strong.get(0);
+        assertTrue(first.monsterCount() >= rule.getCountMin() && first.monsterCount() <= rule.getCountMax());
+        assertEquals(100, first.normalRatio() + first.attackRatio()
+                + first.evasiveRatio() + first.smartRatio());
+    }
+
+    @Test
+    void simulateKeepsDifficultyFlatWhenAccuracyMatchesTarget() {
+        DifficultyRule rule = new DifficultyRule();
+        for (DifficultyEngine.SimulationPoint point : DifficultyEngine.simulate(rule,
+                List.of(rule.getTargetAccuracy()), List.of(0.0), 8)) {
+            assertEquals(rule.getInitialDifficulty(), point.difficulty(), 0.0001);
+        }
+    }
 }

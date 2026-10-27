@@ -456,9 +456,35 @@ export async function adminGetGameRuleVersions(key: 'difficulty' | 'genetic') {
   return response.data.data as Array<{ version: number; status: string; payload: Record<string, unknown> }>;
 }
 
-export async function adminSimulateGameRule(accuracies: number[], speeds: number[], rounds: number) {
-  const response = await apiClient.post('/admin/game-rules/simulate', { accuracies, speeds, rounds });
-  return response.data.data as { version: number; curve: Array<Record<string, number>> };
+/** 一次仿真里的单轮结果；ratio 字段是百分数，四类相加为 100 */
+export interface GameRuleSimulationPoint {
+  round: number;
+  accuracy: number;
+  difficulty: number;
+  monsterCount: number;
+  normalRatio: number;
+  attackRatio: number;
+  evasiveRatio: number;
+  smartRatio: number;
+}
+
+/**
+ * 推演难度曲线。传 payload 时用这份「候选规则」模拟（不落库），
+ * 不传则用线上生效的规则。
+ */
+export async function adminSimulateGameRule(
+  accuracies: number[],
+  speeds: number[],
+  rounds: number,
+  payload?: Record<string, unknown>,
+) {
+  const response = await apiClient.post('/admin/game-rules/simulate', {
+    accuracies,
+    speeds,
+    rounds,
+    ...(payload ? { payload } : {}),
+  });
+  return response.data.data as { version: number; curve: GameRuleSimulationPoint[] };
 }
 
 export async function adminCreateSystemDictionary(body: { name: string; description?: string; category?: string; isActive?: boolean }) {

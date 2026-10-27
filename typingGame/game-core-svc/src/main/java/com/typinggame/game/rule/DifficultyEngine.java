@@ -1,5 +1,6 @@
 package com.typinggame.game.rule;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -239,6 +240,40 @@ public final class DifficultyEngine {
         return clamp(span, 0, 1);
     }
 
+    /**
+     * 离线仿真：给定每轮的准确率/速度序列，用同一套规则推演难度与输出配置。
+     *
+     * <p>只服务管理端的「仿真预览」：不读写数据库、不落库、不影响真实对局。
+     * 序列比轮数短时沿用最后一项，为空时用规则自身的默认值（目标准确率、速度 0）。</p>
+     */
+    public static List<SimulationPoint> simulate(DifficultyRule rule, List<Double> accuracies,
+                                                 List<Double> speeds, int rounds) {
+        int count = Math.max(1, Math.min(200, rounds));
+        double previous = rule.getInitialDifficulty();
+        List<SimulationPoint> points = new ArrayList<>(count);
+        for (int round = 1; round <= count; round++) {
+            Double accuracy = valueAt(accuracies, round - 1, rule.getTargetAccuracy());
+            Double speed = valueAt(speeds, round - 1, 0.0);
+            previous = nextDifficulty(rule, previous, accuracy, speed, round, 0);
+            Outcome outcome = outcome(rule, previous, 0.8, 3.0, 1, 15);
+            points.add(new SimulationPoint(round, accuracy, previous, monsterCount(rule, previous, round),
+                    outcome.normalRatio(), outcome.attackRatio(), outcome.evasiveRatio(), outcome.smartRatio()));
+        }
+        return points;
+    }
+
+    private static Double valueAt(List<Double> values, int index, double fallback) {
+        if (values == null || values.isEmpty()) {
+            return fallback;
+        }
+        Double value = values.get(Math.min(index, values.size() - 1));
+        return value != null ? value : fallback;
+    }
+
     public record Outcome(double difficulty, double speed, int length, int normalRatio, int attackRatio, int evasiveRatio, int smartRatio) {
+    }
+
+    public record SimulationPoint(int round, double accuracy, double difficulty, int monsterCount,
+                                  int normalRatio, int attackRatio, int evasiveRatio, int smartRatio) {
     }
 }

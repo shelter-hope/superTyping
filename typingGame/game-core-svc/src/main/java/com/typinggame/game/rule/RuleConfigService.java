@@ -151,27 +151,32 @@ public class RuleConfigService implements RuleConfigProvider {
     }
 
     public Map<String, Object> simulate(List<?> accuracies, List<?> speeds, int rounds) {
-        DifficultyRule rule = activeDifficulty();
-        int count = Math.max(1, rounds);
-        double previous = rule.getInitialDifficulty();
+        return simulate(activeDifficulty(), accuracies, speeds, rounds);
+    }
+
+    /**
+     * 用指定规则做离线仿真：管理端可以先改参数、看曲线，再决定要不要存草稿。
+     * 不落库、不碰缓存。
+     */
+    public Map<String, Object> simulate(DifficultyRule rule, List<?> accuracies, List<?> speeds, int rounds) {
         List<Map<String, Object>> curve = new ArrayList<>();
-        for (int round = 1; round <= count; round++) {
-            Double accuracy = valueAt(accuracies, round - 1, rule.getTargetAccuracy());
-            Double speed = valueAt(speeds, round - 1, 0.0);
-            previous = DifficultyEngine.nextDifficulty(rule, previous, accuracy, speed, round, 0);
-            DifficultyEngine.Outcome outcome = DifficultyEngine.outcome(rule, previous, 0.8, 3.0, 1, 15);
-            Map<String, Object> point = new LinkedHashMap<>();
-            point.put("round", round);
-            point.put("accuracy", accuracy);
-            point.put("difficulty", round4(previous));
-            point.put("monsterCount", DifficultyEngine.monsterCount(rule, previous, round));
-            point.put("normalRatio", outcome.normalRatio());
-            point.put("attackRatio", outcome.attackRatio());
-            point.put("evasiveRatio", outcome.evasiveRatio());
-            point.put("smartRatio", outcome.smartRatio());
-            curve.add(point);
+        for (DifficultyEngine.SimulationPoint point : DifficultyEngine.simulate(rule, toDoubles(accuracies),
+                toDoubles(speeds), rounds)) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("round", point.round());
+            row.put("accuracy", point.accuracy());
+            row.put("difficulty", round4(point.difficulty()));
+            row.put("monsterCount", point.monsterCount());
+            row.put("normalRatio", point.normalRatio());
+            row.put("attackRatio", point.attackRatio());
+            row.put("evasiveRatio", point.evasiveRatio());
+            row.put("smartRatio", point.smartRatio());
+            curve.add(row);
         }
-        return Map.of("version", difficultyVersion(), "curve", curve);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("version", difficultyVersion());
+        result.put("curve", curve);
+        return result;
     }
 
     public void refresh() {
@@ -246,10 +251,17 @@ public class RuleConfigService implements RuleConfigProvider {
         }
     }
 
-    private static Double valueAt(List<?> values, int index, double fallback) {
-        if (values == null || values.isEmpty()) return fallback;
-        Object value = values.get(Math.min(index, values.size() - 1));
-        return value instanceof Number number ? number.doubleValue() : fallback;
+    private static List<Double> toDoubles(List<?> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+        List<Double> numbers = new ArrayList<>(values.size());
+        for (Object value : values) {
+            if (value instanceof Number number) {
+                numbers.add(number.doubleValue());
+            }
+        }
+        return numbers;
     }
 
     private static double round4(double value) {

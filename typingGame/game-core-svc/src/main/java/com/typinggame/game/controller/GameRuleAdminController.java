@@ -1,6 +1,9 @@
 package com.typinggame.game.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.typinggame.game.rule.DifficultyRule;
 import com.typinggame.game.rule.RuleConfigService;
+import com.typinggame.game.rule.RuleValidator;
 import com.typinggame.vo.ResultMessage;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,9 +21,11 @@ import java.util.Map;
 @RequestMapping("/api/v1/internal/admin/game-rules")
 public class GameRuleAdminController {
     private final RuleConfigService ruleConfigService;
+    private final ObjectMapper objectMapper;
 
-    public GameRuleAdminController(RuleConfigService ruleConfigService) {
+    public GameRuleAdminController(RuleConfigService ruleConfigService, ObjectMapper objectMapper) {
         this.ruleConfigService = ruleConfigService;
+        this.objectMapper = objectMapper;
     }
 
     @GetMapping("/{key}")
@@ -50,6 +55,12 @@ public class GameRuleAdminController {
         List<?> accuracies = body.get("accuracies") instanceof List<?> list ? list : List.of();
         List<?> speeds = body.get("speeds") instanceof List<?> list ? list : List.of();
         int rounds = body.get("rounds") instanceof Number number ? number.intValue() : 8;
+        if (body.get("payload") instanceof Map<?, ?> payload && !payload.isEmpty()) {
+            DifficultyRule candidate = objectMapper.convertValue(payload, DifficultyRule.class);
+            RuleValidator.validateDifficulty(candidate);
+            return ResponseEntity.ok(ResultMessage.success(
+                    ruleConfigService.simulate(candidate, accuracies, speeds, rounds)));
+        }
         return ResponseEntity.ok(ResultMessage.success(ruleConfigService.simulate(accuracies, speeds, rounds)));
     }
 }
