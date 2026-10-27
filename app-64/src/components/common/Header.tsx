@@ -66,7 +66,7 @@ export default function Header() {
   const visibleRoutes = routes.filter(route => route.visible && (!route.requireAuth || user));
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/85 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
       <div className="container flex h-[60px] items-center justify-between gap-6">
         <div className="flex min-w-0 items-center gap-6">
           <Link to="/" className="group flex items-baseline gap-2">

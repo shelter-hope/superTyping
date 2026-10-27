@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Application, Graphics } from 'pixi.js';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { PageBody, PageHeader } from '@/components/common/PageHeader';
 import { deleteLabPreset, fetchLabAlgorithms, fetchLabPresets, fetchMyLabPresets, saveLabPreset, type LabPresetDto } from '@/features/lab/api';
 import { labRegistry, visibleLabPlugins } from '@/features/lab/registry';
 import type { LabPlugin, ParamField, PointerForce } from '@/features/lab/plugin';
@@ -197,70 +197,122 @@ export default function LabPage() {
   }
 
   if (enabledIds && visiblePlugins.length === 0) {
-    return <div className="container py-16 text-center text-muted-foreground">实验室算法都已停用。</div>;
+    return (
+      <PageBody>
+        <PageHeader
+          eyebrow="实验室 · LAB"
+          title="群体智能实验室"
+          description="在浏览器里观察鸟群、粒子群、蚁群与遗传算法的演化。"
+        />
+        <p className="mt-12 border-y border-border py-14 text-center text-[13px] text-muted-foreground">
+          实验室算法都已停用。
+        </p>
+      </PageBody>
+    );
   }
   if (algorithm.id !== algorithmId) {
     return <Navigate to={`/lab/${algorithm.id}`} replace />;
   }
 
   return (
-    <div className="container space-y-4 py-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">群体智能实验室</h1>
-          <p className="text-muted-foreground">{algorithm.description}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {visiblePlugins.map((item) => (
-            <Button key={item.id} asChild variant={item.id === algorithm.id ? 'default' : 'outline'} size="sm">
-              <Link to={`/lab/${item.id}`}>{item.name}</Link>
-            </Button>
-          ))}
-        </div>
-      </div>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <Card>
-          <CardContent className="space-y-3 p-4">
-            <canvas
-              ref={canvasRef}
-              width={WIDTH}
-              height={HEIGHT}
-              className="h-auto w-full rounded-[1.5rem] border border-primary/30"
-              onContextMenu={(event) => event.preventDefault()}
-              onPointerDown={(event) => stateRef.current.plugin.onPointer?.(stateRef.current.sim, pointAt(event))}
-              onPointerMove={(event) => {
-                if (event.buttons === 0) return;
-                stateRef.current.plugin.onPointer?.(stateRef.current.sim, pointAt(event));
-              }}
-              onPointerUp={() => stateRef.current.plugin.onPointer?.(stateRef.current.sim, null)}
-              onPointerLeave={() => stateRef.current.plugin.onPointer?.(stateRef.current.sim, null)}
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => setPaused((value) => !value)}>{paused ? '继续' : '暂停'}</Button>
-              <Button variant="outline" onClick={() => {
-                stateRef.current.paused = true;
-                setPaused(true);
-                const nextMetrics = stateRef.current.plugin.step(stateRef.current.sim, params, WIDTH, HEIGHT);
-                if (metricsNode.current) metricsNode.current.textContent = formatMetrics(algorithm as LabPlugin<Record<string, number>, unknown>, seed, nextMetrics);
-              }}>单步</Button>
-              <Button variant="outline" onClick={() => reset()}>重置</Button>
-              <Button variant="outline" onClick={() => reset(Math.floor(Math.random() * 10000))}>随机种子</Button>
-              <Button variant="outline" onClick={() => canvasRef.current?.requestFullscreen()}>全屏</Button>
+    <PageBody>
+      <PageHeader
+        eyebrow="实验室 · LAB"
+        title="群体智能实验室"
+        description="在浏览器里观察鸟群、粒子群、蚁群与遗传算法的演化。拖动参数、保存预设，再回到同一组数字。"
+      >
+        <nav aria-label="实验切换" className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <span className="label-mono mr-1 text-[9px]">实验 · experiments</span>
+          {visiblePlugins.map((item, index) => {
+            const active = item.id === algorithm.id;
+            return (
+              <Link
+                key={item.id}
+                to={`/lab/${item.id}`}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-baseline gap-2 border-b-2 pb-1 pt-1 text-[13px] tracking-[0.02em] transition-colors ${
+                  active
+                    ? 'border-accent text-foreground'
+                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                }`}
+              >
+                <span className="mono-num text-[9px] text-accent">{String(index + 1).padStart(2, '0')}</span>
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+      </PageHeader>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <section className="border border-border bg-card">
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="status-light" />
+                <h2 className="font-serif text-[17px] leading-none">{algorithm.name}</h2>
+              </div>
+              <p className="mt-2 max-w-xl text-[11.5px] leading-5 text-muted-foreground">{algorithm.description}</p>
             </div>
-            <p ref={metricsNode} className="text-sm">{formatMetrics(algorithm as LabPlugin<Record<string, number>, unknown>, seed, {})}</p>
-            {algorithm.pointerHint && <p className="text-sm text-muted-foreground">{algorithm.pointerHint}</p>}
-            {!parsed.success && <p className="text-sm text-destructive">参数超出范围</p>}
-            {notice && <p className="text-sm text-primary">{notice}</p>}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>参数</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
+            <span className="label-mono text-[9px]">实验台 · stage</span>
+          </div>
+
+          <canvas
+            ref={canvasRef}
+            width={WIDTH}
+            height={HEIGHT}
+            className="block h-auto w-full border-b border-border"
+            onContextMenu={(event) => event.preventDefault()}
+            onPointerDown={(event) => stateRef.current.plugin.onPointer?.(stateRef.current.sim, pointAt(event))}
+            onPointerMove={(event) => {
+              if (event.buttons === 0) return;
+              stateRef.current.plugin.onPointer?.(stateRef.current.sim, pointAt(event));
+            }}
+            onPointerUp={() => stateRef.current.plugin.onPointer?.(stateRef.current.sim, null)}
+            onPointerLeave={() => stateRef.current.plugin.onPointer?.(stateRef.current.sim, null)}
+          />
+
+          <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-3">
+            <Button size="sm" onClick={() => setPaused((value) => !value)}>{paused ? '继续' : '暂停'}</Button>
+            <Button size="sm" variant="outline" onClick={() => {
+              stateRef.current.paused = true;
+              setPaused(true);
+              const nextMetrics = stateRef.current.plugin.step(stateRef.current.sim, params, WIDTH, HEIGHT);
+              if (metricsNode.current) metricsNode.current.textContent = formatMetrics(algorithm as LabPlugin<Record<string, number>, unknown>, seed, nextMetrics);
+            }}>单步</Button>
+            <Button size="sm" variant="outline" onClick={() => reset()}>重置</Button>
+            <Button size="sm" variant="outline" onClick={() => reset(Math.floor(Math.random() * 10000))}>随机种子</Button>
+            <Button size="sm" variant="outline" onClick={() => canvasRef.current?.requestFullscreen()}>全屏</Button>
+          </div>
+
+          <div className="px-4 py-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="label-mono text-[9px]">实时指标 · metrics</span>
+              <span className="mono-num text-[9px] text-muted-foreground">live · {WIDTH}×{HEIGHT}</span>
+            </div>
+            <p ref={metricsNode} className="mono-num mt-2 text-[12px] leading-6">
+              {formatMetrics(algorithm as LabPlugin<Record<string, number>, unknown>, seed, {})}
+            </p>
+            {algorithm.pointerHint && <p className="mt-2 text-[11.5px] leading-5 text-muted-foreground">{algorithm.pointerHint}</p>}
+            {!parsed.success && <p className="mt-2 border-t border-border pt-2 text-[11.5px] text-accent">参数超出范围</p>}
+            {notice && <p className="mt-2 border-t border-border pt-2 text-[11.5px] text-accent">{notice}</p>}
+          </div>
+        </section>
+
+        <aside className="border border-border bg-card">
+          <div className="flex items-baseline justify-between border-b border-border px-4 py-3">
+            <h2 className="font-serif text-[15px] leading-none">参数</h2>
+            <span className="label-mono text-[9px]">{algorithm.fields.length} params</span>
+          </div>
+          <div className="divide-y divide-border">
             {algorithm.fields.map((field) => (
-              <label key={field.key} className="block text-sm">
-                <span className="mb-1 flex justify-between"><span>{field.label}</span><span>{params[field.key]}</span></span>
+              <label key={field.key} className="block px-4 py-3">
+                <span className="flex items-baseline justify-between gap-3">
+                  <span className="label-mono text-[9px]">{field.label}</span>
+                  <span className="mono-num text-[12px] text-foreground">{params[field.key] ?? field.min}</span>
+                </span>
                 <input
-                  className="w-full accent-primary"
+                  className="mt-3 w-full accent-accent"
                   type="range"
                   min={field.min}
                   max={field.max}
@@ -271,35 +323,74 @@ export default function LabPage() {
                     setParams((current) => ({ ...current, [field.key]: value }));
                   }}
                 />
+                <span className="mt-1 flex items-baseline justify-between">
+                  <span className="mono-num text-[9px] text-muted-foreground">{field.min}</span>
+                  <span className="mono-num text-[9px] text-muted-foreground">{field.max}</span>
+                </span>
               </label>
             ))}
-            <Input value={presetName} onChange={(event) => setPresetName(event.target.value)} placeholder="预设名称" />
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={sharePublic} onChange={(event) => setSharePublic(event.target.checked)} />
+          </div>
+
+          <div className="border-t border-border px-4 py-4">
+            <div className="flex items-baseline justify-between">
+              <span className="label-mono text-[9px]">预设 · presets</span>
+              <span className="mono-num text-[10px] text-muted-foreground">{presets.length}</span>
+            </div>
+            <Input value={presetName} onChange={(event) => setPresetName(event.target.value)} placeholder="预设名称" className="mt-3 h-9" />
+            <label className="mt-3 flex items-center gap-2 text-[12px] text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={sharePublic}
+                onChange={(event) => setSharePublic(event.target.checked)}
+                className="accent-accent"
+              />
               公开分享
             </label>
-            <Button className="w-full" onClick={() => void savePreset()}>保存预设</Button>
-            <div className="space-y-2">
-              {presets.map((preset) => (
-                <div key={preset.id} className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => {
-                    applyPreset(preset.params);
-                    setSearchParams({ preset: String(preset.id) });
-                  }}>{preset.name}</Button>
-                  {!preset.system && <Button variant="ghost" size="sm" onClick={() => void removePreset(preset)}>删除</Button>}
-                </div>
-              ))}
+            <Button size="sm" className="mt-3 w-full" onClick={() => void savePreset()}>保存预设</Button>
+            <div className="mt-4 divide-y divide-border border-t border-border">
+              {presets.length === 0 ? (
+                <p className="py-3 text-[11.5px] text-muted-foreground">还没有保存过预设。</p>
+              ) : (
+                presets.map((preset) => (
+                  <div key={preset.id} className="flex items-center gap-2 py-2">
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 text-left transition-colors hover:text-accent"
+                      onClick={() => {
+                        applyPreset(preset.params);
+                        setSearchParams({ preset: String(preset.id) });
+                      }}
+                    >
+                      <span className="block truncate font-serif text-[13px] leading-5">{preset.name}</span>
+                      <span className="mono-num mt-0.5 block text-[9px] text-muted-foreground">
+                        {preset.isPublic ? '公开' : '私有'}
+                        {preset.system ? ' · 系统' : ' · 自建'}
+                      </span>
+                    </button>
+                    {!preset.system && <Button variant="ghost" size="sm" onClick={() => void removePreset(preset)}>删除</Button>}
+                  </div>
+                ))
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </aside>
       </div>
-      <Card>
-        <CardHeader><CardTitle>{algorithm.name}</CardTitle></CardHeader>
-        <CardContent className="grid gap-3 text-sm md:grid-cols-3">
-          {algorithm.explain.map((line) => <p key={line}>{line}</p>)}
-        </CardContent>
-      </Card>
-    </div>
+
+      <section className="mt-12 border-t border-border pt-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-serif text-xl leading-none">它怎么工作</h2>
+          <span className="label-mono text-[9px]">{algorithm.name} · mechanism</span>
+        </div>
+        <ol className="mt-6 divide-y divide-border border-t border-border">
+          {algorithm.explain.map((line, index) => (
+            <li key={line} className="flex items-baseline gap-5 py-3">
+              <span className="mono-num w-6 shrink-0 text-[10px] text-accent">{String(index + 1).padStart(2, '0')}</span>
+              <span className="text-[13px] leading-6 text-muted-foreground">{line}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+    </PageBody>
   );
 }
 

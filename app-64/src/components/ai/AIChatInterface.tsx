@@ -6,8 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Loader2, Send, Bot, User, Trash2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { postAiChat } from '@/db/api';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +16,12 @@ type ChatBubble = {
   message: string;
   created_at: string;
 };
+
+const SUGGESTIONS = [
+  '我最近错得最多的字符是哪些？',
+  '按我的数据，这周该练什么？',
+  '准确率一直在 70% 上下，怎么过 85%？',
+];
 
 export function AIChatInterface() {
   const { user } = useAuth();
@@ -98,146 +102,104 @@ export function AIChatInterface() {
     }
   }
 
+  function stamp(iso: string) {
+    return new Date(iso).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  }
+
   return (
-    <Card className="flex flex-col h-[calc(100vh-12rem)] max-h-[800px] shadow-lg">
-      <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Bot className="w-8 h-8 text-primary" />
-              <Sparkles className="w-3 h-3 text-primary absolute -top-1 -right-1" />
-            </div>
-            <div>
-              <CardTitle className="text-xl">AI助手</CardTitle>
-              <CardDescription className="text-sm">
-                通过后端服务获取打字技巧与训练建议（需后端配置 LLM）
-              </CardDescription>
-            </div>
-          </div>
-          {messages.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearHistory}
-              disabled={loading}
-              className="hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              清空会话
-            </Button>
-          )}
+    <Card className="flex h-[calc(100vh-16rem)] max-h-[680px] min-h-[420px] flex-col overflow-hidden">
+      <CardHeader className="flex-row items-center justify-between gap-4 border-b border-border py-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="status-light" />
+          <CardTitle className="font-serif text-lg leading-none">AI 助手</CardTitle>
+          <CardDescription className="hidden truncate text-[11px] text-muted-foreground sm:block">
+            通过后端配置的模型回答，能读到你的历史记录
+          </CardDescription>
         </div>
+        {messages.length > 0 ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearHistory}
+            disabled={loading}
+            className="shrink-0 text-muted-foreground hover:text-destructive"
+          >
+            清空会话
+          </Button>
+        ) : null}
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col gap-4 p-0 min-h-0">
-        <ScrollArea
-          className="flex-1 px-4 py-4"
-          ref={scrollRef}
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'hsl(var(--primary)) transparent',
-          }}
-        >
-          <div className="space-y-4 pr-2">
-            {messages.length === 0 && (
-              <div className="text-center text-muted-foreground py-12">
-                <div className="relative inline-block mb-6">
-                  <Bot className="w-16 h-16 mx-auto opacity-20" />
-                  <Sparkles className="w-6 h-6 text-primary absolute -top-2 -right-2 animate-pulse" />
-                </div>
-                <p className="text-lg font-medium mb-2">开始与AI助手对话</p>
-                <p className="text-sm max-w-md mx-auto leading-relaxed">您可以询问：</p>
-                <div className="mt-4 space-y-2 text-sm max-w-md mx-auto">
-                  <div className="bg-muted/50 rounded-lg p-3 text-left">💡 如何提高打字速度？</div>
-                  <div className="bg-muted/50 rounded-lg p-3 text-left">🎯 我的准确率总是很低，怎么办？</div>
-                  <div className="bg-muted/50 rounded-lg p-3 text-left">📊 根据我的数据，给我一些训练建议</div>
+      <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+        <ScrollArea className="flex-1 px-4 py-5" ref={scrollRef}>
+          <div className="space-y-6">
+            {messages.length === 0 ? (
+              <div className="py-6">
+                <p className="label-mono text-muted-foreground">可以这样问 · PROMPTS</p>
+                <div className="mt-3 divide-y divide-border border-t border-border">
+                  {SUGGESTIONS.map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => setInput(q)}
+                      className="block w-full py-3 text-left text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {q}
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 ${
-                  message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                }`}
-              >
-                <Avatar
-                  className={`w-9 h-9 shrink-0 ${
-                    message.role === 'user' ? 'bg-primary' : 'bg-gradient-to-br from-primary/80 to-primary'
-                  }`}
-                >
-                  <AvatarFallback className="bg-transparent">
-                    {message.role === 'user' ? (
-                      <User className="w-5 h-5 text-primary-foreground" />
-                    ) : (
-                      <Bot className="w-5 h-5 text-primary-foreground" />
-                    )}
-                  </AvatarFallback>
-                </Avatar>
-
-                <div
-                  className={`rounded-2xl px-4 py-3 max-w-[85%] shadow-sm ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                      : 'bg-muted rounded-tl-sm'
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{message.message}</p>
-                  <p
-                    className={`text-xs mt-2 ${message.role === 'user' ? 'opacity-80' : 'opacity-60'}`}
-                  >
-                    {new Date(message.created_at).toLocaleTimeString('zh-CN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                </div>
-              </div>
-            ))}
-
-            {loading && (
-              <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <Avatar className="w-9 h-9 shrink-0 bg-gradient-to-br from-primary/80 to-primary">
-                  <AvatarFallback className="bg-transparent">
-                    <Bot className="w-5 h-5 text-primary-foreground" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="rounded-2xl rounded-tl-sm px-4 py-3 bg-muted shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">AI正在思考...</span>
+            {messages.map((message) =>
+              message.role === 'user' ? (
+                <div key={message.id} className="flex justify-end">
+                  <div className="max-w-[85%] border border-border bg-muted px-4 py-3">
+                    <p className="whitespace-pre-wrap break-words text-[13px] leading-6">{message.message}</p>
+                    <p className="label-mono mt-2 text-muted-foreground">{stamp(message.created_at)}</p>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div key={message.id} className="flex gap-3">
+                  <span className="mt-[7px] shrink-0 text-[9px] leading-none text-accent">●</span>
+                  <div className="max-w-[85%]">
+                    <p className="whitespace-pre-wrap break-words text-[13px] leading-7">{message.message}</p>
+                    <p className="label-mono mt-2 text-muted-foreground">{stamp(message.created_at)}</p>
+                  </div>
+                </div>
+              ),
             )}
+
+            {loading ? (
+              <div className="flex items-center gap-3">
+                <span className="text-[9px] leading-none text-accent">●</span>
+                <span className="label-mono text-muted-foreground">思考中 · THINKING</span>
+              </div>
+            ) : null}
           </div>
         </ScrollArea>
 
-        <div className="border-t bg-muted/30 p-4">
-          <div className="flex gap-3">
+        <div className="border-t border-border p-4">
+          <div className="flex items-end gap-3">
             <Textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="输入您的问题... (Shift+Enter换行，Enter发送)"
-              className="min-h-[80px] max-h-[160px] resize-none bg-background shadow-sm"
+              placeholder="问点什么…（Enter 发送，Shift+Enter 换行）"
+              className="max-h-[160px] min-h-[64px] resize-none"
               disabled={loading}
             />
             <Button
               onClick={() => void handleSend()}
               disabled={!input.trim() || loading}
-              size="icon"
-              className="shrink-0 h-[80px] w-[80px] rounded-xl shadow-md hover:shadow-lg transition-shadow"
+              className="h-10 shrink-0 px-5"
             >
-              {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
+              发送
             </Button>
           </div>
-
-          <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
-            <span>💡 提示：按 Enter 发送，Shift+Enter 换行</span>
-            <span className="opacity-70">AI助手可能会出错，请谨慎参考</span>
+          <div className="mt-2 flex items-center justify-between gap-4">
+            <span className="label-mono text-muted-foreground">Enter 发送 · Shift+Enter 换行</span>
+            <span className="label-mono text-muted-foreground">结论仅供参考</span>
           </div>
         </div>
       </CardContent>

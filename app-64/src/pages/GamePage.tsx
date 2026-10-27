@@ -1,9 +1,10 @@
+import { Maximize2, Minimize2, Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import { useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorFeedback from '@/components/game/ErrorFeedback';
 import GameCanvas from '@/components/game/GameCanvas';
 import GameUI from '@/components/game/GameUI';
-import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGameConfig } from '@/contexts/GameConfigContext';
 import { GameResultView } from '@/features/game/components/GameResultView';
@@ -41,8 +42,8 @@ export default function GamePage() {
 
   if (user && session.startParams === null && session.gameState !== 'GAME_OVER') {
     return (
-      <div className="container flex max-w-4xl flex-col items-center justify-center gap-4 py-16">
-        <p className="text-muted-foreground">正在加载关卡参数...</p>
+      <div className="container flex max-w-4xl flex-col items-center justify-center gap-4 py-24">
+        <span className="label-mono text-muted-foreground">LOADING · 正在取关卡参数</span>
       </div>
     );
   }
@@ -62,14 +63,51 @@ export default function GamePage() {
     );
   }
 
+  const playing = session.gameState === 'PLAYING';
+
   return (
     <div
       ref={containerRef}
-      className={`${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'container max-w-[1400px]'} py-8`}
+      className={
+        isFullscreen
+          ? 'dark fixed inset-0 z-50 overflow-auto bg-background text-foreground'
+          : 'dark min-h-[calc(100vh-4rem)] bg-background text-foreground'
+      }
     >
-      <div className="grid h-full grid-cols-1 gap-6 xl:grid-cols-4">
-        <div className="xl:col-span-3">
-          <Card className="flex h-full items-center justify-center p-4">
+      <div className={isFullscreen ? 'px-4 py-4' : 'container max-w-[1500px] py-6'}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+          <div className="flex items-baseline gap-3">
+            <span className="status-light mt-1" />
+            <span className="label-mono text-muted-foreground">STAGE · 对局台</span>
+            <span className="font-serif text-lg leading-none">
+              {session.gameState === 'PAUSED' ? '已暂停' : '字符正在靠近'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {playing || session.gameState === 'PAUSED' ? (
+              <Button
+                size="sm"
+                variant={playing ? 'outline' : 'default'}
+                onClick={playing ? session.pause : session.resume}
+              >
+                {playing ? <Pause aria-hidden /> : <Play aria-hidden />}
+                {playing ? '暂停' : '继续'}
+              </Button>
+            ) : null}
+            <Button size="sm" variant="ghost" onClick={session.toggleSound}>
+              {session.soundEnabled ? <Volume2 aria-hidden /> : <VolumeX aria-hidden />}
+              {session.soundEnabled ? '音效 开' : '音效 关'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={handleToggleFullscreen}>
+              {isFullscreen ? <Minimize2 aria-hidden /> : <Maximize2 aria-hidden />}
+              {isFullscreen ? '退出全屏' : '全屏'}
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 border border-border xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="relative border-b border-border xl:border-b-0 xl:border-r">
             {session.gameEngine && (
               <>
                 <GameCanvas
@@ -86,22 +124,15 @@ export default function GamePage() {
                 <ErrorFeedback lastError={session.lastError} lastCorrect={session.lastCorrect} />
               </>
             )}
-          </Card>
-        </div>
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border px-4 py-2">
+              <span className="label-mono text-muted-foreground">首字符锁定 · 打完即灭 · Tab 换目标</span>
+              <span className="label-mono text-muted-foreground">
+                {isFullscreen ? 'FULLSCREEN' : `STAGE ${GAME_CANVAS_WIDTH}×${GAME_CANVAS_HEIGHT}`}
+              </span>
+            </div>
+          </div>
 
-        <div className="xl:col-span-1">
-          {session.stats && (
-            <GameUI
-              stats={session.stats}
-              gameState={session.gameState}
-              soundEnabled={session.soundEnabled}
-              isFullscreen={isFullscreen}
-              onPause={session.pause}
-              onResume={session.resume}
-              onToggleSound={session.toggleSound}
-              onToggleFullscreen={handleToggleFullscreen}
-            />
-          )}
+          <aside className="bg-card">{session.stats && <GameUI stats={session.stats} gameState={session.gameState} />}</aside>
         </div>
       </div>
     </div>

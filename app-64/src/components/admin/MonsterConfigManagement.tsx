@@ -168,12 +168,12 @@ export default function MonsterConfigManagement() {
               </Button>
             </div>
 
-            <div className="p-4 bg-muted rounded-lg">
-              <h4 className="font-medium mb-2">💡 提示</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• 积分值越高，消灭该类型怪物获得的分数越多</li>
-                <li>• 建议根据怪物难度设置合理的积分值</li>
-                <li>• 修改后立即生效，影响所有新游戏</li>
+            <div className="border border-border p-4">
+              <h4 className="label-mono mb-3 text-foreground">提示 · notes</h4>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                <li>积分值越高，消灭该类型怪物获得的分数越多</li>
+                <li>建议根据怪物难度设置合理的积分值</li>
+                <li>修改后立即生效，影响所有新游戏</li>
               </ul>
             </div>
           </div>

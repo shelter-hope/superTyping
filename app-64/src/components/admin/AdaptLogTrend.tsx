@@ -143,11 +143,19 @@ export default function AdaptLogTrend() {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis domain={[0, 1]} />
+                  <CartesianGrid strokeDasharray="2 4" stroke="#e3dccd" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6e6659' }} axisLine={{ stroke: '#e3dccd' }} tickLine={false} />
+                  <YAxis domain={[0, 1]} tick={{ fontSize: 10, fill: '#6e6659' }} axisLine={false} tickLine={false} />
                   <Tooltip formatter={(value: number) => [value?.toFixed(2), 'Dₜ']} />
-                  <Line type="monotone" dataKey="Dt" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} name="Dₜ" />
+                  <Line
+                    type="monotone"
+                    dataKey="Dt"
+                    stroke="#17150f"
+                    strokeWidth={1.5}
+                    dot={{ r: 2.5, fill: '#f7f4ed' }}
+                    name="Dₜ"
+                    isAnimationActive={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>

@@ -1,7 +1,6 @@
 // 管理员页面
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Users,
@@ -15,8 +14,6 @@ import {
   Megaphone,
   ScrollText,
   Settings2,
-  RefreshCw,
-  Loader2,
   FlaskConical,
   Microscope,
 } from 'lucide-react';
@@ -97,29 +94,42 @@ export default function AdminPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col md:flex-row">
-      <aside className="border-b bg-muted/30 md:w-64 md:border-b-0 md:border-r">
-        <div className="p-4 md:p-6">
-          <h2 className="mb-4 text-lg font-bold">管理后台</h2>
-          <nav className="flex gap-2 overflow-x-auto md:flex-col">
+      <aside className="border-b border-border md:w-60 md:shrink-0 md:border-b-0 md:border-r">
+        <div className="px-4 py-5 md:px-6">
+          <div className="flex items-center gap-3">
+            <span className="status-light mt-0.5" />
+            <span className="label-mono text-muted-foreground">后台 · ADMIN</span>
+          </div>
+          <h2 className="mt-3 font-serif text-xl leading-none">管理台</h2>
+
+          <nav className="mt-5 flex gap-1 overflow-x-auto border-t border-border pt-2 md:block md:gap-0 md:overflow-visible">
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              const active = activeTab === tab.id;
               return (
-                <Button
+                <button
                   key={tab.id}
-                  variant={activeTab === tab.id ? 'default' : 'ghost'}
-                  className="shrink-0 justify-start md:w-full"
+                  type="button"
                   onClick={() => setActiveTab(tab.id)}
+                  className={`flex shrink-0 items-center gap-2 border-b border-transparent px-2 py-2 text-left text-[13px] transition-colors md:w-full md:justify-between md:px-0 ${
+                    active
+                      ? 'text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
-                  <Icon className="mr-2 h-4 w-4" />
-                  {tab.name}
-                </Button>
+                  <span className="flex items-center gap-2">
+                    <Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
+                    {tab.name}
+                  </span>
+                  {active ? <span className="text-[9px] text-accent">●</span> : null}
+                </button>
               );
             })}
           </nav>
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 p-4 md:p-8">
+      <main className="min-w-0 flex-1 px-4 py-8 md:px-10">
         {activeTab === 'dashboard' && <DashboardView />}
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'records' && <GameRecordManagement />}
@@ -144,17 +154,13 @@ export default function AdminPage() {
   );
 }
 
-function StatCard({ title, value, sub }: { title: string; value: number | undefined; sub?: string }) {
+function StatCell({ title, value, sub }: { title: string; value: number | undefined; sub?: string }) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-bold">{value ?? '—'}</div>
-        {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
-      </CardContent>
-    </Card>
+    <div className="border-b border-r border-border px-5 py-5">
+      <div className="label-mono text-muted-foreground">{title}</div>
+      <div className="mono-num mt-3 text-[32px] leading-none">{value ?? '—'}</div>
+      {sub ? <p className="mono-num mt-2 text-[11px] text-muted-foreground">{sub}</p> : null}
+    </div>
   );
 }
 
@@ -187,35 +193,37 @@ function DashboardView() {
     : [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
+    <div>
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
         <div>
-          <h1 className="text-3xl font-bold">数据概览</h1>
-          <p className="text-muted-foreground mt-2">系统运行状态和关键指标（"今日"按服务器时区计算）</p>
+          <span className="label-mono text-muted-foreground">总览 · OVERVIEW</span>
+          <h1 className="mt-2 font-serif text-[28px] leading-none">数据概览</h1>
+          <p className="mt-2 text-[13px] text-muted-foreground">系统运行状态与关键指标（「今日」按服务器时区计算）</p>
         </div>
-        <Button variant="outline" onClick={load} disabled={loading}>
-          {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-          刷新
+        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+          {loading ? '刷新中…' : '刷新'}
         </Button>
       </div>
 
-      {unavailable.length > 0 && (
-        <p className="text-sm text-destructive">以下服务暂不可用，对应数据未显示：{unavailable.join('、')}</p>
-      )}
+      {unavailable.length > 0 ? (
+        <p className="mt-4 text-[13px] text-accent">
+          以下服务暂不可用，对应数据未显示：{unavailable.join('、')}
+        </p>
+      ) : null}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard title="用户总数" value={users?.userCount} sub={users ? `今日新增 ${users.newUsersToday}` : undefined} />
-        <StatCard title="今日活跃用户" value={users?.activeUsersToday} sub="今日有登录记录" />
-        <StatCard title="已禁用账号" value={users?.disabledUsers} />
-        <StatCard title="今日游戏人数" value={games?.playersToday} />
-        <StatCard title="游戏记录总数" value={games?.recordCount} sub={games ? `今日 ${games.recordsToday} 局` : undefined} />
-        <StatCard title="聊天消息总数" value={chat?.messageCount} sub={chat ? `今日 ${chat.messagesToday} 条` : undefined} />
-        <StatCard
+      <div className="mt-8 grid border-l border-t border-border sm:grid-cols-2 xl:grid-cols-4">
+        <StatCell title="用户总数" value={users?.userCount} sub={users ? `今日新增 ${users.newUsersToday}` : undefined} />
+        <StatCell title="今日活跃" value={users?.activeUsersToday} sub="今日有登录记录" />
+        <StatCell title="已禁用账号" value={users?.disabledUsers} />
+        <StatCell title="今日游戏人数" value={games?.playersToday} />
+        <StatCell title="游戏记录总数" value={games?.recordCount} sub={games ? `今日 ${games.recordsToday} 局` : undefined} />
+        <StatCell title="聊天消息总数" value={chat?.messageCount} sub={chat ? `今日 ${chat.messagesToday} 条` : undefined} />
+        <StatCell
           title="词库数量"
           value={dictionaries ? dictionaries.systemDictionaryCount + dictionaries.customDictionaryCount : undefined}
           sub={dictionaries ? `系统 ${dictionaries.systemDictionaryCount} / 自定义 ${dictionaries.customDictionaryCount}` : undefined}
         />
-        <StatCard title="已发送通知" value={chat?.notificationCount} />
+        <StatCell title="已发送通知" value={chat?.notificationCount} />
       </div>
     </div>
   );

@@ -1,18 +1,61 @@
-// 个人信息页面
-import { formatNum } from '@/utils';
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getUserGameRecords, getMostErrorCharacters, getUserStats, getErrorComparison, getAiTrainingSummary, type UserStats } from '@/db/api';
-import type { AiTrainingSummary } from '@/db/api';
-import type { GameRecord, CharacterStat } from '@/types/database';
-import { Loader2, Copy, Sparkles, MessageCircle } from 'lucide-react';
+// 个人档案：纸与墨（档案页）
+// 左栏身份块 → 右栏发丝线指标 / 近期进步 / 最近对局 / 易错字符 / 训练摘要
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Copy, Loader2, MessageCircle, Sparkles } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { PageBody, PageHeader } from '@/components/common/PageHeader';
 import UserAvatar from '@/components/profile/UserAvatar';
 import EditProfileDialog from '@/components/profile/EditProfileDialog';
 import { getDisplayName } from '@/lib/avatars';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
+import { formatNum } from '@/utils';
+import {
+  getAiTrainingSummary,
+  getErrorComparison,
+  getMostErrorCharacters,
+  getUserGameRecords,
+  getUserStats,
+  type UserStats,
+} from '@/db/api';
+import type { AiTrainingSummary } from '@/db/api';
+import type { GameRecord, CharacterStat } from '@/types/database';
+
+function dateLabel(value?: string | null) {
+  return value ? new Date(value).toLocaleDateString() : '—';
+}
+
+/** 小节报头：衬线标题 + 右侧等宽注脚 */
+function SectionHeading({ title, note }: { title: string; note: string }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      <h2 className="font-serif text-xl leading-none">{title}</h2>
+      <span className="label-mono text-[10px]">{note}</span>
+    </div>
+  );
+}
+
+/** 发丝线指标格：label-mono 标签 + mono-num 数字 */
+function StatCell({
+  label,
+  value,
+  note,
+  tone = 'text-foreground',
+}: {
+  label: string;
+  value: ReactNode;
+  note?: string;
+  tone?: string;
+}) {
+  return (
+    <div className="border-r border-b border-border px-4 py-4">
+      <div className="label-mono text-[10px]">{label}</div>
+      <div className={`mono-num mt-2 text-[26px] leading-none ${tone}`}>{value}</div>
+      {note ? <div className="label-mono mt-2 text-[9px] opacity-60">{note}</div> : null}
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const { user, profile } = useAuth();
@@ -58,26 +101,26 @@ export default function ProfilePage() {
   async function loadData() {
     if (!user) return;
     try {
-        // 分别处理每个请求
-    const recordsData = await getUserGameRecords(user.userId, 10);
-    setRecords(recordsData);
-    
-    // 按错误数取 top 20，保证「错误最多」且含大小写（后端 /weak 按 error_count DESC）
-    const statsData = await getMostErrorCharacters(user.userId, 20);
-    setCharStats(statsData);
-    
-    const stats = await getUserStats(user.userId);
-    setUserStats(stats);
+      // 分别处理每个请求
+      const recordsData = await getUserGameRecords(user.userId, 10);
+      setRecords(recordsData);
 
-    const errComp = await getErrorComparison(user.userId);
-    if (errComp) {
-      setErrorComparison({
-        thisWeekErrors: errComp.thisWeekErrors ?? 0,
-        lastWeekErrors: errComp.lastWeekErrors ?? 0,
-        change: errComp.change ?? 0,
-        changeRate: errComp.changeRate,
-      });
-    }
+      // 按错误数取 top 20，保证「错误最多」且含大小写（后端 /weak 按 error_count DESC）
+      const statsData = await getMostErrorCharacters(user.userId, 20);
+      setCharStats(statsData);
+
+      const stats = await getUserStats(user.userId);
+      setUserStats(stats);
+
+      const errComp = await getErrorComparison(user.userId);
+      if (errComp) {
+        setErrorComparison({
+          thisWeekErrors: errComp.thisWeekErrors ?? 0,
+          lastWeekErrors: errComp.lastWeekErrors ?? 0,
+          change: errComp.change ?? 0,
+          changeRate: errComp.changeRate,
+        });
+      }
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
@@ -87,210 +130,243 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
+      <PageBody>
+        <PageHeader
+          eyebrow="档案 · PROFILE"
+          title="个人档案"
+          description="逐键档案：对局成绩、易错字符与训练摘要都记在这里。"
+        />
+        <div className="mt-8 border-t border-border pt-6">
+          <span className="label-mono text-[10px]">读取档案中 · loading</span>
+          <div className="mt-5 space-y-3">
+            {['w-2/3', 'w-1/2', 'w-5/6', 'w-3/5'].map((width) => (
+              <div key={width} className={`h-5 animate-pulse bg-muted ${width}`} />
+            ))}
+          </div>
+        </div>
+      </PageBody>
     );
   }
 
   // 确保至少有基本用户信息
   if (!displayProfile) {
     return (
-      <div className="container max-w-6xl py-8 text-center text-muted-foreground">
-        无法获取用户信息
-      </div>
+      <PageBody>
+        <PageHeader eyebrow="档案 · PROFILE" title="个人档案" />
+        <p className="mt-8 border-t border-border pt-6 text-[13px] text-muted-foreground">
+          无法获取用户信息
+        </p>
+      </PageBody>
     );
   }
 
+  const changeTone =
+    errorComparison && errorComparison.change < 0
+      ? 'text-success'
+      : errorComparison && errorComparison.change > 0
+        ? 'text-accent'
+        : 'text-muted-foreground';
+
+  const stats: { label: string; value: ReactNode; note: string }[] = [
+    { label: '总对局', value: userStats?.totalGames || 0, note: 'games' },
+    { label: '平均准确率', value: `${(userStats?.averageAccuracy || 0).toFixed(1)}%`, note: 'accuracy' },
+    { label: '最高分数', value: userStats?.bestScore || 0, note: 'best score' },
+    { label: '累计字符', value: userStats?.totalCharactersTyped || 0, note: 'characters' },
+    { label: '累计词数', value: userStats?.totalWordsTyped || 0, note: 'words' },
+    { label: '排名', value: userStats?.ranking ? `#${userStats.ranking}` : '—', note: 'ranking' },
+  ];
+
   return (
-    <div className="container max-w-6xl py-8">
-      <div className="space-y-6">
-        {/* 个人信息卡片 */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-6">
+    <PageBody>
+      <PageHeader
+        eyebrow="档案 · PROFILE"
+        title="个人档案"
+        description="逐键档案：对局成绩、易错字符与训练摘要都记在这里。"
+        actions={<EditProfileDialog />}
+      />
+
+      <div className="mt-8 grid gap-10 md:grid-cols-12 md:gap-8">
+        {/* ─── 左栏：身份 ─── */}
+        <aside className="md:col-span-4">
+          <div className="flex items-start gap-4">
+            <div className="shrink-0 border border-foreground/20 p-1.5">
               <UserAvatar profile={displayProfile} size="xl" />
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold">{getDisplayName(displayProfile)}</h1>
-                <p className="text-muted-foreground">@{displayProfile.username}</p>
-                {displayProfile.role === 'admin' && (
-                  <span className="inline-block mt-2 px-2 py-1 text-xs bg-primary text-primary-foreground rounded">
-                    管理员
-                  </span>
-                )}
-              </div>
-              <EditProfileDialog />
             </div>
-          </CardContent>
-        </Card>
+            <div className="min-w-0 pt-0.5">
+              <h2 className="font-serif text-[24px] leading-tight break-words">{getDisplayName(displayProfile)}</h2>
+              <p className="mono-num mt-2 text-[11px] text-muted-foreground">@{displayProfile.username}</p>
+              {displayProfile.role === 'admin' ? (
+                <span className="label-mono mt-3 inline-block border border-accent/40 px-1.5 py-1 text-[9px] text-accent">
+                  管理员 · admin
+                </span>
+              ) : (
+                <span className="label-mono mt-3 inline-block border border-border px-1.5 py-1 text-[9px]">
+                  训练者 · trainee
+                </span>
+              )}
+            </div>
+          </div>
 
-        {/* 统计卡片 */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>游戏场次</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary">{userStats?.totalGames || 0}</div>
-            </CardContent>
-          </Card>
+          {displayProfile.signature ? (
+            <p className="pull-quote mt-6 text-[12.5px] leading-[1.9] text-muted-foreground">
+              {displayProfile.signature}
+            </p>
+          ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>最高分数</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-secondary">{userStats?.bestScore || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>平均准确率</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-accent">{(userStats?.averageAccuracy || 0).toFixed(1)}%</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* 近期进步情况 */}
-        {errorComparison != null && (
-          <Card>
-            <CardHeader>
-              <CardTitle>近期进步情况</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">本周错误次数</p>
-                  <p className="text-2xl font-bold">{errorComparison.thisWeekErrors}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">上周错误次数</p>
-                  <p className="text-2xl font-bold">{errorComparison.lastWeekErrors}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">变化</p>
-                  <p className={`text-2xl font-bold ${errorComparison.change < 0 ? 'text-green-600' : errorComparison.change > 0 ? 'text-orange-600' : 'text-muted-foreground'}`}>
-                    {errorComparison.change > 0 ? '+' : ''}{errorComparison.change}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">变化率</p>
-                  <p className="text-2xl font-bold text-muted-foreground">
-                    {errorComparison.changeRate != null ? `${(errorComparison.changeRate * 100).toFixed(0)}%` : '-'}
-                  </p>
-                </div>
+          <dl className="mt-7 divide-y divide-border border-y border-border">
+            {[
+              ['档案编号', `#${displayProfile.userId}`],
+              ['注册时间', dateLabel(displayProfile.createTime)],
+              ['最近登录', dateLabel(displayProfile.lastLoginTime)],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-baseline justify-between gap-4 py-3">
+                <dt className="label-mono text-[10px]">{label}</dt>
+                <dd className="mono-num text-[12px]">{value}</dd>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
+            ))}
+          </dl>
+        </aside>
+
+        {/* ─── 右栏：数据 ─── */}
+        <div className="md:col-span-8">
+          <section>
+            <SectionHeading title="档案数据" note="stats · 全部对局" />
+            <div className="mt-4 grid grid-cols-2 border-t border-l border-border sm:grid-cols-3">
+              {stats.map((item) => (
+                <StatCell key={item.label} label={item.label} value={item.value} note={item.note} />
+              ))}
+            </div>
+          </section>
+
+          {errorComparison != null && (
+            <section className="mt-10 border-t border-border pt-6">
+              <SectionHeading title="近期进步" note="week over week" />
+              <div className="mt-4 grid grid-cols-2 border-t border-l border-border sm:grid-cols-4">
+                <StatCell label="本周错误" value={errorComparison.thisWeekErrors} note="errors" />
+                <StatCell label="上周错误" value={errorComparison.lastWeekErrors} note="errors" />
+                <StatCell
+                  label="变化"
+                  value={`${errorComparison.change > 0 ? '+' : ''}${errorComparison.change}`}
+                  note="delta"
+                  tone={changeTone}
+                />
+                <StatCell
+                  label="变化率"
+                  value={errorComparison.changeRate != null ? `${(errorComparison.changeRate * 100).toFixed(0)}%` : '-'}
+                  note="rate"
+                  tone="text-muted-foreground"
+                />
+              </div>
+              <p className="pull-quote mt-4 text-[12.5px] leading-[1.9] text-muted-foreground">
                 {errorComparison.change < 0 ? '相比上周错误减少，继续加油。' : errorComparison.change > 0 ? '相比上周错误增多，可到「趋势分析」查看训练建议。' : '与上周持平。'}
               </p>
-            </CardContent>
-          </Card>
-        )}
+            </section>
+          )}
 
-        {/* 训练数据摘要（供 AI 助手使用） */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5" />
-              训练数据摘要（供 AI 助手使用）
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              获取你的打字训练摘要，可复制到 ChatGPT、Claude 等 AI 助手的系统提示中；或直接使用站内 AI 对话（方案 A）。
+          <section className="mt-10 border-t border-border pt-6">
+            <SectionHeading title="最近对局" note={`records · 显示 ${records.length} 条`} />
+            {records.length > 0 ? (
+              <ol className="mt-4 border-t border-border">
+                {records.map((record, index) => (
+                  <li
+                    key={record.recordId}
+                    className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-border py-3"
+                  >
+                    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                      <span className="label-mono text-[9px]">{String(index + 1).padStart(2, '0')}</span>
+                      <span className="mono-num text-[13px]">{record.totalScore} 分</span>
+                      <span className="mono-num text-[11px] text-muted-foreground">轮 {record.roundNum}</span>
+                      <span className="mono-num text-[11px] text-muted-foreground">
+                        准确率 {formatNum(record.avgAccuracy)}%
+                      </span>
+                    </div>
+                    <span className="mono-num text-[11px] text-muted-foreground">
+                      {record.createTime ? new Date(record.createTime).toLocaleDateString() : '-'}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-4 border-t border-border py-6 text-[13px] text-muted-foreground">
+                还没有游戏记录
+              </p>
+            )}
+          </section>
+
+          <section className="mt-10 border-t border-border pt-6">
+            <SectionHeading title="易错字符" note="errors · 按错误次数" />
+            {charStats.length > 0 ? (
+              <ol className="mt-4 grid border-t border-l border-border sm:grid-cols-2">
+                {charStats.map((stat, index) => (
+                  <li
+                    key={stat.statId}
+                    className="flex items-baseline justify-between gap-3 border-r border-b border-border px-4 py-3"
+                  >
+                    <div className="flex min-w-0 items-baseline gap-3">
+                      <span className="label-mono text-[9px]">{String(index + 1).padStart(2, '0')}</span>
+                      <span className="font-serif text-[19px] leading-none">
+                        {stat.charValue === ' ' ? '空格' : stat.charValue}
+                      </span>
+                      <span className="mono-num text-[10px] text-muted-foreground">
+                        准确率 {formatNum(stat.averageAccuracy, 0)}%
+                      </span>
+                    </div>
+                    <span className="mono-num shrink-0 text-[12px] text-accent">{stat.errorCount}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-4 border-t border-border py-6 text-[13px] text-muted-foreground">
+                还没有字符数据：打完一局，错过的字会记在这里。
+              </p>
+            )}
+          </section>
+
+          <section className="mt-10 border-t border-border pt-6">
+            <SectionHeading title="训练摘要" note="ai context" />
+            <p className="mt-3 max-w-xl text-[13px] leading-[1.95] text-muted-foreground">
+              获取你的打字训练摘要，可复制到 ChatGPT、Claude 等 AI 助手的系统提示中；或直接使用站内 AI 对话。
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Link to="/ai-assistant">
-                <Button type="button" variant="default" size="sm">
-                  <MessageCircle className="w-4 h-4" />
-                  <span className="ml-2">打开 AI 对话</span>
-                </Button>
-              </Link>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={loadAiSummary}
-                disabled={aiSummaryLoading}
-              >
-                {aiSummaryLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                <span className="ml-2">{aiSummaryLoading ? '获取中…' : '获取摘要'}</span>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button size="sm" asChild>
+                <Link to="/ai-assistant">
+                  <MessageCircle />
+                  打开 AI 对话
+                </Link>
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={loadAiSummary} disabled={aiSummaryLoading}>
+                {aiSummaryLoading ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                {aiSummaryLoading ? '获取中…' : '获取摘要'}
               </Button>
               {aiSummary != null && (
                 <Button type="button" variant="outline" size="sm" onClick={copySummaryToClipboard}>
-                  <Copy className="w-4 h-4" />
-                  <span className="ml-2">复制到剪贴板</span>
+                  <Copy />
+                  复制到剪贴板
                 </Button>
               )}
             </div>
+
             {aiSummary != null && (
-              <div className="rounded-md border bg-muted/30 p-3">
-                <pre className="text-xs whitespace-pre-wrap break-words font-sans max-h-48 overflow-y-auto">
+              <div className="mt-4 border border-border">
+                <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
+                  <span className="label-mono text-[9px]">system prompt · 可复制</span>
+                  <span className="mono-num text-[10px] text-muted-foreground">{aiSummary.suggestedMode}</span>
+                </div>
+                <pre className="max-h-48 overflow-y-auto px-4 py-3 font-sans text-[12px] leading-[1.9] whitespace-pre-wrap break-words">
                   {aiSummary.contextForPrompt}
                 </pre>
                 {aiSummary.focusChars?.length ? (
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="border-t border-border px-4 py-2.5 text-[12px] text-muted-foreground">
                     建议重点字符：{aiSummary.focusChars.slice(0, 15).join('、')}
                     {aiSummary.focusChars.length > 15 ? '…' : ''}
                   </p>
                 ) : null}
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>最近游戏记录</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {records.map(record => (
-                <div key={record.recordId} className="flex justify-between items-center p-3 border rounded-lg">
-                  <div>
-                    <div className="font-medium">积分: {record.totalScore}</div>
-                    <div className="text-sm text-muted-foreground">
-                      轮数: {record.roundNum} | 准确率: {formatNum(record.avgAccuracy)}%
-                    </div>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {record.createTime ? new Date(record.createTime).toLocaleDateString() : '-'}
-                  </div>
-                </div>
-              ))}
-              {records.length === 0 && (
-                <div className="text-center text-muted-foreground py-8">
-                  还没有游戏记录
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>字符统计（错误最多）</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-              {charStats.map(stat => (
-                <div key={stat.statId} className="p-2 border rounded text-center">
-                  <div className="text-2xl font-bold">{stat.charValue}</div>
-                  <div className="text-xs text-muted-foreground">
-                    错误: {stat.errorCount}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {(stat.averageAccuracy ?? 0).toFixed(0)}%
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          </section>
+        </div>
       </div>
-    </div>
+    </PageBody>
   );
 }

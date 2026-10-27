@@ -29,7 +29,7 @@ function AppShell() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className={immersive ? 'flex-grow' : 'flex-grow'}>
+      <main className="flex-grow">
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             {routes.map((route) => {

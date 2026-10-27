@@ -6,7 +6,6 @@ import { useGameConfig } from '@/contexts/GameConfigContext';
 import { getUserDictionaries, getSystemDictionaries, getGameRecommend, getGameCharTypes, updateGameCharTypes } from '@/db/api';
 import type { CustomDictionary, SystemDictionary } from '@/types/database';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -18,9 +17,40 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import GameTutorial from '@/components/game/GameTutorial';
-import { Play, FileText, ExternalLink, Sparkles } from 'lucide-react';
+import { PageHeader, PageBody } from '@/components/common/PageHeader';
 import { useToast } from '@/hooks/use-toast';
 import { selectedCharsLabel } from '@/features/game/utils/gameRuntime';
+
+const MODES = [
+  {
+    value: 'endless' as const,
+    title: '无尽适应',
+    en: 'ENDLESS',
+    desc: '打完一局，字库就按这一局的失误重排一次。难度跟着你走，不跟着设定走。',
+  },
+  {
+    value: 'limit' as const,
+    title: '限时冲刺',
+    en: 'TIMED',
+    desc: '固定时间里尽可能多打。适合热身，也适合验证某个键位到底练没练成。',
+  },
+  {
+    value: 'dictionary' as const,
+    title: '词源界定',
+    en: 'LEXICAL',
+    desc: '只从指定词库出词。专业术语、代码关键字、自己的高频词都可以。',
+  },
+];
+
+const GLYPH_OPTIONS = [
+  { key: 'enableLowercase' as const, label: '小写字母', sample: 'a-z' },
+  { key: 'enableUppercase' as const, label: '大写字母', sample: 'A-Z' },
+  { key: 'enableNumbers' as const, label: '数字', sample: '0-9' },
+  { key: 'enablePunctuation' as const, label: '标点', sample: ',.!?;:\'"' },
+  { key: 'enableOperators' as const, label: '运算符', sample: '+-*/=<>' },
+  { key: 'enableSpecialChars' as const, label: '特殊字符', sample: '@#$%^&*' },
+  { key: 'enableChinese' as const, label: '中文字符', sample: '汉字' },
+];
 
 export default function PreparePage() {
   const { user } = useAuth();
@@ -206,40 +236,41 @@ export default function PreparePage() {
     navigate('/game');
   }
 
-  return (
-    <div className="container max-w-4xl py-8">
-      <div className="space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold gradient-text">游戏配置</h1>
-          <p className="text-muted-foreground">选择游戏模式和字符类型</p>
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-            <GameTutorial />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleRecommend}
-              disabled={recommendLoading}
-            >
-              {recommendLoading ? (
-                <>加载中…</>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  根据我的数据推荐配置
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
+  const currentMode = MODES.find((m) => m.value === config.gameMode) ?? MODES[0];
+  const glyphCount = GLYPH_OPTIONS.filter((g) => config[g.key]).length;
+  const selectedDictName =
+    selectedDictId === 'recommend'
+      ? `推荐词（${config.customDictionary?.length ?? 0} 词）`
+      : dictionaries.find((dict) => String(dict.dictId) === selectedDictId)?.name ??
+        (selectedSystemDictId
+          ? systemDictionaries.find((dict) => String(dict.dictId) === selectedSystemDictId)?.name ?? '—'
+          : '—');
 
-        {/* 游戏模式选择 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>游戏模式</CardTitle>
-            <CardDescription>选择你想要的游戏模式</CardDescription>
-          </CardHeader>
-          <CardContent>
+  return (
+    <PageBody>
+      <PageHeader
+        eyebrow="对局 · PREPARATION"
+        title="配置这一局"
+        description="模式决定字从哪里来，字符类型决定字长什么样。难度不用你选——它每轮跟着你的失误走。"
+        actions={
+          <>
+            <GameTutorial />
+            <Button variant="outline" size="sm" onClick={handleRecommend} disabled={recommendLoading}>
+              {recommendLoading ? '分析中…' : '根据我的数据推荐'}
+            </Button>
+          </>
+        }
+      />
+
+      <div className="mt-10 grid gap-x-10 gap-y-10 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-12">
+          {/* 01 模式 */}
+          <section>
+            <div className="flex items-baseline justify-between border-b border-border pb-2">
+              <span className="label-mono">01 · 模式 / MODE</span>
+              <span className="label-mono text-muted-foreground">{currentMode.en}</span>
+            </div>
+
             <RadioGroup
               value={config.gameMode}
               onValueChange={(value) => {
@@ -248,240 +279,221 @@ export default function PreparePage() {
                 // 仅在模式切换时请求一次对应模式的字符类型配置
                 void loadCharTypesForMode(mode);
               }}
+              className="mt-1"
             >
-              <div className="flex items-center space-x-2 p-3 rounded-lg hover:bg-muted/50">
-                <RadioGroupItem value="endless" id="endless" />
-                <Label htmlFor="endless" className="cursor-pointer flex-1">
-                  <div>
-                    <div className="font-medium">🔄 无尽适应模式</div>
-                    <div className="text-sm text-muted-foreground">
-                      系统自动分析你的弱点，生成针对性字符组合，难度自适应调整
+              {MODES.map((mode) => {
+                const active = config.gameMode === mode.value;
+                return (
+                  <div key={mode.value} className="border-b border-border">
+                    <div className="flex items-start gap-4 py-4">
+                      <RadioGroupItem value={mode.value} id={`mode-${mode.value}`} className="mt-[5px]" />
+                      <Label htmlFor={`mode-${mode.value}`} className="cursor-pointer flex-1">
+                        <div className="flex flex-wrap items-baseline gap-x-3">
+                          <span className="font-serif text-xl leading-none">{mode.title}</span>
+                          <span className="label-mono text-muted-foreground">{mode.en}</span>
+                        </div>
+                        <p className="mt-2 max-w-[46ch] text-[13px] leading-6 text-muted-foreground">
+                          {mode.desc}
+                        </p>
+                      </Label>
+                      <span className={`mt-1 text-[11px] ${active ? 'text-accent' : 'text-transparent'}`}>
+                        ●
+                      </span>
                     </div>
-                  </div>
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2 p-3 rounded-lg hover:bg-muted/50">
-                <RadioGroupItem value="limit" id="limit" />
-                <Label htmlFor="limit" className="cursor-pointer flex-1">
-                  <div>
-                    <div className="font-medium">⏱️ 限时冲刺模式</div>
-                    <div className="text-sm text-muted-foreground">
-                      在固定时间内尽可能获得高分，适合快速练习
-                    </div>
-                  </div>
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2 p-3 rounded-lg hover:bg-muted/50">
-                <RadioGroupItem value="dictionary" id="dictionary" />
-                <Label htmlFor="dictionary" className="cursor-pointer flex-1">
-                  <div>
-                    <div className="font-medium">📚 词源界定模式</div>
-                    <div className="text-sm text-muted-foreground">
-                      使用自定义词库进行训练，适合专业术语练习
-                    </div>
-                  </div>
-                </Label>
-              </div>
-            </RadioGroup>
 
-            {/* 限时模式配置 */}
-            {config.gameMode === 'limit' && (
-              <div className="mt-4 space-y-2">
-                <Label htmlFor="time-limit">时间限制（秒）</Label>
-                <Select 
-                  value={String(config.timeLimitSeconds || 60)} 
-                  onValueChange={(value) => updateConfig({ timeLimitSeconds: Number(value) })}
-                >
-                  <SelectTrigger id="time-limit">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30">30秒 - 快速挑战</SelectItem>
-                    <SelectItem value="60">60秒 - 标准模式</SelectItem>
-                    <SelectItem value="120">120秒 - 长时间挑战</SelectItem>
-                    <SelectItem value="180">180秒 - 马拉松模式</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* 词库选择 */}
-            {config.gameMode === 'dictionary' && (
-              <div className="mt-4 space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dictionary-select">选择词库</Label>
-                  {selectedDictId === 'recommend' && config.customDictionary && config.customDictionary.length > 0 && (
-                    <p className="text-sm text-primary">已应用推荐词库（{config.customDictionary.length} 个词），可直接开始游戏。</p>
-                  )}
-                  {dictionaries.length === 0 && selectedDictId !== 'recommend' && (
-                    <div className="p-4 border rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                        <FileText className="w-4 h-4" />
-                        <span>还没有自定义词库{systemDictionaries.length > 0 ? '，可以改用下面的系统词库' : ''}</span>
+                    {/* 模式内配置：贴着被选中的那一行往下长 */}
+                    {config.gameMode === 'limit' && mode.value === 'limit' ? (
+                      <div className="flex flex-wrap items-center gap-4 pb-5 pl-8">
+                        <span className="label-mono text-muted-foreground">时长</span>
+                        <Select
+                          value={String(config.timeLimitSeconds || 60)}
+                          onValueChange={(value) => updateConfig({ timeLimitSeconds: Number(value) })}
+                        >
+                          <SelectTrigger id="time-limit" className="h-9 w-[220px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="30">30 秒 · 快速挑战</SelectItem>
+                            <SelectItem value="60">60 秒 · 标准</SelectItem>
+                            <SelectItem value="120">120 秒 · 长局</SelectItem>
+                            <SelectItem value="180">180 秒 · 马拉松</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <Link to="/dictionary">
-                        <Button variant="outline" size="sm">
-                          <ExternalLink className="w-4 h-4 mr-2" />
-                          前往上传词库
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                  {(dictionaries.length > 0 || selectedDictId === 'recommend') && (
-                    <Select value={selectedDictId} onValueChange={setSelectedDictId}>
-                      <SelectTrigger id="dictionary-select">
-                        <SelectValue placeholder="请选择一个词库" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {config.customDictionary && config.customDictionary.length > 0 && (
-                          <SelectItem value="recommend">
-                            推荐词库（{config.customDictionary.length} 词）
-                          </SelectItem>
-                        )}
-                        {dictionaries.map((dict) => (
-                          <SelectItem key={dict.dictId} value={String(dict.dictId)}>
-                            {dict.name} ({dict.wordCount}个词语)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-                {systemDictionaries.length > 0 && (
-                  <div className="space-y-2">
-                    <Label htmlFor="system-dictionary-select">系统词库（可选）</Label>
-                    <Select value={selectedSystemDictId || 'none'} onValueChange={(value) => setSelectedSystemDictId(value === 'none' ? '' : value)}>
-                      <SelectTrigger id="system-dictionary-select">
-                        <SelectValue placeholder="不使用系统词库" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">不使用系统词库</SelectItem>
-                        {systemDictionaries.map((dict) => (
-                          <SelectItem key={dict.dictId} value={String(dict.dictId)}>
-                            {dict.name} ({dict.wordCount}个词语)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    ) : null}
+
+                    {config.gameMode === 'dictionary' && mode.value === 'dictionary' ? (
+                      <div className="space-y-4 pb-6 pl-8">
+                        {selectedDictId === 'recommend' && config.customDictionary && config.customDictionary.length > 0 ? (
+                          <p className="text-[13px] text-accent">
+                            已应用推荐词库（{config.customDictionary.length} 个词），可直接开打。
+                          </p>
+                        ) : null}
+
+                        {dictionaries.length === 0 && selectedDictId !== 'recommend' ? (
+                          <div className="border border-border p-4">
+                            <p className="label-mono text-muted-foreground">
+                              {systemDictionaries.length > 0 ? '暂无自定义词库，可改用系统词库' : '暂无自定义词库'}
+                            </p>
+                            <Link to="/dictionary" className="mt-3 inline-block">
+                              <Button variant="outline" size="sm">
+                                前往上传词库 →
+                              </Button>
+                            </Link>
+                          </div>
+                        ) : null}
+
+                        {dictionaries.length > 0 || selectedDictId === 'recommend' ? (
+                          <div className="flex flex-wrap items-center gap-4">
+                            <span className="label-mono text-muted-foreground">自定义</span>
+                            <Select value={selectedDictId} onValueChange={setSelectedDictId}>
+                              <SelectTrigger id="dictionary-select" className="h-9 w-[260px]">
+                                <SelectValue placeholder="请选择一个词库" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {config.customDictionary && config.customDictionary.length > 0 ? (
+                                  <SelectItem value="recommend">
+                                    推荐词库（{config.customDictionary.length} 词）
+                                  </SelectItem>
+                                ) : null}
+                                {dictionaries.map((dict) => (
+                                  <SelectItem key={dict.dictId} value={String(dict.dictId)}>
+                                    {dict.name}（{dict.wordCount} 词）
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : null}
+
+                        {systemDictionaries.length > 0 ? (
+                          <div className="flex flex-wrap items-center gap-4">
+                            <span className="label-mono text-muted-foreground">系统库</span>
+                            <Select
+                              value={selectedSystemDictId || 'none'}
+                              onValueChange={(value) => setSelectedSystemDictId(value === 'none' ? '' : value)}
+                            >
+                              <SelectTrigger id="system-dictionary-select" className="h-9 w-[260px]">
+                                <SelectValue placeholder="不使用系统词库" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">不使用系统词库</SelectItem>
+                                {systemDictionaries.map((dict) => (
+                                  <SelectItem key={dict.dictId} value={String(dict.dictId)}>
+                                    {dict.name}（{dict.wordCount} 词）
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : null}
+
+                        <Link to="/dictionary" className="inline-block">
+                          <Button variant="ghost" size="sm">
+                            管理词库 →
+                          </Button>
+                        </Link>
+                      </div>
+                    ) : null}
                   </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Link to="/dictionary">
-                    <Button variant="outline" size="sm">
-                      <FileText className="w-4 h-4 mr-2" />
-                      管理词库
-                    </Button>
-                  </Link>
+                );
+              })}
+            </RadioGroup>
+          </section>
+
+          {/* 02 字符 */}
+          <section>
+            <div className="flex items-baseline justify-between border-b border-border pb-2">
+              <span className="label-mono">02 · 字符 / GLYPHS</span>
+              <span className="label-mono text-muted-foreground">已选 {glyphCount} / {GLYPH_OPTIONS.length}</span>
+            </div>
+
+            <div>
+              {GLYPH_OPTIONS.map((glyph) => (
+                <div
+                  key={glyph.key}
+                  className="flex items-center justify-between gap-4 border-b border-border py-3"
+                >
+                  <div className="flex min-w-0 items-baseline gap-4">
+                    <Label htmlFor={glyph.key} className="cursor-pointer text-[13px]">
+                      {glyph.label}
+                    </Label>
+                    <span className="mono-num truncate text-[11px] text-muted-foreground">{glyph.sample}</span>
+                  </div>
+                  <Switch
+                    id={glyph.key}
+                    checked={config[glyph.key]}
+                    onCheckedChange={(checked) => {
+                      const next = { ...config, [glyph.key]: checked };
+                      updateConfig({ [glyph.key]: checked });
+                      void persistCharTypes(next);
+                    }}
+                  />
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* 字符类型选择 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>字符类型</CardTitle>
-            <CardDescription>选择游戏中包含的字符类型</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="lowercase" className="cursor-pointer">小写字母 (a-z)</Label>
-              <Switch
-                id="lowercase"
-                checked={config.enableLowercase}
-                onCheckedChange={(checked) => {
-                  const next = { ...config, enableLowercase: checked };
-                  updateConfig({ enableLowercase: checked });
-                  void persistCharTypes(next);
-                }}
-              />
+              ))}
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="uppercase" className="cursor-pointer">大写字母 (A-Z)</Label>
-              <Switch
-                id="uppercase"
-                checked={config.enableUppercase}
-                onCheckedChange={(checked) => {
-                  const next = { ...config, enableUppercase: checked };
-                  updateConfig({ enableUppercase: checked });
-                  void persistCharTypes(next);
-                }}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="numbers" className="cursor-pointer">数字 (0-9)</Label>
-              <Switch
-                id="numbers"
-                checked={config.enableNumbers}
-                onCheckedChange={(checked) => {
-                  const next = { ...config, enableNumbers: checked };
-                  updateConfig({ enableNumbers: checked });
-                  void persistCharTypes(next);
-                }}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="punctuation" className="cursor-pointer">标点符号 (,.!?;:'")</Label>
-              <Switch
-                id="punctuation"
-                checked={config.enablePunctuation}
-                onCheckedChange={(checked) => {
-                  const next = { ...config, enablePunctuation: checked };
-                  updateConfig({ enablePunctuation: checked });
-                  void persistCharTypes(next);
-                }}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="operators" className="cursor-pointer">运算符号 (+-*/=&lt;&gt;)</Label>
-              <Switch
-                id="operators"
-                checked={config.enableOperators}
-                onCheckedChange={(checked) => {
-                  const next = { ...config, enableOperators: checked };
-                  updateConfig({ enableOperators: checked });
-                  void persistCharTypes(next);
-                }}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="specialChars" className="cursor-pointer">特殊字符 (@#$%^&*)</Label>
-              <Switch
-                id="specialChars"
-                checked={config.enableSpecialChars}
-                onCheckedChange={(checked) => {
-                  const next = { ...config, enableSpecialChars: checked };
-                  updateConfig({ enableSpecialChars: checked });
-                  void persistCharTypes(next);
-                }}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="chinese" className="cursor-pointer">中文字符</Label>
-              <Switch
-                id="chinese"
-                checked={config.enableChinese}
-                onCheckedChange={(checked) => {
-                  const next = { ...config, enableChinese: checked };
-                  updateConfig({ enableChinese: checked });
-                  void persistCharTypes(next);
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 开始游戏按钮 */}
-        <div className="flex justify-center pt-4">
-          <Button size="lg" onClick={handleStartGame}>
-            <Play className="mr-2 h-5 w-5" />
-            开始游戏
-          </Button>
+            <p className="mt-3 text-[12px] leading-5 text-muted-foreground">
+              每局结算都会记录每个键的失误，下一局的字序列由这些记录生成——关掉某类字符，它就不会出现在序列里。
+            </p>
+          </section>
         </div>
+
+        {/* 右侧摘要 */}
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <div className="border border-border bg-card">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <span className="label-mono">摘要 / SUMMARY</span>
+              <span className="label-mono text-muted-foreground">{currentMode.en}</span>
+            </div>
+
+            <dl className="divide-y divide-border">
+              <div className="px-5 py-4">
+                <dt className="label-mono text-muted-foreground">模式</dt>
+                <dd className="mt-1.5 font-serif text-xl leading-none">{currentMode.title}</dd>
+              </div>
+              <div className="px-5 py-4">
+                <dt className="label-mono text-muted-foreground">字符</dt>
+                <dd className="mt-2 flex flex-wrap gap-1.5">
+                  {GLYPH_OPTIONS.filter((g) => config[g.key]).map((g) => (
+                    <span key={g.key} className="border border-border px-1.5 py-0.5 text-[11px]">
+                      {g.label}
+                    </span>
+                  ))}
+                  {glyphCount === 0 ? <span className="text-[13px] text-accent">尚未选择</span> : null}
+                </dd>
+              </div>
+              <div className="px-5 py-4">
+                <dt className="label-mono text-muted-foreground">
+                  {config.gameMode === 'dictionary' ? '词库' : '时长'}
+                </dt>
+                <dd className="mt-1.5 text-[13px]">
+                  {config.gameMode === 'dictionary'
+                    ? selectedDictName
+                    : config.gameMode === 'limit'
+                      ? `${config.timeLimitSeconds || 60} 秒`
+                      : '不限时，直到本局结算'}
+                </dd>
+              </div>
+              <div className="px-5 py-4">
+                <dt className="label-mono text-muted-foreground">难度</dt>
+                <dd className="mt-1.5 text-[13px] text-muted-foreground">
+                  由模型每轮给出，不在这里设定
+                </dd>
+              </div>
+            </dl>
+
+            <div className="border-t border-border p-5">
+              <Button size="lg" className="w-full justify-between" onClick={handleStartGame}>
+                <span>开始游戏</span>
+                <span aria-hidden>→</span>
+              </Button>
+              <p className="mt-3 text-[11px] leading-5 text-muted-foreground">
+                输入首字母即自动锁定目标，Tab 换目标，Shift 切中英文。
+              </p>
+            </div>
+          </div>
+        </aside>
       </div>
-    </div>
+    </PageBody>
   );
 }

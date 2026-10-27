@@ -1,25 +1,46 @@
 // 404页面
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Home } from 'lucide-react';
 
 export default function NotFoundPage() {
   return (
-    <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)]">
-      <div className="text-center space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-9xl font-bold gradient-text">404</h1>
-          <h2 className="text-3xl font-bold">页面未找到</h2>
-          <p className="text-muted-foreground">
-            抱歉，您访问的页面不存在
+    <div className="container flex min-h-[calc(100vh-4rem)] max-w-3xl flex-col justify-center py-16">
+      <div className="flex items-center gap-3">
+        <span className="status-light mt-0.5" />
+        <span className="label-mono text-muted-foreground">地址无效 · NOT FOUND</span>
+      </div>
+
+      <div className="mt-6 grid gap-10 md:grid-cols-[minmax(0,1fr)_260px] md:items-end">
+        <div>
+          <span className="mono-num block text-[104px] leading-[0.85] tracking-tight md:text-[140px]">404</span>
+          <h1 className="mt-6 font-serif text-[30px] leading-tight md:text-[38px]">这个地址没有排过字</h1>
+          <p className="mt-4 max-w-[44ch] text-[13px] leading-6 text-muted-foreground">
+            页面可能已经改过名，或者链接里少了一段。回到首页重新开始即可。
           </p>
         </div>
-        <Link to="/">
-          <Button size="lg">
-            <Home className="mr-2 h-5 w-5" />
-            返回首页
-          </Button>
-        </Link>
+
+        <div className="border border-border">
+          <div className="border-b border-border px-4 py-2.5">
+            <span className="label-mono text-muted-foreground">可以去的地方</span>
+          </div>
+          <div className="flex flex-col gap-2 p-4">
+            <Link to="/" className="text-[13px] underline decoration-border underline-offset-4 hover:decoration-foreground">
+              首页
+            </Link>
+            <Link to="/prepare" className="text-[13px] underline decoration-border underline-offset-4 hover:decoration-foreground">
+              配置一局
+            </Link>
+            <Link to="/leaderboard" className="text-[13px] underline decoration-border underline-offset-4 hover:decoration-foreground">
+              排行榜
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-12 flex items-center gap-3 border-t border-border pt-6">
+        <Button asChild>
+          <Link to="/">返回首页 →</Link>
+        </Button>
       </div>
     </div>
   );

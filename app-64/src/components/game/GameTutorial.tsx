@@ -11,6 +11,20 @@ import {
 import { Button } from '@/components/ui/button';
 import { HelpCircle } from 'lucide-react';
 
+const MONSTERS = [
+  { name: '普通型', tint: 'text-muted-foreground', desc: '匀速下落，最容易处理的目标', score: '1 分' },
+  { name: '攻击型', tint: 'text-accent', desc: '定期生成新怪物，放着不管会失控', score: '3 分' },
+  { name: '回避型', tint: 'text-chart-3', desc: '30% 概率规避攻击，要补第二刀', score: '2 分' },
+  { name: '智慧型', tint: 'text-chart-4', desc: '吸引周围怪物聚拢，扎堆下来', score: '3 分' },
+];
+
+const KEYS = [
+  { key: 'A-Z', text: '敲击首字符即锁定目标，逐字符推进' },
+  { key: 'Tab', text: '放弃当前锁定，重新选最近的' },
+  { key: 'Shift', text: '切换中英文输入模式' },
+  { key: 'Caps', text: '切换大小写' },
+];
+
 export default function GameTutorial() {
   const [open, setOpen] = useState(false);
 
@@ -18,93 +32,87 @@ export default function GameTutorial() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <HelpCircle className="mr-2 h-4 w-4" />
-          游戏教程
+          <HelpCircle className="mr-2 h-3.5 w-3.5" strokeWidth={1.6} />
+          看一遍规则
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>游戏教程</DialogTitle>
-          <DialogDescription>
-            学习如何玩打字进化游戏
-          </DialogDescription>
+          <DialogTitle>这一局怎么打</DialogTitle>
+          <DialogDescription>四条规则，看完就能上桌。</DialogDescription>
         </DialogHeader>
-        
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">🎯 游戏目标</h3>
-            <p className="text-muted-foreground">
-              通过打字消灭从屏幕顶部下落的字符怪物，防止它们接触到底部的玩家。
-              游戏会根据你的表现自动调整难度，并针对你的弱点生成怪物。
+
+        <div className="space-y-8">
+          <section>
+            <div className="border-b border-border pb-2">
+              <span className="label-mono text-muted-foreground">01 · 目标</span>
+            </div>
+            <p className="mt-3 text-[13px] leading-6 text-muted-foreground">
+              从上往下落的词块就是目标。逐字符敲完它，它会被打掉；漏掉的词落到最底部，这一局就结束。
+              词从哪来、掉多快，由系统根据你上一局的表现决定。
             </p>
-          </div>
+          </section>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-2">⌨️ 基本操作</h3>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>• <strong>输入字符</strong>：直接敲击键盘上的字符来攻击怪物</li>
-              <li>• <strong>自动锁定</strong>：首次输入正确字符会自动锁定该怪物</li>
-              <li>• <strong>Tab键</strong>：取消当前锁定，重新选择目标</li>
-              <li>• <strong>Esc键</strong>：暂停游戏</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2">👾 怪物类型</h3>
-            <div className="space-y-2">
-              <div className="flex items-start gap-2">
-                <span className="text-primary font-bold">普通型</span>
-                <span className="text-muted-foreground">- 匀速下落，1积分</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-destructive font-bold">攻击型</span>
-                <span className="text-muted-foreground">- 定期生成新怪物，3积分</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="font-bold text-accent">回避型</span>
-                <span className="text-muted-foreground">- 30%概率规避攻击，2积分</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-secondary font-bold">智慧型</span>
-                <span className="text-muted-foreground">- 吸引周围怪物聚拢，3积分</span>
-              </div>
+          <section>
+            <div className="border-b border-border pb-2">
+              <span className="label-mono text-muted-foreground">02 · 操作</span>
             </div>
-          </div>
+            <dl className="mt-1 divide-y divide-border">
+              {KEYS.map((row) => (
+                <div key={row.key} className="flex items-baseline gap-4 py-2.5">
+                  <dt className="w-14 shrink-0">
+                    <span className="keycap">{row.key}</span>
+                  </dt>
+                  <dd className="text-[13px] text-muted-foreground">{row.text}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
 
-          <div>
-            <h3 className="text-lg font-semibold mb-2">🧬 自适应机制</h3>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>• <strong>准确率≥85%</strong>：速度+0.2，怪物数量增加</li>
-              <li>• <strong>准确率≤40%</strong>：速度-0.3，怪物数量减少</li>
-              <li>• <strong>遗传算法</strong>：系统会记录你的易错字符，优先生成针对性组合</li>
-              <li>• <strong>进化系统</strong>：表现好的怪物会在下一轮"繁殖"出更强的后代</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2">💡 游戏技巧</h3>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>• 优先消灭<span className="text-destructive font-bold">攻击型</span>怪物，防止怪物数量失控</li>
-              <li>• 注意<span className="font-bold text-accent">回避型</span>怪物可能会躲避你的攻击</li>
-              <li>• 使用Tab键灵活切换目标，优先处理接近底部的怪物</li>
-              <li>• 保持高准确率比追求速度更重要</li>
-              <li>• 定期查看个人数据，了解自己的弱点字符</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2">🎮 游戏模式</h3>
-            <div className="space-y-2 text-muted-foreground">
-              <p><strong>无尽适应模式</strong>：系统自动分析你的打字数据，生成针对性的字符组合</p>
-              <p><strong>词源界定模式</strong>：上传自定义词库，在特定词汇范围内进行训练</p>
+          <section>
+            <div className="border-b border-border pb-2">
+              <span className="label-mono text-muted-foreground">03 · 四种目标</span>
             </div>
-          </div>
+            <div className="mt-1 divide-y divide-border">
+              {MONSTERS.map((m) => (
+                <div key={m.name} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5">
+                  <span className="font-serif text-base">{m.name}</span>
+                  <span className="flex-1 text-[13px] text-muted-foreground">{m.desc}</span>
+                  <span className={`mono-num text-[11px] ${m.tint}`}>{m.score}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <div className="border-b border-border pb-2">
+              <span className="label-mono text-muted-foreground">04 · 难度</span>
+            </div>
+            <p className="mt-3 text-[13px] leading-6 text-muted-foreground">
+              难度 <span className="mono-num text-foreground">D</span> 只有一个目标：把你的准确率稳定在{' '}
+              <span className="mono-num text-foreground">85%</span> 附近。每局结算走一小步，单步上限{' '}
+              <span className="mono-num text-foreground">0.05</span>，永远待在{' '}
+              <span className="mono-num text-foreground">[0.15, 0.95]</span> 之间——不会突然把你甩下车，也不会让你停在舒适区。
+            </p>
+            <p className="mt-2 mono-num text-[11px] text-muted-foreground">
+              D_t = clip(D_(t-1) + k·(A − A*)，±δ)
+            </p>
+          </section>
+
+          <section>
+            <div className="border-b border-border pb-2">
+              <span className="label-mono text-muted-foreground">05 · 提醒</span>
+            </div>
+            <ul className="mt-3 space-y-1.5 text-[13px] text-muted-foreground">
+              <li>· 先打攻击型，怪物数量失控通常是它造成的。</li>
+              <li>· 准确率比速度值钱：错一次的字，下一局还会回来。</li>
+              <li>· 想练哪类字，在配置页把字符类型勾选收窄即可。</li>
+            </ul>
+          </section>
         </div>
 
-        <div className="flex justify-end pt-4">
-          <Button onClick={() => setOpen(false)}>
-            开始游戏
-          </Button>
+        <div className="flex justify-end border-t border-border pt-4">
+          <Button onClick={() => setOpen(false)}>知道了</Button>
         </div>
       </DialogContent>
     </Dialog>

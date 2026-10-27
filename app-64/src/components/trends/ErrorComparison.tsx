@@ -60,11 +60,11 @@ export default function ErrorComparison({ thisWeekErrors, lastWeekErrors }: Erro
               )}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              {isImprovement 
-                ? '🎉 太棒了！你的打字准确率在提升！' 
+              {isImprovement
+                ? '错误在减少，方向是对的。'
                 : isNoChange
-                ? '保持稳定，继续加油！'
-                : '💪 继续练习，你会越来越好的！'}
+                ? '这一周没有变化。'
+                : '错误在增加，回看一眼最常错的那几个键。'}
             </p>
           </div>
         </div>

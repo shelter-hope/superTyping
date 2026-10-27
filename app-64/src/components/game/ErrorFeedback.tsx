@@ -1,7 +1,5 @@
-// 错误反馈组件
+// 错误反馈：一张批在校样上的红字条
 import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { X, Check } from 'lucide-react';
 
 interface ErrorFeedbackProps {
   lastError: {
@@ -19,7 +17,6 @@ export default function ErrorFeedback({ lastError, lastCorrect }: ErrorFeedbackP
   const [showError, setShowError] = useState(false);
   const [showCorrect, setShowCorrect] = useState(false);
 
-  // 显示错误提示
   useEffect(() => {
     if (lastError) {
       setShowError(true);
@@ -28,7 +25,6 @@ export default function ErrorFeedback({ lastError, lastCorrect }: ErrorFeedbackP
     }
   }, [lastError]);
 
-  // 显示正确提示
   useEffect(() => {
     if (lastCorrect) {
       setShowCorrect(true);
@@ -37,38 +33,24 @@ export default function ErrorFeedback({ lastError, lastCorrect }: ErrorFeedbackP
     }
   }, [lastCorrect]);
 
+  const display = (value: string) => (value === ' ' ? '空格' : value);
+
   return (
-    <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-      {/* 错误提示 */}
+    <div className="pointer-events-none fixed inset-x-0 top-24 z-50 flex flex-col items-center gap-3">
       {showError && lastError && (
-        <Card className="pointer-events-auto animate-shake border-destructive/50 bg-destructive/15 p-6">
-          <div className="flex items-center gap-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/30">
-              <X className="h-8 w-8 text-destructive" />
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-center">
-                <div className="mb-1 text-sm text-muted-foreground">您输入了</div>
-                <div className="font-mono text-4xl font-bold text-destructive">
-                  {lastError.input === ' ' ? '空格' : lastError.input}
-                </div>
-              </div>
-              <div className="text-3xl text-muted-foreground">→</div>
-              <div className="text-center">
-                <div className="mb-1 text-sm text-muted-foreground">应该是</div>
-                <div className="font-mono text-4xl font-bold text-primary">
-                  {lastError.expected === ' ' ? '空格' : lastError.expected}
-                </div>
-              </div>
-            </div>
+        <div className="animate-shake pointer-events-auto bg-foreground px-5 py-3 text-background">
+          <div className="label-mono text-background/55">校样 · 批注</div>
+          <div className="mt-1 flex items-baseline gap-3">
+            <span className="font-mono text-2xl leading-none text-accent line-through decoration-2">{display(lastError.input)}</span>
+            <span className="label-mono text-background/45">应为</span>
+            <span className="font-mono text-2xl leading-none">{display(lastError.expected)}</span>
           </div>
-        </Card>
+        </div>
       )}
 
-      {/* 正确提示 */}
       {showCorrect && lastCorrect && (
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/30 animate-ping-once">
-          <Check className="h-12 w-12 text-primary" />
+        <div className="animate-ping-once border border-accent/70 bg-background/80 px-3 py-1">
+          <span className="label-mono text-accent">排字无误</span>
         </div>
       )}
     </div>

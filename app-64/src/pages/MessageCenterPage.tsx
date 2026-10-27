@@ -1,39 +1,86 @@
 /**
  * 消息中心页面
- * 
+ *
  * @description 显示系统消息、好友消息和好友请求
- * 
+ *
  * @features
  * - 系统消息列表
  * - 好友消息列表（会话列表）
  * - 好友请求通知
  * - 未读消息提示
  * - 跳转到聊天界面
+ *
+ * 版式：纸与墨。信箱式分栏标签页，全部列表为发丝线横线行。
  */
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageBody, PageHeader } from '@/components/common/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bell, MessageCircle, UserPlus, Check, X, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useImSocket } from '@/hooks/use-im-socket';
 import type { MessageDTO, FriendRequestDTO } from '@/types/database';
-import { 
-  getSystemMessages, 
-  getConversations, 
-  getFriendRequests, 
-  handleFriendRequest, 
+import {
+  getSystemMessages,
+  getConversations,
+  getFriendRequests,
+  handleFriendRequest,
   markMessageAsRead,
   markNotificationAsRead,
 } from '@/db/api';
 
-/** 会话列表项：后端 getConversations 返回 MessageDTO[]，其中 senderId/senderName 为对方用户 */
+/** 方框头像：姓名单字，发丝线边框 */
+function SquareAvatar({ name, size = 'md' }: { name?: string; size?: 'md' | 'sm' }) {
+  const box = size === 'md' ? 'h-10 w-10 text-[14px]' : 'h-8 w-8 text-[12px]';
+  return (
+    <span
+      aria-hidden
+      className={`flex shrink-0 items-center justify-center border border-border bg-muted font-serif text-foreground ${box}`}
+    >
+      {name?.[0]?.toUpperCase() || '?'}
+    </span>
+  );
+}
+
+/** 会话时间：月/日 时:分 */
+function formatMoment(value?: string) {
+  if (!value) return '';
+  return new Date(value).toLocaleString('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/** 标签页下的小节抬头 */
+function SectionHead({
+  eyebrow,
+  title,
+  count,
+}: {
+  eyebrow: string;
+  title: string;
+  count: string;
+}) {
+  return (
+    <div className="mt-6 flex flex-wrap items-baseline justify-between gap-2">
+      <div>
+        <p className="label-mono text-[10px]">{eyebrow}</p>
+        <h2 className="mt-1 font-serif text-[17px] leading-none">{title}</h2>
+      </div>
+      <span className="mono-num text-[11px] text-muted-foreground">{count}</span>
+    </div>
+  );
+}
+
+/**
+ * 会话列表项：后端 getConversations 返回 MessageDTO[]，其中 senderId/senderName 为对方用户
+ */
 export default function MessageCenterPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -60,11 +107,7 @@ export default function MessageCenterPage() {
   async function loadData() {
     setLoading(true);
     try {
-      await Promise.all([
-        loadSystemMessages(),
-        loadConversations(),
-        loadFriendRequests(),
-      ]);
+      await Promise.all([loadSystemMessages(), loadConversations(), loadFriendRequests()]);
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
@@ -157,206 +200,201 @@ export default function MessageCenterPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
+      <PageBody>
+        <PageHeader
+          eyebrow="信箱 · INBOX"
+          title="消息中心"
+          description="正在整理会话、好友请求与系统消息。"
+        />
+        <div className="mt-10 flex items-center gap-3 border-t border-border pt-6">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <span className="label-mono text-[10px]">载入中 · LOADING</span>
+        </div>
+      </PageBody>
     );
   }
 
   return (
-    <div className="container max-w-4xl py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="w-5 h-5" />
-            消息中心
-          </CardTitle>
-          <CardDescription>
-            查看系统消息、好友消息和好友请求
-          </CardDescription>
-        </CardHeader>
+    <PageBody>
+      <PageHeader
+        eyebrow="信箱 · INBOX"
+        title="消息中心"
+        description={`${conversations.length} 个会话 · ${pendingRequestCount} 条好友请求 · ${unreadSystemCount} 条未读系统消息`}
+      />
 
-        <CardContent>
-          <Tabs defaultValue="conversations" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="conversations" className="relative">
-                <MessageCircle className="w-4 h-4 mr-2" />
-                好友消息
-                {unreadConversationCount > 0 && (
-                  <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1">
-                    {unreadConversationCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="requests" className="relative">
-                <UserPlus className="w-4 h-4 mr-2" />
-                好友请求
-                {pendingRequestCount > 0 && (
-                  <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1">
-                    {pendingRequestCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="system" className="relative">
-                <Bell className="w-4 h-4 mr-2" />
-                系统消息
-                {unreadSystemCount > 0 && (
-                  <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1">
-                    {unreadSystemCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
+      <Tabs defaultValue="conversations" className="mt-8 w-full">
+        <TabsList className="flex h-auto w-full items-stretch justify-start gap-7 rounded-none border-b border-border bg-transparent p-0">
+          <TabsTrigger
+            value="conversations"
+            className="-mb-px h-auto flex-none items-center rounded-none border-0 border-b-2 border-transparent bg-transparent px-0 pb-3 pt-1 text-[13px] font-normal text-muted-foreground shadow-none data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+          >
+            好友消息
+            {unreadConversationCount > 0 && (
+              <span className="mono-num ml-2 text-[11px] text-accent">{unreadConversationCount}</span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger
+            value="requests"
+            className="-mb-px h-auto flex-none items-center rounded-none border-0 border-b-2 border-transparent bg-transparent px-0 pb-3 pt-1 text-[13px] font-normal text-muted-foreground shadow-none data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+          >
+            好友请求
+            {pendingRequestCount > 0 && (
+              <span className="mono-num ml-2 text-[11px] text-accent">{pendingRequestCount}</span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger
+            value="system"
+            className="-mb-px h-auto flex-none items-center rounded-none border-0 border-b-2 border-transparent bg-transparent px-0 pb-3 pt-1 text-[13px] font-normal text-muted-foreground shadow-none data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+          >
+            系统消息
+            {unreadSystemCount > 0 && (
+              <span className="mono-num ml-2 text-[11px] text-accent">{unreadSystemCount}</span>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-            {/* 好友消息 */}
-            <TabsContent value="conversations">
-              <ScrollArea className="h-[500px]">
-                {conversations.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-12">
-                    <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>暂无好友消息</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {conversations.map((conv) => (
-                      <div
-                        key={conv.conversationId ?? conv.id ?? conv.senderId}
-                        onClick={() => handleOpenChat(conv.senderId)}
-                        className="flex items-center gap-3 p-4 rounded-lg hover:bg-muted cursor-pointer transition-colors"
-                      >
-                        <Avatar className="w-12 h-12">
-                          <AvatarFallback>
-                            {conv.senderName?.[0]?.toUpperCase() || '?'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium">{conv.senderName ?? '未知'}</span>
-                            {conv.sendTime && (
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(conv.sendTime).toLocaleString('zh-CN', {
-                                  month: 'numeric',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-muted-foreground truncate">
-                              {conv.content || '暂无消息'}
-                            </p>
-                            {(conv.unreadCount ?? 0) > 0 && (
-                              <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1">
-                                {conv.unreadCount}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
-
-            {/* 好友请求 */}
-            <TabsContent value="requests">
-              <ScrollArea className="h-[500px]">
-                {friendRequests.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-12">
-                    <UserPlus className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>暂无好友请求</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {friendRequests.map((request) => (
-                      <div
-                        key={request.id}
-                        className="flex items-center gap-3 p-4 rounded-lg border"
-                      >
-                        <Avatar className="w-12 h-12">
-                          <AvatarFallback>
-                            {request.senderName?.[0]?.toUpperCase() || '?'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium">{request.senderName}</p>
-                          {request.applyMessage && (
-                            <p className="text-sm text-muted-foreground mt-1 truncate">{request.applyMessage}</p>
+        {/* 好友消息 */}
+        <TabsContent value="conversations" className="mt-0">
+          <SectionHead
+            eyebrow="会话 · CONVERSATIONS"
+            title="最近联系人"
+            count={`${conversations.length} 个 · ${unreadConversationCount} 条未读`}
+          />
+          <ScrollArea className="mt-4 h-[520px] border-y border-border">
+            {conversations.length === 0 ? (
+              <p className="px-1 py-10 text-[13px] text-muted-foreground">
+                还没有任何会话。去好友名册找一位朋友开始聊天。
+              </p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {conversations.map((conv) => (
+                  <li key={conv.conversationId ?? conv.id ?? conv.senderId}>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenChat(conv.senderId)}
+                      className="flex w-full items-center gap-4 px-1 py-4 text-left transition-colors hover:bg-muted/40"
+                    >
+                      <SquareAvatar name={conv.senderName} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="truncate font-serif text-[15px] leading-none">
+                            {conv.senderName ?? '未知'}
+                          </span>
+                          {conv.sendTime && (
+                            <span className="label-mono shrink-0 text-[9px]">
+                              {formatMoment(conv.sendTime)}
+                            </span>
                           )}
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(request.sendTime).toLocaleString('zh-CN')}
-                          </p>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => onAcceptRequest(request.id, request.senderId)}
-                          >
-                            <Check className="w-4 h-4 mr-1" />
-                            接受
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => onRejectRequest(request.id)}
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            拒绝
-                          </Button>
+                        <div className="mt-1.5 flex items-baseline justify-between gap-3">
+                          <p className="truncate text-[12.5px] leading-5 text-muted-foreground">
+                            {conv.content || '暂无消息'}
+                          </p>
+                          {(conv.unreadCount ?? 0) > 0 && (
+                            <span className="mono-num shrink-0 text-[11px] text-accent">
+                              {conv.unreadCount}
+                            </span>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ScrollArea>
+        </TabsContent>
 
-            {/* 系统消息 */}
-            <TabsContent value="system">
-              <ScrollArea className="h-[500px]">
-                {systemMessages.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-12">
-                    <Bell className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>暂无系统消息</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {systemMessages.map((message) => (
-                      <div
-                        key={`${message.type}-${message.id}`}
-                        className={`p-4 rounded-lg border ${
-                          message.isRead ? 'bg-muted/30' : 'bg-primary/5 border-primary/20'
+        {/* 好友请求 */}
+        <TabsContent value="requests" className="mt-0">
+          <SectionHead
+            eyebrow="请求 · REQUESTS"
+            title="好友请求"
+            count={`${pendingRequestCount} 条待处理`}
+          />
+          <ScrollArea className="mt-4 h-[520px] border-y border-border">
+            {friendRequests.length === 0 ? (
+              <p className="px-1 py-10 text-[13px] text-muted-foreground">没有待处理的好友请求。</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {friendRequests.map((request) => (
+                  <li key={request.id} className="flex items-start gap-4 px-1 py-4">
+                    <SquareAvatar name={request.senderName} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-serif text-[15px] leading-none">
+                        {request.senderName}
+                      </p>
+                      <p className="mt-1.5 truncate text-[12.5px] leading-5 text-muted-foreground">
+                        {request.applyMessage || '请求添加你为好友'}
+                      </p>
+                      <p className="label-mono mt-1.5 text-[9px]">
+                        {new Date(request.sendTime).toLocaleString('zh-CN')}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <Button size="sm" onClick={() => onAcceptRequest(request.id, request.senderId)}>
+                        接受
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => onRejectRequest(request.id)}>
+                        拒绝
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ScrollArea>
+        </TabsContent>
+
+        {/* 系统消息 */}
+        <TabsContent value="system" className="mt-0">
+          <SectionHead
+            eyebrow="系统消息 · SYSTEM"
+            title="系统通知"
+            count={`${systemMessages.length} 条 · ${unreadSystemCount} 条未读`}
+          />
+          <ScrollArea className="mt-4 h-[520px] border-y border-border">
+            {systemMessages.length === 0 ? (
+              <p className="px-1 py-10 text-[13px] text-muted-foreground">暂时没有系统消息。</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {systemMessages.map((message) => (
+                  <li
+                    key={`${message.type}-${message.id}`}
+                    className="flex items-start justify-between gap-4 px-1 py-4"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`text-[13px] leading-6 ${
+                          message.isRead ? 'text-muted-foreground' : 'text-foreground'
                         }`}
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="text-sm">{message.content}</p>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              {new Date(message.sendTime).toLocaleString('zh-CN')}
-                            </p>
-                          </div>
-                          {!message.isRead && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => onMarkAsRead(message)}
-                            >
-                              标记已读
-                            </Button>
-                          )}
-                        </div>
+                        {message.content}
+                      </p>
+                      <p className="label-mono mt-1.5 text-[9px]">
+                        {new Date(message.sendTime).toLocaleString('zh-CN')}
+                      </p>
+                    </div>
+                    {!message.isRead && (
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="label-mono text-[9px] text-accent">未读</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-[11px]"
+                          onClick={() => onMarkAsRead(message)}
+                        >
+                          标记已读
+                        </Button>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
+    </PageBody>
   );
 }

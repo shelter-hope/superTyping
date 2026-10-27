@@ -1,188 +1,122 @@
-// 游戏UI组件
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+// 对局侧栏：只显示数据，不放控制按钮（控制在页面顶栏）
 import type { GameStats, GameState } from '@/game/types';
-import { Pause, Play, Volume2, VolumeX, Trophy, Target, Zap, TrendingUp, Maximize, Minimize } from 'lucide-react';
 
 interface GameUIProps {
   stats: GameStats;
   gameState: GameState;
-  soundEnabled: boolean;
-  isFullscreen: boolean;
-  onPause: () => void;
-  onResume: () => void;
-  onToggleSound: () => void;
-  onToggleFullscreen: () => void;
 }
 
-export default function GameUI({
-  stats,
-  gameState,
-  soundEnabled,
-  isFullscreen,
-  onPause,
-  onResume,
-  onToggleSound,
-  onToggleFullscreen,
-}: GameUIProps) {
+const MODE_LABEL: Record<GameStats['mode'], string> = {
+  ENDLESS: '无尽适应',
+  TIMED: '限时挑战',
+  SURVIVAL: '生存模式',
+};
+
+const STATE_LABEL: Record<GameState, string> = {
+  READY: '待开始',
+  PLAYING: '进行中',
+  PAUSED: '已暂停',
+  GAME_OVER: '已结束',
+};
+
+function Metric({
+  label,
+  value,
+  unit,
+  sub,
+}: {
+  label: string;
+  value: string | number;
+  unit?: string;
+  sub?: string;
+}) {
   return (
-    <div className="space-y-4">
-      {/* 顶部控制栏 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {gameState === 'PLAYING' ? (
-            <Button onClick={onPause} variant="outline" size="sm">
-              <Pause className="w-4 h-4 mr-2" />
-              暂停
-            </Button>
-          ) : gameState === 'PAUSED' ? (
-            <Button onClick={onResume} variant="outline" size="sm">
-              <Play className="w-4 h-4 mr-2" />
-              继续
-            </Button>
-          ) : null}
+    <div className="px-5 py-4">
+      <div className="label-mono text-muted-foreground">{label}</div>
+      <div className="mt-1.5 flex items-baseline gap-1">
+        <span className="mono-num font-serif text-[30px] leading-none text-foreground">{value}</span>
+        {unit ? <span className="label-mono text-muted-foreground">{unit}</span> : null}
+      </div>
+      {sub ? <div className="label-mono mt-2 text-muted-foreground">{sub}</div> : null}
+    </div>
+  );
+}
 
-          <Button onClick={onToggleSound} variant="outline" size="sm">
-            {soundEnabled ? (
-              <>
-                <Volume2 className="w-4 h-4 mr-2" />
-                音效开
-              </>
-            ) : (
-              <>
-                <VolumeX className="w-4 h-4 mr-2" />
-                音效关
-              </>
-            )}
-          </Button>
+function Row({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-2">
+      <span className="text-[13px] text-muted-foreground">{label}</span>
+      <span className="mono-num text-[13px] text-foreground">{value}</span>
+    </div>
+  );
+}
 
-          <Button onClick={onToggleFullscreen} variant="outline" size="sm">
-            {isFullscreen ? (
-              <>
-                <Minimize className="w-4 h-4 mr-2" />
-                退出全屏
-              </>
-            ) : (
-              <>
-                <Maximize className="w-4 h-4 mr-2" />
-                全屏
-              </>
-            )}
-          </Button>
+export default function GameUI({ stats, gameState }: GameUIProps) {
+  const timer =
+    stats.mode === 'TIMED' && stats.timeRemaining !== undefined
+      ? `剩余 ${Math.max(0, Math.floor(stats.timeRemaining))} 秒`
+      : stats.mode === 'SURVIVAL' && stats.survivalTime !== undefined
+        ? `生存 ${Math.floor(stats.survivalTime)} 秒`
+        : null;
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="border-b border-border px-5 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className="label-mono text-muted-foreground">LIVE · {STATE_LABEL[gameState]}</span>
+          <span className="label-mono text-muted-foreground">第 {stats.round} 轮</span>
         </div>
-
-        <div className="flex items-center gap-4">
-          {/* 游戏模式名称 - 大字体显示 */}
-          <div className="text-2xl font-bold text-primary">
-            {stats.mode === 'ENDLESS' && '无尽适应'}
-            {stats.mode === 'TIMED' && '限时挑战'}
-            {stats.mode === 'SURVIVAL' && '生存模式'}
-          </div>
-          
-          {/* 轮次显示 */}
-          <div className="text-sm text-muted-foreground">
-            轮次: <span className="font-bold text-foreground">{stats.round}</span>
-          </div>
-          
-          {/* 限时模式：剩余时间 */}
-          {stats.mode === 'TIMED' && stats.timeRemaining !== undefined && (
-            <div className="text-sm">
-              <span className="text-muted-foreground">剩余: </span>
-              <span className={`font-bold ${stats.timeRemaining < 30 ? 'text-red-500' : 'text-primary'}`}>
-                {Math.floor(stats.timeRemaining)}秒
-              </span>
-            </div>
-          )}
-          
-          {/* 生存模式：生存时间 */}
-          {stats.mode === 'SURVIVAL' && stats.survivalTime !== undefined && (
-            <div className="text-sm">
-              <span className="text-muted-foreground">生存: </span>
-              <span className="font-bold text-primary">
-                {Math.floor(stats.survivalTime)}秒
-              </span>
-            </div>
-          )}
+        <div className="mt-2 flex items-baseline justify-between gap-3">
+          <span className="font-serif text-xl leading-none">{MODE_LABEL[stats.mode]}</span>
+          {timer ? <span className="mono-num text-[13px] text-accent">{timer}</span> : null}
         </div>
       </div>
 
-      {/* 统计卡片 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* 得分 */}
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Trophy className="w-5 h-5 text-yellow-500" />
-            <span className="text-sm text-muted-foreground">得分</span>
-          </div>
-          <div className="text-2xl font-bold">{stats.score}</div>
-        </Card>
-
-        {/* 准确率 */}
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Target className="w-5 h-5 text-green-500" />
-            <span className="text-sm text-muted-foreground">准确率</span>
-          </div>
-          <div className="text-2xl font-bold">{stats.accuracy.toFixed(1)}%</div>
-          <Progress value={stats.accuracy} className="mt-2 h-2" />
-        </Card>
-
-        {/* 速度 */}
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-5 h-5 text-blue-500" />
-            <span className="text-sm text-muted-foreground">速度</span>
-          </div>
-          <div className="text-2xl font-bold">{Math.floor(stats.speed)}</div>
-          <div className="text-xs text-muted-foreground">字符/分钟</div>
-        </Card>
-
-        {/* 连击 */}
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap className="w-5 h-5 text-orange-500" />
-            <span className="text-sm text-muted-foreground">连击</span>
-          </div>
-          <div className="text-2xl font-bold">{stats.currentStreak}</div>
-          <div className="text-xs text-muted-foreground">
-            最高: {stats.longestStreak}
-          </div>
-        </Card>
+      <div className="grid grid-cols-2 border-b border-border">
+        <div className="border-r border-border">
+          <Metric label="得分 · SCORE" value={stats.score} />
+        </div>
+        <Metric label="准确率 · ACC" value={stats.accuracy.toFixed(1)} unit="%" />
+        <div className="border-t border-r border-border">
+          <Metric label="速度 · SPEED" value={Math.floor(stats.speed)} unit="cpm" />
+        </div>
+        <div className="border-t border-border">
+          <Metric label="连击 · COMBO" value={stats.currentStreak} sub={`最高 ${stats.longestStreak}`} />
+        </div>
       </div>
 
-      {/* 详细统计 */}
-      <Card className="p-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <div className="text-muted-foreground">总字符</div>
-            <div className="font-bold">{stats.totalChars}</div>
-          </div>
-          <div>
-            <div className="text-muted-foreground">正确字符</div>
-            <div className="font-bold text-green-500">{stats.correctChars}</div>
-          </div>
-          <div>
-            <div className="text-muted-foreground">错误字符</div>
-            <div className="font-bold text-red-500">{stats.errorChars}</div>
-          </div>
-          <div>
-            <div className="text-muted-foreground">消灭怪兽</div>
-            <div className="font-bold text-primary">{stats.monstersKilled}</div>
-          </div>
+      <div className="border-b border-border px-5 py-4">
+        <div className="label-mono mb-1 text-muted-foreground">明细 · DETAIL</div>
+        <div className="divide-y divide-border/70">
+          <Row label="总字符" value={stats.totalChars} />
+          <Row label="正确" value={stats.correctChars} />
+          <Row label="错误" value={stats.errorChars} />
+          <Row label="消灭怪物" value={stats.monstersKilled} />
+          <Row label="峰值速度" value={Math.floor(stats.peakSpeed)} />
         </div>
-      </Card>
+      </div>
 
-      {/* 游戏提示 */}
-      <Card className="p-4 bg-muted/30">
-        <div className="text-sm space-y-1">
-          <div className="font-bold mb-2">操作提示：</div>
-          <div>• 输入字符攻击怪兽</div>
-          <div>• Tab键取消锁定</div>
-          <div>• Shift键切换中英文</div>
-          <div>• 空格/Ctrl发射中文输入</div>
+      <div className="px-5 py-4">
+        <div className="label-mono mb-2 text-muted-foreground">操作 · KEYS</div>
+        <div className="space-y-2 text-[12px] text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="keycap">A–Z</span>
+            <span>输入首字符即锁定目标</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="keycap">Tab</span>
+            <span>取消锁定，重新选最近的</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="keycap">Shift</span>
+            <span>切换中 / 英输入</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="keycap">Space</span>
+            <span>发射中文输入缓冲</span>
+          </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
