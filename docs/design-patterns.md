@@ -4,6 +4,8 @@
 
 本项目采用多种经典设计模式，旨在提高代码的可维护性、扩展性和可读性。以下详细介绍各设计模式的应用场景、实现方式和代码示例。
 
+> **2026-10 现状校正**：文中示例里的 `EvolutionServiceImpl`、`EvolutionStrategy` 等类属于拆分前的单体代码，已不在仓库中。当前实现用「无状态静态引擎 + 规则对象」表达同样的策略切换：遗传侧见 `typingGame/game-core-svc/.../game/rule/GeneticEngine.java`（`crossoverMode` / `eliteRatio` / `tournamentSize` 驱动策略），难度侧见同目录 `DifficultyEngine.java`；前端接口层在 `app-64/src/services/*`。文中的模式意图仍然成立，只是落点换了文件。
+
 ---
 
 ## 二、策略模式 (Strategy Pattern)

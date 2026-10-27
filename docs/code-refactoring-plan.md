@@ -9,6 +9,13 @@
 | 创建日期 | 2026年7月 |
 | 适用项目 | superTyping 打字训练游戏 |
 
+> **2026-10 现状校正（读本文前先看）**
+> 本文写于单体拆分之前，其中出现的 `typingGame/src/main/java/...`、`EvolutionServiceImpl`、`GeneticEvolutionUtil`、`GameCoreUtil` 等单体路径**已不存在**：
+> - 遗传算法已迁到 `typingGame/game-core-svc/src/main/java/com/typinggame/game/rule/GeneticEngine.java`（v2：代际 + 适应度 + 三类交叉 + 定向变异，参数见 `GeneticRule`）；
+> - 难度调节器在 `game-core-svc` 的 `rule/DifficultyEngine.java`（v2：对数几率调节器，见 `docs/math-model.md`）；
+> - 前端接口层已收口到 `app-64/src/services/*`，`app-64/src/db/api.ts` 只是兼容再导出。
+> 下面的「阶段划分/待办」保留作历史参考，实际进展以 `docs/genetic-algorithm.md`、`docs/math-model.md` 与 git 记录为准。
+
 ---
 
 ## 一、现状分析
