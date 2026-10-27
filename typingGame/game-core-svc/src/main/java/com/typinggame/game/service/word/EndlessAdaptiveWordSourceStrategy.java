@@ -8,6 +8,7 @@ import com.typinggame.game.rule.DifficultyRule;
 import com.typinggame.game.rule.GeneticEngine;
 import com.typinggame.game.rule.GeneticRule;
 import com.typinggame.game.rule.RuleConfigProvider;
+import com.typinggame.game.service.KeyConfusionService;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -33,17 +34,24 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
     private static final List<String> OPERATOR = Arrays.asList("+", "-", "*", "/", "=", "<", ">");
     private static final List<String> CHINESE = Arrays.asList("你", "我", "他", "中", "文", "打", "字", "练", "习");
     private static final List<String> SPECIAL = Arrays.asList("@", "#", "$", "%", "&", "_");
+    /** 定向变异：最多取多少个易错字符 */
+    private static final int CONFUSION_EXPECTED_LIMIT = 20;
+    /** 定向变异：每个易错字符最多带几个常打错的替代字符 */
+    private static final int CONFUSION_TYPED_LIMIT = 3;
 
     private final StringParentRepository stringParentRepository;
     private final MonsterDataRepository monsterDataRepository;
     private final RuleConfigProvider ruleConfigProvider;
+    private final KeyConfusionService keyConfusionService;
 
     public EndlessAdaptiveWordSourceStrategy(StringParentRepository stringParentRepository,
                                              MonsterDataRepository monsterDataRepository,
-                                             RuleConfigProvider ruleConfigProvider) {
+                                             RuleConfigProvider ruleConfigProvider,
+                                             KeyConfusionService keyConfusionService) {
         this.stringParentRepository = stringParentRepository;
         this.monsterDataRepository = monsterDataRepository;
         this.ruleConfigProvider = ruleConfigProvider;
+        this.keyConfusionService = keyConfusionService;
     }
 
     @Override
@@ -66,12 +74,16 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
         }
         GeneticRule genetic = ruleConfigProvider.activeGenetic();
         List<String> limitedParents = GeneticEngine.limitParents(parentStrings, genetic.getCrossRoundParentLimit());
+        Map<String, List<String>> confusion = keyConfusionService.getConfusionMap(context.getUserId(),
+                CONFUSION_EXPECTED_LIMIT, CONFUSION_TYPED_LIMIT);
         if (context.getGameMode() == GameMode.ENDLESS_ADAPT && limitedParents.size() >= 2) {
-            List<String> evolved = evolveCrossRound(limitedParents, context, genetic, context.getCount(), context.getLength());
+            List<String> evolved = evolveCrossRound(limitedParents, context, genetic, confusion,
+                    context.getCount(), context.getLength());
             if (evolved.size() >= context.getCount()) {
                 return evolved.subList(0, context.getCount());
             }
-            return generateEvolvedWords(limitedParents, context.getFocusChars(), context.getCount(), context.getLength(), new ArrayList<>(pool), genetic);
+            return generateEvolvedWords(limitedParents, context.getFocusChars(), confusion,
+                    context.getCount(), context.getLength(), new ArrayList<>(pool), genetic);
         }
         return buildFromPool(new ArrayList<>(pool), context.getFocusChars(), context.getCount(), context.getLength());
     }
@@ -81,7 +93,8 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
      * 随机源用「用户 + 父本 + 目标参数」做种子，同一份历史与配置可以复现同一批怪物。
      */
     private List<String> evolveCrossRound(List<String> parents, WordSourceContext context,
-                                          GeneticRule genetic, int count, int length) {
+                                          GeneticRule genetic, Map<String, List<String>> confusion,
+                                          int count, int length) {
         int safeCount = Math.max(1, count);
         int safeLength = Math.max(1, length);
         Random random = new Random(Objects.hash(context.getUserId(), parents, safeCount, safeLength));
@@ -91,7 +104,7 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
         return GeneticEngine.evolve(new GeneticEngine.Request(
                 parentList,
                 context.getFocusChars(),
-                Map.of(),
+                confusion,
                 safeCount,
                 safeLength,
                 genetic.getCrossRoundMutationRate(),
@@ -102,13 +115,14 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
     }
 
     private List<String> generateEvolvedWords(List<String> parents, List<String> weakChars,
+                                               Map<String, List<String>> confusion,
                                                int count, int length, List<String> fallbackPool, GeneticRule genetic) {
         int safeCount = Math.max(3, Math.min(25, count));
         int safeLength = Math.max(1, Math.min(15, length));
         Set<String> result = new LinkedHashSet<>(GeneticEngine.evolve(new GeneticEngine.Request(
                 parents.stream().map(text -> new GeneticEngine.Parent(text, 0)).toList(),
                 weakChars,
-                Map.of(),
+                confusion,
                 safeCount,
                 safeLength,
                 genetic.getCrossRoundMutationRate(),
@@ -122,28 +136,6 @@ public class EndlessAdaptiveWordSourceStrategy implements WordSourceStrategy {
             index++;
         }
         return new ArrayList<>(result).subList(0, safeCount);
-    }
-
-    private String crossover(String first, String second, int length) {
-        String left = first == null ? "" : first;
-        String right = second == null ? "" : second;
-        int cut = left.isEmpty() ? 0 : ThreadLocalRandom.current().nextInt(left.length() + 1);
-        String child = left.substring(0, cut) + right.substring(Math.min(cut, right.length()));
-        if (child.isEmpty()) child = left.isEmpty() ? right : left;
-        StringBuilder normalized = new StringBuilder(child);
-        while (normalized.length() < length) {
-            normalized.append(normalized.charAt(normalized.length() % Math.max(1, normalized.length())));
-        }
-        return normalized.substring(0, Math.min(length, normalized.length()));
-    }
-
-    private String mutateWeakCharacter(String value, List<String> weakChars) {
-        if (value.isEmpty()) return value;
-        char[] chars = value.toCharArray();
-        int position = ThreadLocalRandom.current().nextInt(chars.length);
-        String weak = weakChars.get(ThreadLocalRandom.current().nextInt(weakChars.size()));
-        if (weak != null && !weak.isEmpty()) chars[position] = weak.charAt(0);
-        return new String(chars);
     }
 
     private List<String> loadParentStrings(Integer userId) {

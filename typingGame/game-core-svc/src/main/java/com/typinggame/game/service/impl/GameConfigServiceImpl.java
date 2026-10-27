@@ -24,6 +24,7 @@ import com.typinggame.game.repository.SystemMonsterTypeConfigRepository;
 import com.typinggame.game.service.CharacterStatsService;
 import com.typinggame.game.service.DifficultyModelService;
 import com.typinggame.game.service.GameConfigService;
+import com.typinggame.game.service.KeyConfusionService;
 import com.typinggame.game.service.StatsService;
 import com.typinggame.game.rule.GeneticEngine;
 import com.typinggame.game.rule.GeneticRule;
@@ -61,6 +62,10 @@ public class GameConfigServiceImpl implements GameConfigService {
 
     private static final String DEFAULT_CHAR_TYPES = "lower,upper,number,punct";
     private static final Set<String> ALLOWED_CHAR_TYPES = Set.of("lower", "upper", "number", "punct", "operator", "chinese", "special");
+    /** 定向变异：最多取多少个易错字符 */
+    private static final int CONFUSION_EXPECTED_LIMIT = 20;
+    /** 定向变异：每个易错字符最多带几个常打错的替代字符 */
+    private static final int CONFUSION_TYPED_LIMIT = 3;
 
     private final StatsService statsService;
     private final CharacterStatsService characterStatsService;
@@ -74,6 +79,7 @@ public class GameConfigServiceImpl implements GameConfigService {
     private final ObjectMapper objectMapper;
     private final MonsterAttemptRepository monsterAttemptRepository;
     private final RuleConfigProvider ruleConfigProvider;
+    private final KeyConfusionService keyConfusionService;
 
     public GameConfigServiceImpl(StatsService statsService,
                                  CharacterStatsService characterStatsService,
@@ -86,7 +92,8 @@ public class GameConfigServiceImpl implements GameConfigService {
                                  GameRoundRepository gameRoundRepository,
                                  ObjectMapper objectMapper,
                                  MonsterAttemptRepository monsterAttemptRepository,
-                                 RuleConfigProvider ruleConfigProvider) {
+                                 RuleConfigProvider ruleConfigProvider,
+                                 KeyConfusionService keyConfusionService) {
         this.statsService = statsService;
         this.characterStatsService = characterStatsService;
         this.difficultyModelService = difficultyModelService;
@@ -99,6 +106,7 @@ public class GameConfigServiceImpl implements GameConfigService {
         this.objectMapper = objectMapper;
         this.monsterAttemptRepository = monsterAttemptRepository;
         this.ruleConfigProvider = ruleConfigProvider;
+        this.keyConfusionService = keyConfusionService;
     }
 
     @Override
@@ -191,7 +199,9 @@ public class GameConfigServiceImpl implements GameConfigService {
             List<MonsterAttempt> parents = monsterAttemptRepository
                     .findBySessionIdAndResultOrderByFitnessDesc(sessionId, "KILLED");
             if (!parents.isEmpty()) {
-                monsters = buildGeneticMonsters(monsters, parents, focusChars, roundNum);
+                Map<String, List<String>> confusion = keyConfusionService
+                        .getConfusionMap(userId, CONFUSION_EXPECTED_LIMIT, CONFUSION_TYPED_LIMIT);
+                monsters = buildGeneticMonsters(monsters, parents, focusChars, confusion, roundNum);
             }
         }
         NextRoundResponseDTO response = NextRoundResponseDTO.builder()
@@ -353,6 +363,7 @@ public class GameConfigServiceImpl implements GameConfigService {
     private List<MonsterDataDTO> buildGeneticMonsters(List<MonsterDataDTO> baseMonsters,
                                                        List<MonsterAttempt> attempts,
                                                        List<String> focusChars,
+                                                       Map<String, List<String>> confusion,
                                                        int roundNum) {
         GeneticRule genetic = ruleConfigProvider.activeGenetic();
         List<MonsterAttempt> ranked = attempts.stream()
@@ -387,7 +398,7 @@ public class GameConfigServiceImpl implements GameConfigService {
             String crossed = GeneticEngine.crossover(parentA.getTargetStr(), parentBText, targetLength,
                     genetic.getCrossover(), random);
             int crossoverPoint = Math.min(targetLength, parentA.getTargetStr().length());
-            GeneticEngine.Mutation mutation = GeneticEngine.mutate(crossed, focusChars, Map.of(),
+            GeneticEngine.Mutation mutation = GeneticEngine.mutate(crossed, focusChars, confusion,
                     genetic.getInRoundMutationRate(), random);
             String text = mutation.text();
             BigDecimal mutationRate = BigDecimal.valueOf(genetic.getInRoundMutationRate());

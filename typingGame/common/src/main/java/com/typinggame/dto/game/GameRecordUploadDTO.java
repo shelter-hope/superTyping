@@ -2,6 +2,7 @@ package com.typinggame.dto.game;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.typinggame.dto.stats.CharacterStatsUpdateDTO;
+import com.typinggame.dto.stats.KeyConfusionUpdateDTO;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.util.List;
@@ -36,4 +37,8 @@ public class GameRecordUploadDTO {
     /** 本局每个字符的输入结果，用于更新 character_stats 表；前端在结算时按击键顺序上报，可为空 */
     @JsonProperty("characterStatsUpdates")
     private List<CharacterStatsUpdateDTO> characterStatsUpdates;
+
+    /** 本局的按键混淆聚合（该打 A 却打成 B 的次数），用于更新 key_confusion 表并驱动下一局定向变异；可为空 */
+    @JsonProperty("confusions")
+    private List<KeyConfusionUpdateDTO> confusions;
 }

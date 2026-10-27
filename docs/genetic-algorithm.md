@@ -58,9 +58,13 @@
 2. **弱项字符**（`character_stats` 里错误次数多的字符，经 `WordSourceContext.focusChars` 传入）；
 3. **字母表兜底**：`a-z0-9` 里随机换一个，绝不等于原字符。
 
-> 现状：引擎已经支持混淆对，但**上游还产不出真实的一对一错字对**（`character_stats` 只记每个字符的
-> 错误次数，不记「本该打 i 却打了 t」）。所以线上调用点目前传 `Map.of()`，走第 2、3 条路径；
-> 要在 M4 之后的「逐键档案」里补埋点，才能启用定向变异。
+> 现状：混淆对已经接通。前端在错键时记录「期待字符 → 实际字符」，结算时以
+> `confusions: [{ expectedChar, typedChar, count }]` 随游戏记录上报；服务端写入
+> `key_confusion` 表（`013-key-confusion.sql`），下一局生成时由
+> `KeyConfusionService.getConfusionMap(userId, 20, 3)` 取该用户最强的 20 组混淆、
+> 每组最多 3 个替代字符，注入 `GeneticEngine.Request.confusion`。局内遗传
+> （`GameConfigServiceImpl.buildGeneticMonsters`）和跨局遗传
+> （`EndlessAdaptiveWordSourceStrategy`）都走同一份映射。
 
 ### 3.4 选择与精英
 
@@ -155,6 +159,7 @@ mvn -pl game-core-svc -am test -Dtest='GeneticEngineTest+RuleEngineTest' -Dsuref
 
 ## 九、已知缺口
 
-1. **混淆对埋点**（见 3.3）——需要前端在错键时上报「期望字符 / 实际字符」，落 `character_stats` 或新表；
+1. **混淆对已有数据、但还缺「回看」**——埋点、落库、注入引擎都已完成；还差把 `key_confusion`
+   展示出来（个人页「你最常打错的键」）和管理端支持按用户查看；
 2. **适应度只用于局内**——跨局父本只有顺序，没有分数；若要跨局也做锦标赛，得把 `string_parents` 升级成带 fitness 的表；
 3. **精英只在单次调用内保留**——两次 `evolve` 调用之间没有代际记忆，代际目前只体现在 `monster_data.generation` 字段上。

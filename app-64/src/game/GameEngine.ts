@@ -60,6 +60,8 @@ export class GameEngine {
 
   // 怪物历史记录
   private monsterHistory: any[] = [];
+  /** 按键混淆档案：expected → typed → 次数，随结算上传，供下一局遗传算法做定向变异 */
+  private keyConfusions: Map<string, Map<string, number>> = new Map();
   private spawnedMinionsThisRound = 0;
   private static readonly MAX_MINIONS_PER_ROUND = 16;
 
@@ -609,6 +611,7 @@ export class GameEngine {
       // 记录目标字符（易错字统计应为“该打对却打错的字”；无目标时不记录）
       if (event.expected != null && event.expected !== '') {
         this.adaptiveSystem.recordCharacterInput(event.expected, false);
+        this.recordConfusion(event.expected, event.char);
       }
     } else if (event.type === 'MONSTER_KILLED') {
       this.stats.score += event.score;
@@ -729,6 +732,34 @@ export class GameEngine {
     return this.adaptiveSystem.getAllCharacterStats();
   }
 
+  /**
+   * 导出本局按键混淆聚合（按次数降序，最多 50 条）。
+   * 与 character_stats 的区别：这里记录「该打 A 却打成 B」，能喂给遗传算法做定向变异。
+   */
+  getKeyConfusions(): Array<{ expectedChar: string; typedChar: string; count: number }> {
+    const rows: Array<{ expectedChar: string; typedChar: string; count: number }> = [];
+    this.keyConfusions.forEach((bucket, expectedChar) => {
+      bucket.forEach((count, typedChar) => {
+        rows.push({ expectedChar, typedChar, count });
+      });
+    });
+    return rows.sort((a, b) => b.count - a.count).slice(0, 50);
+  }
+
+  /** 记录「该打 expected 却打成 typed」，单字符粒度，忽略相同字符 */
+  private recordConfusion(expected: string, typed: string): void {
+    if (!expected || !typed) return;
+    const expectedChar = Array.from(expected)[0];
+    const typedChar = Array.from(typed)[0];
+    if (!expectedChar || !typedChar || expectedChar === typedChar) return;
+    let bucket = this.keyConfusions.get(expectedChar);
+    if (!bucket) {
+      bucket = new Map<string, number>();
+      this.keyConfusions.set(expectedChar, bucket);
+    }
+    bucket.set(typedChar, (bucket.get(typedChar) ?? 0) + 1);
+  }
+
   // 销毁
   destroy(): void {
     if (this.animationFrameId) {
@@ -737,5 +768,6 @@ export class GameEngine {
     }
     this.monsters = [];
     this.eventHandlers = [];
+    this.keyConfusions.clear();
   }
 }

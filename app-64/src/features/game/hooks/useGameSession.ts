@@ -158,6 +158,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
       const engine = gameEngineRef.current;
       const monsterHistory = engine?.getMonsterHistory() ?? [];
       const characterStatsUpdates = buildCharacterStatsUpdates(engine?.getCharacterStats() ?? []);
+      const confusions = engine?.getKeyConfusions() ?? [];
 
       const result = await createGameRecord({
         gameMode: currentConfig.gameMode,
@@ -179,6 +180,7 @@ export function useGameSession({ user, config, onAuthRequired }: UseGameSessionO
         customDictIds: currentConfig.customDictIds,
         systemDictIds: currentConfig.systemDictIds,
         characterStatsUpdates: characterStatsUpdates.length > 0 ? characterStatsUpdates : undefined,
+        confusions: confusions.length > 0 ? confusions : undefined,
       });
       if (result) setUploadResult(result);
       toast({ title: '游戏记录已保存', description: '数据已同步到服务器' });

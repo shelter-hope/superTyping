@@ -52,6 +52,13 @@ export interface CharacterStatsUpdateDTO {
   charType?: string;
 }
 
+/** 单条按键混淆增量，对应后端 KeyConfusionUpdateDTO；录入 key_confusion 表驱动下一局定向变异 */
+export interface KeyConfusionUpdateDTO {
+  expectedChar: string;
+  typedChar: string;
+  count: number;
+}
+
 /** 上传游戏记录时的请求体，对应后端 GameRecordUploadDTO；可含怪物列表与字符统计 */
 export type GameRecordUpload = Omit<GameRecord, 'recordId' | 'createTime' | 'userId'> & {
   monsters?: MonsterDataUpload[];
@@ -59,6 +66,8 @@ export type GameRecordUpload = Omit<GameRecord, 'recordId' | 'createTime' | 'use
   systemDictIds?: number[];
   /** 本局每个字符的输入结果，用于更新 character_stats，个人页「字符统计（错误最多）」展示 */
   characterStatsUpdates?: CharacterStatsUpdateDTO[];
+  /** 本局的按键混淆聚合（该打 A 却打成 B 的次数），用于更新 key_confusion 并驱动下一局定向变异 */
+  confusions?: KeyConfusionUpdateDTO[];
 };
 
 export interface MonsterDataUpload {

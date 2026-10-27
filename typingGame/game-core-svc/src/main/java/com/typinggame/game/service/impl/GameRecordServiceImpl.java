@@ -17,6 +17,7 @@ import com.typinggame.game.repository.MonsterDataRepository;
 import com.typinggame.game.service.CharacterStatsService;
 import com.typinggame.game.service.GameRecordPostProcessService;
 import com.typinggame.game.service.GameRecordService;
+import com.typinggame.game.service.KeyConfusionService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,8 @@ public class GameRecordServiceImpl implements GameRecordService {
     private static final int MAX_TOTAL_CHARS = 1_000_000;
     private static final int MAX_MONSTERS = 10000;
     private static final int MAX_CHARACTER_UPDATES = 10000;
+    private static final int MAX_KEY_CONFUSIONS = 2000;
+    private static final int MAX_CONFUSION_COUNT = 1000;
 
     private static final Logger log = LoggerFactory.getLogger(GameRecordServiceImpl.class);
 
@@ -51,6 +54,7 @@ public class GameRecordServiceImpl implements GameRecordService {
     private final GameUserInfoRepository userInfoRepository;
     private final GameRecordPostProcessService postProcessService;
     private final CharacterStatsService characterStatsService;
+    private final KeyConfusionService keyConfusionService;
 
     @Override
     @Transactional
@@ -91,6 +95,10 @@ public class GameRecordServiceImpl implements GameRecordService {
             CharacterStatsBatchUpdateDTO batch = new CharacterStatsBatchUpdateDTO();
             batch.setUpdates(recordDTO.getCharacterStatsUpdates());
             characterStatsService.batchUpdate(userId, batch);
+        }
+
+        if (recordDTO.getConfusions() != null && !recordDTO.getConfusions().isEmpty()) {
+            keyConfusionService.batchUpdate(userId, recordDTO.getConfusions());
         }
 
         syncLeaderboardAndUserSummary(record);
@@ -145,6 +153,26 @@ public class GameRecordServiceImpl implements GameRecordService {
         if (dto.getCharacterStatsUpdates() != null
                 && dto.getCharacterStatsUpdates().size() > MAX_CHARACTER_UPDATES) {
             throw BusinessException.badRequest("字符统计数据数量不能超过" + MAX_CHARACTER_UPDATES);
+        }
+        if (dto.getConfusions() != null) {
+            if (dto.getConfusions().size() > MAX_KEY_CONFUSIONS) {
+                throw BusinessException.badRequest("按键混淆数据数量不能超过" + MAX_KEY_CONFUSIONS);
+            }
+            dto.getConfusions().forEach(confusion -> {
+                if (confusion == null) {
+                    throw BusinessException.badRequest("按键混淆数据不能为空");
+                }
+                String expected = confusion.getExpectedChar();
+                String typed = confusion.getTypedChar();
+                if (expected == null || expected.strip().length() != 1
+                        || typed == null || typed.strip().length() != 1) {
+                    throw BusinessException.badRequest("按键混淆的字符必须为单个字符");
+                }
+                Integer count = confusion.getCount();
+                if (count != null && (count < 1 || count > MAX_CONFUSION_COUNT)) {
+                    throw BusinessException.badRequest("按键混淆次数超出允许范围");
+                }
+            });
         }
     }
 
