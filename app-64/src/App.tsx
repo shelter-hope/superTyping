@@ -22,9 +22,11 @@ function LoadingFallback() {
 
 function AppShell() {
   const location = useLocation();
-  // 对局与聊天是沉浸式页面：不挂页脚
+  // 对局与聊天是沉浸式页面：不挂页脚（含旧路径别名命中前的瞬间）
   const immersive =
-    location.pathname.startsWith('/game') || location.pathname.startsWith('/chat');
+    location.pathname.includes('/game') ||
+    location.pathname.includes('/chat/') ||
+    location.pathname.endsWith('/chat');
 
   return (
     <div className="flex min-h-screen flex-col">

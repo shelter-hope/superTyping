@@ -7,14 +7,19 @@ import {
   deleteSystemLabPreset,
   fetchAdminLabAlgorithms,
   fetchAdminLabPresets,
+  fetchAdminLabRuns,
   updateLabAlgorithm,
   type LabAlgorithmDto,
   type LabPresetDto,
+  type LabRunDto,
 } from '@/services/lab';
 
 export default function LabManagement() {
   const [algorithms, setAlgorithms] = useState<LabAlgorithmDto[]>([]);
   const [presets, setPresets] = useState<LabPresetDto[]>([]);
+  const [runs, setRuns] = useState<LabRunDto[]>([]);
+  const [runUserId, setRunUserId] = useState('');
+  const [runAlgorithmId, setRunAlgorithmId] = useState('');
   const [name, setName] = useState('新系统预设');
   const [message, setMessage] = useState('');
 
@@ -68,6 +73,21 @@ export default function LabManagement() {
     }
   }
 
+  async function searchRuns() {
+    try {
+      const page = await fetchAdminLabRuns({
+        userId: runUserId.trim() ? Number(runUserId) : undefined,
+        algorithmId: runAlgorithmId.trim() || undefined,
+        page: 0,
+        size: 30,
+      });
+      setRuns(page.content || []);
+      setMessage(`检索到 ${page.totalElements ?? page.content?.length ?? 0} 条实验`);
+    } catch {
+      setMessage('实验检索失败（检查 lab-svc）');
+    }
+  }
+
   function update(id: string, patch: Partial<LabAlgorithmDto>) {
     setAlgorithms((rows) => rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
   }
@@ -76,7 +96,7 @@ export default function LabManagement() {
     <div className="space-y-4">
       <div>
         <h1 className="text-3xl font-bold">实验室管理</h1>
-        <p className="text-muted-foreground">启停算法、调整排序和默认参数，维护系统预设。</p>
+        <p className="text-muted-foreground">启停算法、调整排序和默认参数，维护系统预设；只读检索实验快照。</p>
       </div>
       {message && <p className="text-sm text-primary">{message}</p>}
       {algorithms.map((row) => (
@@ -107,6 +127,40 @@ export default function LabManagement() {
               <Button variant="ghost" size="sm" onClick={() => void removePreset(preset.id)}>删除</Button>
             </div>
           ))}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>实验快照检索</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-3">
+            <Input
+              value={runUserId}
+              onChange={(event) => setRunUserId(event.target.value)}
+              placeholder="userId"
+              inputMode="numeric"
+            />
+            <Input
+              value={runAlgorithmId}
+              onChange={(event) => setRunAlgorithmId(event.target.value)}
+              placeholder="algorithmId，如 pso"
+            />
+            <Button onClick={() => void searchRuns()}>检索</Button>
+          </div>
+          {runs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">暂无结果。按用户 / 算法筛选后检索。</p>
+          ) : (
+            <div className="divide-y text-sm">
+              {runs.map((run) => (
+                <div key={run.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2">
+                  <span>
+                    #{run.id} · u{run.userId} · {run.algorithmId} · seed {run.seed}
+                    {run.title ? ` · ${run.title}` : ''}
+                  </span>
+                  <span className="text-muted-foreground">{run.createdAt || run.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
