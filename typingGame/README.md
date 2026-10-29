@@ -179,8 +179,9 @@ typingGame/
 ├── DB/                              # 数据库脚本
 │   ├── typing_word_game.sql
 │   └── 数据库设计说明文档.md
-├── docker-compose.yml               # 基础设施编排
-├── Dockerfile
+├── docker-compose.yml               # 基础设施 + 服务编排
+├── deploy/docker/Dockerfile         # 通用服务镜像（--build-arg SERVICE=<svc>）
+├── docs/backend-structure-spec.md   # 目录/分层/配置权威规范
 └── README.md
 ```
 
@@ -355,7 +356,7 @@ mysql -h127.0.0.1 -uroot -p123456 typing_word_game < DB/003-fix-round-payload-an
 
 本地默认连接：MySQL `root` / `123456`，库 `typing_word_game`；Redis 密码 `123456`。种子账号见仓库根目录 README。Compose 打开了 Nacos 鉴权，而服务配置只写了地址；注册出现 403 时，关闭鉴权或在 discovery 中补上 `nacos` / `nacos`。
 
-`Dockerfile` 复制的是单体包 `target/typingGame-0.0.1-SNAPSHOT.jar`。多模块构建不会生成该文件，本地按下面的模块包启动。
+服务镜像统一由 `deploy/docker/Dockerfile` 构建（`--build-arg SERVICE=<模块名>`，需先 `mvn -pl <模块> -am package`）；`docker-compose.yml` 已带 `user-svc` 样板，其余服务按同样方式追加。
 
 ### 构建与运行
 

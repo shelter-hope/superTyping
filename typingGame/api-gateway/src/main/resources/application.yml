@@ -9,3 +9,87 @@ spring:
   config:
     import:
       - optional:classpath:config/config.properties
+  cloud:
+    gateway:
+      # 路由表只维护这一份；profile 文件只放地址与 CORS 默认值（见 docs/backend-structure-spec.md §7）
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Allow-Methods Access-Control-Allow-Headers Access-Control-Expose-Headers Access-Control-Max-Age, RETAIN_FIRST
+      routes:
+        - id: user-service
+          uri: lb://user-svc
+          predicates:
+            - Path=/api/v1/auth/**,/api/v1/user/**,/api/v1/profiles/**,/api/v1/friends/**,/uploads/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/user-svc
+        - id: game-service
+          uri: lb://game-core-svc
+          predicates:
+            - Path=/api/v1/game/**,/api/v1/model/**,/api/v1/stats/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/game-core-svc
+        - id: admin-service
+          uri: lb://admin-svc
+          predicates:
+            - Path=/api/v1/admin/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/admin-svc
+        - id: ai-service
+          uri: lb://ai-svc
+          predicates:
+            - Path=/api/v1/ai/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/ai-svc
+        - id: lab-service
+          uri: lb://lab-svc
+          predicates:
+            - Path=/api/v1/lab/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/lab-svc
+        - id: chat-im-ws
+          uri: lb:ws://chat-svc
+          predicates:
+            - Path=/ws/**
+          filters:
+            - PrefixPath=/chat-svc
+        - id: dict-service
+          uri: lb://dict-svc
+          predicates:
+            - Path=/api/v1/dictionary/**,/api/v1/dictionaries/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/dict-svc
+        - id: game-leaderboard
+          uri: lb://game-core-svc
+          predicates:
+            - Path=/api/v1/leaderboard/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/game-core-svc
+        - id: chat-service
+          uri: lb://chat-svc
+          predicates:
+            - Path=/api/v1/messages/**
+          filters:
+            - StripPrefix=0
+            - PrefixPath=/chat-svc
+      discovery:
+        locator:
+          enabled: false
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: false
+            maxAge: 3600
+
+typing:
+  gateway:
+    ip-per-second: 30
+    user-per-second: 20

@@ -79,6 +79,39 @@ services:
     networks:
       - typing-game-network
 
+  # ---- 服务样板：其余 7 个服务按同样方式追加（P4 补齐） ----
+  # 构建：docker build -f deploy/docker/Dockerfile --build-arg SERVICE=user-svc -t typing-game/user-svc:local .
+  user-svc:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile
+      args:
+        SERVICE: user-svc
+    image: typing-game/user-svc:local
+    container_name: user-svc
+    depends_on:
+      - nacos
+      - mysql
+      - redis
+    environment:
+      - NACOS_SERVER_ADDR=nacos:8848
+      - MYSQL_URL=jdbc:mysql://mysql:3306/typing_word_game?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/user-svc/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - typing-game-network
+
 volumes:
   nacos-data:
   nacos-logs:
