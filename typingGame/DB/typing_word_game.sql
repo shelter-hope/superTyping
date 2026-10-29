@@ -41,6 +41,9 @@ SET sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVIS
 -- 建表期间关闭外键检查，附录 A 统一追加 42 条外键后再开启
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- 兼容清理：旧 baseline 曾用于排行榜去重的临时备份表，不属于当前 44 张表
+DROP TABLE IF EXISTS leaderboard_entry_duplicate_backup_20261007;
+
 -- =============================================================================
 -- 一、用户域（user-svc / libs-kernel）
 -- =============================================================================
