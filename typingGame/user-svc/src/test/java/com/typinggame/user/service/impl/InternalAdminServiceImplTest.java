@@ -5,11 +5,8 @@ import com.typinggame.entity.user.UserInfo;
 import com.typinggame.user.repository.FriendRelationRepository;
 import com.typinggame.user.repository.UserAppConfigRepository;
 import com.typinggame.user.repository.UserDailyStatsRepository;
-import com.typinggame.user.repository.UserGameModeConfigRepository;
 import com.typinggame.user.repository.UserInfoRepository;
 import com.typinggame.user.repository.UserInfoSnapshotRepository;
-import com.typinggame.user.repository.UserModelParamsRepository;
-import com.typinggame.user.repository.UserMonsterConfigRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -34,8 +31,7 @@ class InternalAdminServiceImplTest {
         userInfoRepository = mock(UserInfoRepository.class);
         service = new InternalAdminServiceImpl(userInfoRepository,
                 mock(FriendRelationRepository.class), mock(UserAppConfigRepository.class),
-                mock(UserGameModeConfigRepository.class), mock(UserMonsterConfigRepository.class),
-                mock(UserModelParamsRepository.class), mock(UserDailyStatsRepository.class),
+                mock(UserDailyStatsRepository.class),
                 mock(UserInfoSnapshotRepository.class));
         user = new UserInfo();
         user.setUserId(9);

@@ -24,6 +24,9 @@ import com.typinggame.game.repository.SystemMonsterConfigRepository;
 import com.typinggame.game.repository.SystemMonsterTypeConfigRepository;
 import com.typinggame.game.repository.SystemParamRepository;
 import com.typinggame.game.repository.UserModelAdaptLogRepository;
+import com.typinggame.game.repository.UserGameModeConfigRepository;
+import com.typinggame.game.repository.UserModelParamsRepository;
+import com.typinggame.game.repository.UserMonsterConfigRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -59,7 +62,9 @@ class InternalAdminServiceImplTest {
                 systemParamRepository, mock(SystemMonsterTypeConfigRepository.class),
                 mock(SystemMonsterCommoConfigRepository.class), monsterConfigRepository,
                 mock(ModelConstantRepository.class), mock(ModelInitParamsRepository.class),
-                mock(GameModeConfigRepository.class), mock(UserModelAdaptLogRepository.class), objectMapper);
+                mock(GameModeConfigRepository.class), mock(UserModelAdaptLogRepository.class),
+                mock(UserGameModeConfigRepository.class), mock(UserMonsterConfigRepository.class),
+                mock(UserModelParamsRepository.class), objectMapper);
         RuleAdminService rules = new RuleAdminService(systemParamRepository, mock(ConfigTemplateRepository.class), objectMapper);
         LeaderboardAdminService leaderboard = new LeaderboardAdminService(mock(GameLeaderboardEntryRepository.class), records);
         service = new InternalAdminServiceImpl(records, configs, rules, leaderboard,

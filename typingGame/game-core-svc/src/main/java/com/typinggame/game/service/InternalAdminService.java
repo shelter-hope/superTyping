@@ -31,6 +31,9 @@ public interface InternalAdminService {
     boolean updateMonsterTypeConfig(Integer id, com.typinggame.game.entity.SystemMonsterTypeConfig body);
     boolean updateMonsterCommonConfig(Integer id, com.typinggame.game.entity.SystemMonsterCommoConfig body);
     Map<String, Object> getGameModeConfigs(int page, int pageSize);
+    Map<String, Object> getUserGameModeConfigs(int page, int pageSize, Integer userId, String modeName);
+    Map<String, Object> getUserMonsterConfigs(int page, int pageSize, Integer userId, String type);
+    Map<String, Object> getUserModelParams(int page, int pageSize, Integer userId, String gameMode);
     void updateGameModeConfig(Integer id, Map<String, Object> updates);
     Map<String, Object> getAdaptLogs(int page, int pageSize, Integer userId, String gameMode, String startDate, String endDate);
     List<Map<String, Object>> getAdaptLogTrend(Integer userId, String gameMode, String startDate, String endDate);

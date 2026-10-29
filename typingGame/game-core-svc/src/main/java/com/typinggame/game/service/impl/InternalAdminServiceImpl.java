@@ -148,8 +148,7 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     }
 
     @Override
-    public Map<String, Object> getAdaptLogs(int page, int pageSize, Integer userId, String gameMode, String startDate, String endDate) {
-        return configAdminService.getAdaptLogs(page, pageSize, userId, gameMode, startDate, endDate);
+    public Map<String, Object> getAdaptLogs(int page, int pageSize, Integer userId, String gameMode, String startDate, String endDate) {        return configAdminService.getAdaptLogs(page, pageSize, userId, gameMode, startDate, endDate);
     }
 
     @Override
@@ -195,5 +194,20 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     @Override
     public Map<String, Object> getOverview() {
         return leaderboardAdminService.getOverview();
+    }
+
+    @Override
+    public Map<String, Object> getUserGameModeConfigs(int page, int pageSize, Integer userId, String modeName) {
+        return configAdminService.getUserGameModeConfigs(page, pageSize, userId, modeName);
+    }
+
+    @Override
+    public Map<String, Object> getUserMonsterConfigs(int page, int pageSize, Integer userId, String type) {
+        return configAdminService.getUserMonsterConfigs(page, pageSize, userId, type);
+    }
+
+    @Override
+    public Map<String, Object> getUserModelParams(int page, int pageSize, Integer userId, String gameMode) {
+        return configAdminService.getUserModelParams(page, pageSize, userId, gameMode);
     }
 }

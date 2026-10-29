@@ -18,12 +18,6 @@ public interface InternalAdminService {
 
     Map<String, Object> getUserAppConfigs(int page, int pageSize, Integer userId);
 
-    Map<String, Object> getUserGameModeConfigs(int page, int pageSize, Integer userId, String modeName);
-
-    Map<String, Object> getUserMonsterConfigs(int page, int pageSize, Integer userId, String type);
-
-    Map<String, Object> getUserModelParams(int page, int pageSize, Integer userId, String gameMode);
-
     Map<String, Object> getUserDailyStats(int page, int pageSize, Integer userId);
 
     Map<String, Object> getUserInfoSnapshots(int page, int pageSize, Integer userId);

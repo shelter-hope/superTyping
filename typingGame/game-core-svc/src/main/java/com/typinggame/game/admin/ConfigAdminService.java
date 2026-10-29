@@ -21,6 +21,9 @@ import com.typinggame.game.repository.SystemMonsterConfigRepository;
 import com.typinggame.game.repository.SystemMonsterTypeConfigRepository;
 import com.typinggame.game.repository.SystemParamRepository;
 import com.typinggame.game.repository.UserModelAdaptLogRepository;
+import com.typinggame.game.repository.UserGameModeConfigRepository;
+import com.typinggame.game.repository.UserModelParamsRepository;
+import com.typinggame.game.repository.UserMonsterConfigRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -51,6 +54,9 @@ public class ConfigAdminService {
     private final ModelInitParamsRepository modelInitParamsRepository;
     private final GameModeConfigRepository gameModeConfigRepository;
     private final UserModelAdaptLogRepository userModelAdaptLogRepository;
+    private final UserGameModeConfigRepository userGameModeConfigRepository;
+    private final UserMonsterConfigRepository userMonsterConfigRepository;
+    private final UserModelParamsRepository userModelParamsRepository;
     private final ObjectMapper objectMapper;
 
     public ConfigAdminService(SystemParamRepository systemParamRepository,
@@ -61,6 +67,9 @@ public class ConfigAdminService {
                               ModelInitParamsRepository modelInitParamsRepository,
                               GameModeConfigRepository gameModeConfigRepository,
                               UserModelAdaptLogRepository userModelAdaptLogRepository,
+                              UserGameModeConfigRepository userGameModeConfigRepository,
+                              UserMonsterConfigRepository userMonsterConfigRepository,
+                              UserModelParamsRepository userModelParamsRepository,
                               ObjectMapper objectMapper) {
         this.systemParamRepository = systemParamRepository;
         this.systemMonsterTypeConfigRepository = systemMonsterTypeConfigRepository;
@@ -70,7 +79,28 @@ public class ConfigAdminService {
         this.modelInitParamsRepository = modelInitParamsRepository;
         this.gameModeConfigRepository = gameModeConfigRepository;
         this.userModelAdaptLogRepository = userModelAdaptLogRepository;
+        this.userGameModeConfigRepository = userGameModeConfigRepository;
+        this.userMonsterConfigRepository = userMonsterConfigRepository;
+        this.userModelParamsRepository = userModelParamsRepository;
         this.objectMapper = objectMapper;
+    }
+
+    public Map<String, Object> getUserGameModeConfigs(int page, int pageSize, Integer userId, String modeName) {
+        AdminFilter<com.typinggame.game.entity.UserGameModeConfig> f = AdminFilter.of(com.typinggame.game.entity.UserGameModeConfig.class)
+                .eq("user.userId", userId).eq("modeName", modeName);
+        return AdminPageSupport.pageMap("items", userGameModeConfigRepository.findAll(f, pageable(page, pageSize, "id")));
+    }
+
+    public Map<String, Object> getUserMonsterConfigs(int page, int pageSize, Integer userId, String type) {
+        AdminFilter<com.typinggame.game.entity.UserMonsterConfig> f = AdminFilter.of(com.typinggame.game.entity.UserMonsterConfig.class)
+                .eq("userId", userId).eq("type", type);
+        return AdminPageSupport.pageMap("items", userMonsterConfigRepository.findAll(f, pageable(page, pageSize, "id")));
+    }
+
+    public Map<String, Object> getUserModelParams(int page, int pageSize, Integer userId, String gameMode) {
+        AdminFilter<com.typinggame.game.entity.UserModelParams> f = AdminFilter.of(com.typinggame.game.entity.UserModelParams.class)
+                .eq("userId", userId).eq("gameMode", gameMode);
+        return AdminPageSupport.pageMap("items", userModelParamsRepository.findAll(f, pageable(page, pageSize, "paramId")));
     }
 
     public Map<String, Object> getSystemParams(int page, int pageSize, String paramName) {

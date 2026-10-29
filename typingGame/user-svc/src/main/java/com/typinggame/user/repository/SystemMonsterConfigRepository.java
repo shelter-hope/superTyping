@@ -1,9 +1,0 @@
-package com.typinggame.user.repository;
-
-import com.typinggame.entity.game.SystemMonsterConfig;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-@Repository
-public interface SystemMonsterConfigRepository extends JpaRepository<SystemMonsterConfig, Integer> {
-}

@@ -18,6 +18,10 @@ class AdminRoutesTest {
         assertEquals("ai-svc", AdminRoutes.resolveTargetService("/ai-chat-messages"));
         assertEquals("game-core-svc", AdminRoutes.resolveTargetService("/character-rules"));
         assertEquals("game-core-svc", AdminRoutes.resolveTargetService("/config-templates/1"));
+        assertEquals("game-core-svc", AdminRoutes.resolveTargetService("/user-game-mode-configs"));
+        assertEquals("game-core-svc", AdminRoutes.resolveTargetService("/user-monster-configs"));
+        assertEquals("game-core-svc", AdminRoutes.resolveTargetService("/user-model-params"));
+        assertEquals("user-svc", AdminRoutes.resolveTargetService("/user-daily-stats"));
     }
 
     @Test

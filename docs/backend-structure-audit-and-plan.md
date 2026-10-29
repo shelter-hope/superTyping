@@ -8,7 +8,7 @@
 > - ✅ **P0 已完成**（提交 `8d5347e`）：规范文件、8 个服务的 ArchUnit 护栏、lab-svc 配置拆分、网关单份路由、`deploy/` 与 Dockerfile、compose 样板。
 > - ✅ **P1 已完成**：`common` 拆为 `libs/kernel` + `libs/security`（包名不变），7 个服务改为双库依赖，删除死代码 `TraceIdFilter` 与未使用的 `SecurityConfigBase`。
 > - ⏭ 下一步 **P2**：把 `libs/kernel` 里的实体 / DTO / repository 按表归属迁回各服务。
-> - 🔄 **P2 进行中（2026-10-30）**：已完成 leaderboard、AI 消息、聊天消息（4 张）、用户配置/快照、词库（4 张）五刀；词库这一刀同时把 game-core 的 `WordSource` 从 JPA 换成 `HttpWordSource` + `DictionaryPracticeClient`，dict-svc 提供 `/api/v1/internal/dictionaries/{ids,words,practice}`。进度明细见 `typingGame/docs/backend-structure-spec.md §9.1`。剩余：game/config/model 域、`message.FriendRelation`（好友关系归属待定）、`user_info` 及 stats 子表（先拆 `@ManyToOne` 外键桩）。
+> - 🔄 **P2 进行中（2026-10-30）**：已完成 leaderboard、AI 消息、聊天消息（4 张）、用户配置/快照、词库（4 张）、好友关系、对局/配置/模型独享实体（14 张）、对局记录+字符统计、用户后台配置（3 张）九刀。跨服务读取已改为内部接口：dict-svc `/api/v1/internal/dictionaries/*`、user-svc `/api/v1/internal/friends/ids`、game-core `/api/v1/internal/player-data/*` 与 `/api/v1/internal/admin/user-{game-mode-configs,monster-configs,model-params}`；`admin-svc` 对应路由已改指 game-core。进度明细见 `typingGame/docs/backend-structure-spec.md §9.1`。剩余：`user_info` 及 stats 子表（先拆 `@ManyToOne` 外键桩）。
 > - 下文“一、现状盘点”记录的是 **P0 前的原始状态**，用于说明改造理由，不再代表当前代码。
 
 ---

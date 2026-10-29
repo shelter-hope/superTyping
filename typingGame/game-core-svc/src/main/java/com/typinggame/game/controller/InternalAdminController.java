@@ -170,6 +170,30 @@ public class InternalAdminController {
         return ok(internalAdminService.getLeaderboardEntries(page, pageSize, userId, gameMode));
     }
 
+    @GetMapping("/user-game-mode-configs")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> userGameModeConfigs(@RequestParam(defaultValue = "1") int page,
+                                                                                 @RequestParam(defaultValue = "20") int pageSize,
+                                                                                 @RequestParam(required = false) Integer userId,
+                                                                                 @RequestParam(required = false) String modeName) {
+        return ok(internalAdminService.getUserGameModeConfigs(page, pageSize, userId, modeName));
+    }
+
+    @GetMapping("/user-monster-configs")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> userMonsterConfigs(@RequestParam(defaultValue = "1") int page,
+                                                                                @RequestParam(defaultValue = "20") int pageSize,
+                                                                                @RequestParam(required = false) Integer userId,
+                                                                                @RequestParam(required = false) String type) {
+        return ok(internalAdminService.getUserMonsterConfigs(page, pageSize, userId, type));
+    }
+
+    @GetMapping("/user-model-params")
+    public ResponseEntity<ResultMessage<Map<String, Object>>> userModelParams(@RequestParam(defaultValue = "1") int page,
+                                                                             @RequestParam(defaultValue = "20") int pageSize,
+                                                                             @RequestParam(required = false) Integer userId,
+                                                                             @RequestParam(required = false) String gameMode) {
+        return ok(internalAdminService.getUserModelParams(page, pageSize, userId, gameMode));
+    }
+
     @GetMapping("/overview/games")
     public ResponseEntity<ResultMessage<Map<String, Object>>> overview() {
         return ok(internalAdminService.getOverview());

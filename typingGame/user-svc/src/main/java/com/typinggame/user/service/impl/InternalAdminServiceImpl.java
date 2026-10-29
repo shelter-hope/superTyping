@@ -4,21 +4,15 @@ import com.typinggame.common.admin.AdminFilter;
 import com.typinggame.common.admin.AdminPageSupport;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.user.entity.UserAppConfig;
-import com.typinggame.entity.game.UserGameModeConfig;
-import com.typinggame.entity.game.UserMonsterConfig;
 import com.typinggame.user.entity.FriendRelation;
-import com.typinggame.entity.model.UserModelParams;
 import com.typinggame.entity.user.UserDailyStats;
 import com.typinggame.entity.user.UserInfo;
 import com.typinggame.user.entity.UserInfoSnapshot;
 import com.typinggame.user.repository.FriendRelationRepository;
 import com.typinggame.user.repository.UserAppConfigRepository;
 import com.typinggame.user.repository.UserDailyStatsRepository;
-import com.typinggame.user.repository.UserGameModeConfigRepository;
 import com.typinggame.user.repository.UserInfoRepository;
 import com.typinggame.user.repository.UserInfoSnapshotRepository;
-import com.typinggame.user.repository.UserModelParamsRepository;
-import com.typinggame.user.repository.UserMonsterConfigRepository;
 import com.typinggame.user.service.InternalAdminService;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.transaction.Transactional;
@@ -41,26 +35,17 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     private final UserInfoRepository userInfoRepository;
     private final FriendRelationRepository friendRelationRepository;
     private final UserAppConfigRepository userAppConfigRepository;
-    private final UserGameModeConfigRepository userGameModeConfigRepository;
-    private final UserMonsterConfigRepository userMonsterConfigRepository;
-    private final UserModelParamsRepository userModelParamsRepository;
     private final UserDailyStatsRepository userDailyStatsRepository;
     private final UserInfoSnapshotRepository userInfoSnapshotRepository;
 
     public InternalAdminServiceImpl(UserInfoRepository userInfoRepository,
                                     FriendRelationRepository friendRelationRepository,
                                     UserAppConfigRepository userAppConfigRepository,
-                                    UserGameModeConfigRepository userGameModeConfigRepository,
-                                    UserMonsterConfigRepository userMonsterConfigRepository,
-                                    UserModelParamsRepository userModelParamsRepository,
                                     UserDailyStatsRepository userDailyStatsRepository,
                                     UserInfoSnapshotRepository userInfoSnapshotRepository) {
         this.userInfoRepository = userInfoRepository;
         this.friendRelationRepository = friendRelationRepository;
         this.userAppConfigRepository = userAppConfigRepository;
-        this.userGameModeConfigRepository = userGameModeConfigRepository;
-        this.userMonsterConfigRepository = userMonsterConfigRepository;
-        this.userModelParamsRepository = userModelParamsRepository;
         this.userDailyStatsRepository = userDailyStatsRepository;
         this.userInfoSnapshotRepository = userInfoSnapshotRepository;
     }
@@ -157,25 +142,6 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     public Map<String, Object> getUserAppConfigs(int page, int pageSize, Integer userId) {
         AdminFilter<UserAppConfig> f = AdminFilter.of(UserAppConfig.class).eq("userId", userId);
         return AdminPageSupport.pageMap("items", userAppConfigRepository.findAll(f, pageable(page, pageSize, "configId")));
-    }
-
-    @Override
-    public Map<String, Object> getUserGameModeConfigs(int page, int pageSize, Integer userId, String modeName) {
-        AdminFilter<UserGameModeConfig> f = AdminFilter.of(UserGameModeConfig.class)
-                .eq("user.userId", userId).eq("modeName", modeName);
-        return AdminPageSupport.pageMap("items", userGameModeConfigRepository.findAll(f, pageable(page, pageSize, "id")));
-    }
-
-    @Override
-    public Map<String, Object> getUserMonsterConfigs(int page, int pageSize, Integer userId, String type) {
-        AdminFilter<UserMonsterConfig> f = AdminFilter.of(UserMonsterConfig.class).eq("userId", userId).eq("type", type);
-        return AdminPageSupport.pageMap("items", userMonsterConfigRepository.findAll(f, pageable(page, pageSize, "id")));
-    }
-
-    @Override
-    public Map<String, Object> getUserModelParams(int page, int pageSize, Integer userId, String gameMode) {
-        AdminFilter<UserModelParams> f = AdminFilter.of(UserModelParams.class).eq("userId", userId).eq("gameMode", gameMode);
-        return AdminPageSupport.pageMap("items", userModelParamsRepository.findAll(f, pageable(page, pageSize, "paramId")));
     }
 
     @Override
