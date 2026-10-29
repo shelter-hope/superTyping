@@ -311,10 +311,10 @@ P0 完成后再决定 P1/P2 的节奏。
 
 ### P4 数据与部署（进行中）
 
-- [ ] **P4-1 分 schema Flyway 脚本**：以 `DB/typing_word_game.sql` 为唯一源，按实体归属切成 7 份 `V1__init.sql`（`typing_game_user / _game / _ai / _chat / _admin / _lab / _dict`），跨 schema 外键降级为逻辑引用并在文档登记。
-- [ ] **P4-2 Flyway 接入**：7 个服务加 `flyway-core` + `flyway-mysql` 依赖；`spring.flyway.locations=classpath:db/migration`、`baseline-on-migrate=true`；数据源默认库名改为各自 schema；`ddl-auto=validate`。
-- [ ] **P4-3 部署全栈**：`deploy/docker/Dockerfile` 适配 8 个服务；`docker-compose.yml` 补齐 mysql 初始化（建 7 个 schema 的空库）+ nacos/redis + 8 个服务；新增 `deploy/smoke.sh`（或 `.ps1`）跑核心端点冒烟。
-- [ ] **P4-4 空库验证**：本地 MySQL 8.0.30 建 7 个空 schema → 逐份导入 `V1__init.sql` 验证 0 ERROR；`mvn -o test` 全量门禁；文档（spec §2 目录树、审计计划状态）同步。
+- [x] **P4-1 分 schema Flyway 脚本**（`f9544fa`）：以 `DB/typing_word_game.sql` 为唯一源，切成 7 份 `V1__init.sql`（44 表 / 21 条同 schema 外键），跨 schema 21 条外键降级并登记 `DB/cross-schema-foreign-keys.md`；本地 MySQL 8.0.30 逐份导入 0 ERROR。
+- [x] **P4-2 Flyway 接入**（`f9544fa`）：7 个服务加 `flyway-core` + `flyway-mysql`；`spring.flyway.*` 开启、`baseline-on-migrate`；数据源默认库改为各自 schema；`ddl-auto` 默认 `validate`。
+- [x] **P4-3 部署全栈**：`deploy/docker/Dockerfile` 通用构建 + `docker-compose.yml` 补齐 nacos/redis/mysql + 8 个服务（各自 schema、健康检查、依赖顺序）+ `deploy/smoke.ps1`（8 个健康检查 + 登录/核心接口 + 内部接口经网关必须 404 断言）。
+- [ ] **P4-4 空库验证**：本地 MySQL 建 7 个空 schema → 逐份导入 `V1__init.sql` 验证 0 ERROR **（已手动验证，待纳入脚本门禁）**；`mvn -o test` 全量门禁；文档同步。
 - [ ] **P4-5 网关路由仓库化**：路由表从「手写 yml + 服务 context-path 手工配对」改为按服务名自动推导（或至少集中成一份带注释的路由表并在测试里断言），去掉双份配置隐患。
 
 ### P5 契约与文档

@@ -22,12 +22,24 @@ typingGame/
 │   ├── docker-compose.yml      # 中间件 + 服务
 │   ├── docker/Dockerfile       # 通用服务镜像（ARG SERVICE）
 │   └── gateway/                # 网关路由与 Nacos 覆盖说明
-├── db/<svc>/                   # Flyway 迁移脚本（P4）
+├── <svc>/src/main/resources/db/migration/V1__init.sql   # 各服务 Flyway 脚本（P4，由 DB/typing_word_game.sql 切分）
 ├── docs/
 └── DB/                         # 历史手工 SQL（P4 后归档只读）
 ```
 
 **过渡态说明**：P0–P1 期间服务仍直接位于 `typingGame/` 根下（与现在一致），P2 完成后再整体移动到 `services/`。任何新模块都必须先决定自己属于 `libs/` 还是 `services/`。
+
+**schema 现状（P4）**：7 个 schema，每个服务只连自己的库，`ddl-auto=validate`，表结构变更只能通过各自 `db/migration` 下的 Flyway 脚本。原 `DB/typing_word_game.sql` 保留为全库单文件基线（人工查阅/应急建库用，不再由服务执行）；`DB/00-create-schemas.sql` 建 7 个空 schema；跨 schema 外键 21 条已降级为逻辑引用，清单见 `DB/cross-schema-foreign-keys.md`。
+
+| 服务 | schema | 表数 |
+| --- | --- | --- |
+| user-svc | `typing_game_user` | 6 |
+| game-core-svc | `typing_game_game` | 24 |
+| chat-svc | `typing_game_chat` | 4 |
+| dict-svc | `typing_game_dict` | 4 |
+| ai-svc | `typing_game_ai` | 2 |
+| lab-svc | `typing_game_lab` | 3 |
+| admin-svc | `typing_game_admin` | 1 |
 
 ## 3. 服务内部分层（统一 7 包模板）
 
@@ -142,7 +154,7 @@ entity ← 仅 repository / service / config / support
 - ~~**P1**：`common` 拆为 `libs/kernel` + `libs/security`~~（**已完成**：包名保持 `com.typinggame.*` 不变，7 个服务改为同时依赖 `typing-game-kernel` 与 `typing-game-security`；删除 `common/observability` 死代码与未被使用的 `SecurityConfigBase`）；
 - ~~**P2**：实体/DTO/repository 按表归属迁回各服务~~（**已完成**，见 §9.1：11 刀切片，kernel 只剩 DTO/枚举/工具，跨服务一律走 `/api/v1/internal/**`）；
 - ~~**P3**：按第 3 节统一包结构~~（**已完成**，见 §9.2：8 个模块全部收敛到 7 包模板）；
-- **P4**：分 schema + Flyway + 每服务 Dockerfile + compose 全栈；
+- **P4**：分 schema + Flyway + 每服务 Dockerfile + compose 全栈（**P4-1/P4-2/P4-3 已完成**：7 份 `V1__init.sql`、Flyway 接入 + `ddl-auto=validate`、compose 全栈 + `deploy/smoke.ps1`；待做 P4-4 空库迁移门禁与 P4-5 网关路由仓库化）；
 - **P5**：springdoc + 重写 `docs/backend-architecture.md`。
 
 ### 9.1 P2 进度（按域分刀，每刀一次提交）

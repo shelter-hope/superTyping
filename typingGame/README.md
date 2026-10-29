@@ -350,11 +350,11 @@ docker-compose up -d
 
 等待 Nacos、Redis、MySQL 等服务启动完成。
 
-MySQL 首次初始化会执行 `DB/typing_word_game.sql`——它是唯一建库脚本，44 张表与种子数据都在里面，历史增量 `001`–`014` 已合并并删除，无需再手动导入。
+MySQL 首次初始化只建 7 个空 schema（`DB/00-create-schemas.sql`）；表结构与种子数据由各服务启动时的 Flyway 脚本 `src/main/resources/db/migration/V1__init.sql` 建立，`ddl-auto` 固定为 `validate`。`DB/typing_word_game.sql` 保留为全库单文件基线（人工查阅 / 应急建库），服务不再执行它。
 
-本地默认连接：MySQL `root` / `123456`，库 `typing_word_game`；Redis 密码 `123456`。种子账号见仓库根目录 README。Compose 打开了 Nacos 鉴权，而服务配置只写了地址；注册出现 403 时，关闭鉴权或在 discovery 中补上 `nacos` / `nacos`。
+本地默认连接：MySQL `root` / `123456`，库按服务分为 `typing_game_user`、`typing_game_game`、`typing_game_ai`、`typing_game_chat`、`typing_game_admin`、`typing_game_lab`、`typing_game_dict`；Redis 密码 `123456`。种子账号见仓库根目录 README。Compose 未开启 Nacos 鉴权（本地/演示栈）；生产请打开并给每个服务补 `spring.cloud.nacos.discovery.username/password`。
 
-服务镜像统一由 `deploy/docker/Dockerfile` 构建（`--build-arg SERVICE=<模块名>`，需先 `mvn -pl <模块> -am package`）；`docker-compose.yml` 已带 `user-svc` 样板，其余服务按同样方式追加。
+服务镜像统一由 `deploy/docker/Dockerfile` 构建（`--build-arg SERVICE=<模块名>`，需先 `mvn -pl <模块> -am package`）；`docker-compose.yml` 已包含 8 个服务与健康检查，起栈后可直接跑 `pwsh ./deploy/smoke.ps1` 做冒烟（8 个健康检查 + 登录/核心接口 + 内部接口经网关必须 404 的断言）。
 
 ### 构建与运行
 
