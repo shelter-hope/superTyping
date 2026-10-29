@@ -1,4 +1,4 @@
-package com.typinggame.user.im;
+package com.typinggame.user.support.im;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,4 +1,4 @@
-package com.typinggame.user.security;
+package com.typinggame.user.service.security;
 
 import com.typinggame.user.entity.UserInfo;
 import com.typinggame.user.repository.UserInfoRepository;

@@ -7,7 +7,7 @@ import com.typinggame.dto.friend.FriendResponseDTO;
 import com.typinggame.user.entity.UserInfo;
 import com.typinggame.enums.FriendRelationStatus;
 import com.typinggame.user.entity.FriendRelation;
-import com.typinggame.user.im.FriendEventPublisher;
+import com.typinggame.user.support.im.FriendEventPublisher;
 import com.typinggame.user.repository.FriendRelationRepository;
 import com.typinggame.user.repository.UserInfoRepository;
 import com.typinggame.user.service.FriendService;
