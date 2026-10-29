@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import { cn } from '@/utils';
+
 interface PageHeaderProps {
   /** 小标签，例如「训练 · TRAINING」 */
   eyebrow: string;
@@ -36,7 +38,7 @@ export function PageHeader({ eyebrow, title, description, actions, children }: P
   );
 }
 
-/** 页面主容器：统一留白与最大宽度 */
+/** 页面主容器：统一留白与最大宽度。用 cn 合并，调用方传 max-w-* 时能正确覆盖默认值。 */
 export function PageBody({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`container max-w-6xl py-10 ${className}`}>{children}</div>;
+  return <div className={cn('container max-w-6xl py-10', className)}>{children}</div>;
 }
