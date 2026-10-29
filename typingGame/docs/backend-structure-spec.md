@@ -127,8 +127,14 @@ entity ← 仅 repository / service / config / support
 - 对外统一前缀 `/api/v1/**`，前端与网关之间的路径**不随内部目录调整而变化**；
 - 过渡期网关仍使用 `PrefixPath=/<svc>` 与各服务 `context-path` 配对，P2 去掉 context-path 后改为直转；
 - 路由表**只维护一份**（各服务的 `application.yml`），profile 文件只放地址与 CORS 默认值；
-- 新接口必须补 `springdoc` 注解（P5 统一引入后可 `/v3/api-docs` 拉取）；
-- 内部管理端点固定 `/api/v1/internal/admin/**`，由 `admin-svc` 聚合。
+- 新接口必须补 `springdoc` 注解；内部管理端点固定 `/api/v1/internal/admin/**`，由 `admin-svc` 聚合。
+
+### 7.1 接口文档（springdoc）
+
+- 7 个 Web 服务已引入 `org.springdoc:springdoc-openapi-starter-webmvc-ui`（父 POM 统一版本 `springdoc.version`），网关用 `springdoc-openapi-starter-webflux-ui`；
+- 直连服务可访问 `GET /<context-path>/v3/api-docs`（如 `http://127.0.0.1:8081/user-svc/v3/api-docs`）；`swagger-ui` 仅建议本地调试时打开（`springdoc.swagger-ui.enabled=false` 默认关闭，生产环境保持关闭）；
+- 服务间内部接口（`/api/v1/internal/**`）统一打 `@Tag(name = "internal", description = "服务间内部接口（网关对 /internal/ 返回 404）")`，不对外作为公开契约；
+- 网关不聚合文档：每个服务的 spec 独立生成，团队按需在本地拉取或后续单独搭文档站。
 
 ## 8. 测试要求
 

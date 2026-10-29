@@ -1,4 +1,5 @@
 package com.typinggame.dict.controller;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import com.typinggame.dict.service.InternalDictionaryService;
 import com.typinggame.dto.dictionary.DictionaryIdsQueryDTO;
@@ -19,6 +20,7 @@ import java.util.Map;
 /**
  * 词库服务的内部接口：只允许集群内其它服务调用（网关对 /internal/ 路径直接 404）。
  */
+@Tag(name = "internal", description = "服务间内部接口（网关对 /internal/ 返回 404）")
 @RestController
 @RequestMapping("/api/v1/internal/dictionaries")
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))

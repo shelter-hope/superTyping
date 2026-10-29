@@ -319,7 +319,7 @@ P0 完成后再决定 P1/P2 的节奏。
 
 ### P5 契约与文档
 
-- [ ] **P5-1 springdoc/OpenAPI**：每个服务引入 `springdoc-openapi-starter-webmvc-ui`，网关聚合或文档站列出 8 个服务的 spec；`/v3/api-docs` 可访问；内部接口 `/api/v1/internal/**` 在文档中显式标注。
+- [x] **P5-1 springdoc/OpenAPI**：7 个 Web 服务引入 `springdoc-openapi-starter-webmvc-ui`（父 POM 统一 `springdoc.version`），网关引入 `springdoc-openapi-starter-webflux-ui`；`/v3/api-docs` 默认开启、`swagger-ui` 默认关闭；内部接口统一 `@Tag(name = "internal")`。见 `typingGame/docs/backend-structure-spec.md §7.1`。
 - [x] **P5-2 文档重写**：重写 `docs/README.md`（文档索引，标清现状类/历史快照类）、`README.md`（根，部署与数据库描述）、`docs/backend-architecture.md`（顶部加历史存档说明）、`AGENTS.md`（远端、7 包、内部接口、schema、门禁）、`.trae/rules/project-rules.md`（门禁与提交规范）、`项目公共约束.md §2.1`（kernel 共享实体边界、DB/deploy 职责、词库改内部接口）、`typingGame/docs/backend-structure-spec.md §2`（目录过渡态与共享实体清单）。
 - [ ] **P5-3 新同学检查单**：按 spec 新建一个"占位服务"模板分支验证一次（只动 pom + 目录 + 配置），确认 spec 可照抄。
 

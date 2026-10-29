@@ -1,4 +1,5 @@
 package com.typinggame.game.controller;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import com.typinggame.dto.game.GameRecordSummaryDTO;
 import com.typinggame.dto.stats.WeakCharDTO;
@@ -19,6 +20,7 @@ import java.util.List;
  * <p>网关对 {@code /api/v1/internal/**} 一律 404，只允许服务间直连调用；
  * 消费方失败时应按空结果降级，不得阻塞主流程。</p>
  */
+@Tag(name = "internal", description = "服务间内部接口（网关对 /internal/ 返回 404）")
 @RestController
 @RequestMapping("/api/v1/internal/player-data")
 public class InternalPlayerDataController {

@@ -28,3 +28,10 @@ chat:
   friends:
     auth-mode: user-svc
     user-svc-base-url: http://user-svc/user-svc
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false

@@ -1,4 +1,5 @@
 package com.typinggame.game.controller;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import com.typinggame.game.entity.SystemMonsterCommoConfig;
 import com.typinggame.game.entity.SystemMonsterTypeConfig;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "internal", description = "服务间内部接口（网关对 /internal/ 返回 404）")
 @RestController
 @RequestMapping("/api/v1/internal/admin")
 public class InternalAdminController {

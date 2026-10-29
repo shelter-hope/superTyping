@@ -1,4 +1,5 @@
 package com.typinggame.user.controller;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import com.typinggame.user.service.FriendMessagingGuard;
 import com.typinggame.user.service.FriendService;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /** 服务间好友鉴权。网关屏蔽 /internal/，仅集群内可达。 */
+@Tag(name = "internal", description = "服务间内部接口（网关对 /internal/ 返回 404）")
 @RestController
 @RequestMapping("/api/v1/internal/friends")
 public class InternalFriendController {

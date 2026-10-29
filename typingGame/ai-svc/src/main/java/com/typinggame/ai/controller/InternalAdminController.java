@@ -1,4 +1,5 @@
 package com.typinggame.ai.controller;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import com.typinggame.ai.service.InternalAdminService;
 import com.typinggame.vo.ResultMessage;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+@Tag(name = "internal", description = "服务间内部接口（网关对 /internal/ 返回 404）")
 @RestController
 @RequestMapping("/api/v1/internal/admin")
 public class InternalAdminController {

@@ -17,3 +17,10 @@ spring:
     import:
       - optional:classpath:config/config.properties
       - optional:classpath:config/jdbc.properties
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false

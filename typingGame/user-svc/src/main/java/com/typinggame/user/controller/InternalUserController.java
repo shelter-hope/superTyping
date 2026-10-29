@@ -1,4 +1,5 @@
 package com.typinggame.user.controller;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import com.typinggame.dto.user.DailyStatsUpdateDTO;
 import com.typinggame.dto.user.UserGameSummaryDTO;
@@ -20,6 +21,7 @@ import java.util.Map;
  * 集群内用户数据接口：用户原型的唯一查询/回写入口。
  * 网关屏蔽 /internal/，仅集群内可达。
  */
+@Tag(name = "internal", description = "服务间内部接口（网关对 /internal/ 返回 404）")
 @RestController
 @RequestMapping("/api/v1/internal/users")
 public class InternalUserController {

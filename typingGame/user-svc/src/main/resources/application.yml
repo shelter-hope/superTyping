@@ -21,3 +21,10 @@ spring:
 user:
   bootstrap:
     game-core-base-url: http://game-core-svc/game-core-svc
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false
