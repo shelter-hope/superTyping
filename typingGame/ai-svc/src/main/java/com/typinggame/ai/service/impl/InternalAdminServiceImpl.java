@@ -26,7 +26,7 @@ public class InternalAdminServiceImpl implements InternalAdminService {
 
     @Override
     public Map<String, Object> getAiConversations(int page, int pageSize, Integer userId, Integer aiRobotId) {
-        AdminFilter<AiConversation> f = AdminFilter.of(AiConversation.class).eq("user.userId", userId).eq("aiRobotId", aiRobotId);
+        AdminFilter<AiConversation> f = AdminFilter.of(AiConversation.class).eq("userId", userId).eq("aiRobotId", aiRobotId);
         return AdminPageSupport.pageMap("items", aiConversationRepository.findAll(f, pageable(page, pageSize)));
     }
 

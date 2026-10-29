@@ -1,6 +1,5 @@
 package com.typinggame.chat.entity;
 
-import com.typinggame.entity.user.UserInfo;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -19,13 +18,13 @@ public class FriendChatMessage {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @JoinColumn(name = "conversation_id", nullable = false, foreignKey = @ForeignKey(name = "fk_friend_chat_message_conversation"))
+    @Column(name = "conversation_id", nullable = false)
     private Integer conversationId;
 
-    @JoinColumn(name = "sender_id", nullable = false, foreignKey = @ForeignKey(name = "fk_friend_chat_message_sender"))
+    @Column(name = "sender_id", nullable = false)
     private Integer senderId;
 
-    @JoinColumn(name = "receiver_id", nullable = false, foreignKey = @ForeignKey(name = "fk_friend_chat_message_receiver"))
+    @Column(name = "receiver_id", nullable = false)
     private Integer receiverId;
 
     @Column(name = "message_type", nullable = false)

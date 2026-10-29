@@ -2,11 +2,11 @@ package com.typinggame.chat.application;
 
 import com.typinggame.chat.repository.FriendChatMessageRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
-import com.typinggame.chat.repository.UserInfoRepository;
+import com.typinggame.chat.support.UserProfileClient;
 import com.typinggame.dto.message.MessageDTO;
+import com.typinggame.dto.user.UserProfileDTO;
 import com.typinggame.chat.entity.FriendChatMessage;
 import com.typinggame.chat.entity.UserConversation;
-import com.typinggame.entity.user.UserInfo;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,30 +21,29 @@ import java.util.stream.Collectors;
 public class ConversationQueryService {
     private final UserConversationRepository userConversationRepository;
     private final FriendChatMessageRepository friendChatMessageRepository;
-    private final UserInfoRepository userInfoRepository;
+    private final UserProfileClient userProfileClient;
     private final MessageDtoMapper messageDtoMapper;
 
     public ConversationQueryService(UserConversationRepository userConversationRepository,
                                     FriendChatMessageRepository friendChatMessageRepository,
-                                    UserInfoRepository userInfoRepository,
+                                    UserProfileClient userProfileClient,
                                     MessageDtoMapper messageDtoMapper) {
         this.userConversationRepository = userConversationRepository;
         this.friendChatMessageRepository = friendChatMessageRepository;
-        this.userInfoRepository = userInfoRepository;
+        this.userProfileClient = userProfileClient;
         this.messageDtoMapper = messageDtoMapper;
     }
 
     public List<MessageDTO> getConversations(Integer userId) {
         List<UserConversation> conversations = userConversationRepository.findByUserId(userId);
         return conversations.stream().map(conversation -> {
-            Optional<UserInfo> otherUserOptional = userInfoRepository.findById(conversation.getTargetUserId());
-            if (otherUserOptional.isPresent()) {
-                UserInfo otherUser = otherUserOptional.get();
+            UserProfileDTO otherUser = userProfileClient.fetchProfile(conversation.getTargetUserId());
+            if (otherUser != null) {
                 MessageDTO messageDTO = new MessageDTO();
                 messageDTO.setId(conversation.getLastMessageId());
                 messageDTO.setConversationId(conversation.getId());
                 messageDTO.setSenderId(otherUser.getUserId());
-                messageDTO.setSenderName(otherUser.getUsername());
+                messageDTO.setSenderName(displayName(otherUser));
                 messageDTO.setSenderAvatar(otherUser.getAvatar());
                 messageDTO.setReceiverId(userId);
                 messageDTO.setReceiverName("current user");
@@ -96,5 +95,11 @@ public class ConversationQueryService {
                 : friendChatMessageRepository.findByConversationIdAndIdLessThanOrderByIdDesc(
                 conversationOpt.get().getId(), beforeId, PageRequest.of(0, size));
         return messages.stream().map(messageDtoMapper::toDto).collect(Collectors.toList());
+    }
+
+    /** 展示名优先用昵称，昵称为空时回退登录名。 */
+    private static String displayName(UserProfileDTO profile) {
+        String nickname = profile.getNickname();
+        return nickname == null || nickname.isBlank() ? profile.getUsername() : nickname;
     }
 }

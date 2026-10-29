@@ -1,7 +1,7 @@
 package com.typinggame.user.service.impl;
 
 import com.typinggame.common.exception.BusinessException;
-import com.typinggame.entity.user.UserInfo;
+import com.typinggame.user.entity.UserInfo;
 import com.typinggame.user.repository.FriendRelationRepository;
 import com.typinggame.user.repository.UserAppConfigRepository;
 import com.typinggame.user.repository.UserDailyStatsRepository;

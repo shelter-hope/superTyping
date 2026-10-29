@@ -1,6 +1,5 @@
 package com.typinggame.ai.entity;
 
-import com.typinggame.entity.user.UserInfo;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -22,9 +21,8 @@ public class AiConversation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_ai_conversation_user"))
-    private UserInfo user;
+    @Column(name = "user_id", nullable = false)
+    private Integer userId;
 
     @Column(name = "ai_robot_id", nullable = false)
     private Integer aiRobotId;

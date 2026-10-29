@@ -2,7 +2,7 @@ package com.typinggame.user.controller;
 
 import com.typinggame.dto.user.UserStatsDTO;
 import com.typinggame.dto.user.UserUpdateDTO;
-import com.typinggame.entity.user.UserInfo;
+import com.typinggame.user.entity.UserInfo;
 import com.typinggame.user.service.UserService;
 import com.typinggame.vo.ResultMessage;
 import org.springframework.beans.factory.annotation.Autowired;

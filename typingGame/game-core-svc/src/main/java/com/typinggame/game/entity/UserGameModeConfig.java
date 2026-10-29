@@ -1,6 +1,5 @@
 package com.typinggame.game.entity;
 
-import com.typinggame.entity.user.UserInfo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,10 +21,9 @@ public class UserGameModeConfig {
     @Comment("主键ID")
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_game_mode_user"))
-    @Comment("关联用户ID")
-    private UserInfo user;
+    @Column(name = "user_id", nullable = false)
+    @Comment("用户ID（仅存标量，用户主体归 user-svc）")
+    private Integer userId;
 
     @Column(name = "mode_name", nullable = false)
     @Comment("游戏模式")

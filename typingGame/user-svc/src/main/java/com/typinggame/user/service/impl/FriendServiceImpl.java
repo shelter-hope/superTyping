@@ -4,7 +4,7 @@ import com.typinggame.common.exception.BusinessException;
 import com.typinggame.common.im.PresenceKeys;
 import com.typinggame.dto.friend.FriendRequestDTO;
 import com.typinggame.dto.friend.FriendResponseDTO;
-import com.typinggame.entity.user.UserInfo;
+import com.typinggame.user.entity.UserInfo;
 import com.typinggame.enums.FriendRelationStatus;
 import com.typinggame.user.entity.FriendRelation;
 import com.typinggame.user.im.FriendEventPublisher;

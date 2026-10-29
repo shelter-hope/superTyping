@@ -4,7 +4,7 @@ import com.typinggame.common.exception.BusinessException;
 import com.typinggame.common.security.JwtTokenProvider;
 import com.typinggame.common.security.TokenRevocationService;
 import com.typinggame.dto.auth.UserLoginDTO;
-import com.typinggame.entity.user.UserInfo;
+import com.typinggame.user.entity.UserInfo;
 import com.typinggame.user.repository.UserInfoRepository;
 import com.typinggame.user.service.UserRegistrationInitService;
 import org.junit.jupiter.api.BeforeEach;

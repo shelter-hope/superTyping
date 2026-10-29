@@ -1,7 +1,7 @@
 package com.typinggame.user.service.impl;
 
 import com.typinggame.user.entity.UserAppConfig;
-import com.typinggame.entity.user.UserInfo;
+import com.typinggame.user.entity.UserInfo;
 import com.typinggame.user.repository.UserAppConfigRepository;
 import com.typinggame.user.service.UserRegistrationInitService;
 import org.slf4j.Logger;

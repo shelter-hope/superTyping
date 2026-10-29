@@ -6,7 +6,7 @@ import com.typinggame.dto.auth.TokenResponseDTO;
 import com.typinggame.dto.auth.UserLoginDTO;
 import com.typinggame.dto.auth.UserRegisterDTO;
 import com.typinggame.dto.user.UserDTO;
-import com.typinggame.entity.user.UserInfo;
+import com.typinggame.user.entity.UserInfo;
 import com.typinggame.user.repository.UserInfoRepository;
 import com.typinggame.common.security.JwtTokenProvider;
 import com.typinggame.common.security.TokenRevocationService;

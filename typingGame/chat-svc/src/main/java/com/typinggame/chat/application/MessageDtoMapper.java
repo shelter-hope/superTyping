@@ -2,27 +2,31 @@ package com.typinggame.chat.application;
 
 import com.typinggame.chat.im.MessagePolicy;
 import com.typinggame.chat.repository.ChatAttachmentRepository;
-import com.typinggame.chat.repository.UserInfoRepository;
+import com.typinggame.chat.support.UserProfileClient;
 import com.typinggame.dto.message.MessageDTO;
+import com.typinggame.dto.user.UserProfileDTO;
 import com.typinggame.chat.entity.ChatAttachment;
 import com.typinggame.chat.entity.FriendChatMessage;
 import com.typinggame.chat.entity.SystemNotification;
 import com.typinggame.enums.ReadStatus;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Component
 public class MessageDtoMapper {
     static final String NOTIFICATION_TYPE = "notification";
 
-    private final UserInfoRepository userInfoRepository;
+    private final UserProfileClient userProfileClient;
     private final ChatAttachmentRepository chatAttachmentRepository;
 
-    public MessageDtoMapper(UserInfoRepository userInfoRepository,
+    public MessageDtoMapper(UserProfileClient userProfileClient,
                             ChatAttachmentRepository chatAttachmentRepository) {
-        this.userInfoRepository = userInfoRepository;
+        this.userProfileClient = userProfileClient;
         this.chatAttachmentRepository = chatAttachmentRepository;
     }
 
@@ -31,14 +35,17 @@ public class MessageDtoMapper {
         messageDTO.setId(message.getId());
         messageDTO.setConversationId(message.getConversationId());
         messageDTO.setSenderId(message.getSenderId());
-        userInfoRepository.findById(message.getSenderId()).ifPresent(u -> {
-            messageDTO.setSenderName(u.getUsername());
-            messageDTO.setSenderAvatar(u.getAvatar());
-        });
         messageDTO.setReceiverId(message.getReceiverId());
-        userInfoRepository.findById(message.getReceiverId()).ifPresent(u ->
-                messageDTO.setReceiverName(u.getUsername())
-        );
+        Map<Integer, UserProfileDTO> profiles = userProfileClient.fetchProfiles(userIdsOf(message));
+        UserProfileDTO sender = message.getSenderId() == null ? null : profiles.get(message.getSenderId());
+        if (sender != null) {
+            messageDTO.setSenderName(displayName(sender));
+            messageDTO.setSenderAvatar(sender.getAvatar());
+        }
+        UserProfileDTO receiver = message.getReceiverId() == null ? null : profiles.get(message.getReceiverId());
+        if (receiver != null) {
+            messageDTO.setReceiverName(displayName(receiver));
+        }
         boolean recalled = Boolean.TRUE.equals(message.getIsRecall());
         int messageType = message.getMessageType() == null ? MessagePolicy.TYPE_TEXT : message.getMessageType();
         boolean selfAddressed = message.getSenderId() != null && message.getSenderId().equals(message.getReceiverId());
@@ -93,6 +100,18 @@ public class MessageDtoMapper {
             return value;
         }
         return content;
+    }
+
+    private static List<Integer> userIdsOf(FriendChatMessage message) {
+        return Stream.of(message.getSenderId(), message.getReceiverId())
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    private static String displayName(UserProfileDTO profile) {
+        String nickname = profile.getNickname();
+        return nickname == null || nickname.isBlank() ? profile.getUsername() : nickname;
     }
 
     private Optional<ChatAttachment> attachmentOf(String content) {

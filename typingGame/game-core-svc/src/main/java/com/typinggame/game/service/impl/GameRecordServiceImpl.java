@@ -8,11 +8,12 @@ import com.typinggame.dto.stats.CharacterStatsBatchUpdateDTO;
 import com.typinggame.game.entity.GameRecord;
 import com.typinggame.game.entity.MonsterData;
 import com.typinggame.game.entity.LeaderboardEntry;
-import com.typinggame.entity.user.UserInfo;
+import com.typinggame.dto.user.UserGameSummaryDTO;
+import com.typinggame.dto.user.UserProfileDTO;
+import com.typinggame.game.support.UserProfileClient;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.GameLeaderboardEntryRepository;
 import com.typinggame.game.repository.GameRecordRepository;
-import com.typinggame.game.repository.GameUserInfoRepository;
 import com.typinggame.game.repository.MonsterDataRepository;
 import com.typinggame.game.service.CharacterStatsService;
 import com.typinggame.game.service.GameRecordPostProcessService;
@@ -51,7 +52,7 @@ public class GameRecordServiceImpl implements GameRecordService {
     private final GameRecordRepository gameRecordRepository;
     private final MonsterDataRepository monsterDataRepository;
     private final GameLeaderboardEntryRepository leaderboardEntryRepository;
-    private final GameUserInfoRepository userInfoRepository;
+    private final UserProfileClient userProfileClient;
     private final GameRecordPostProcessService postProcessService;
     private final CharacterStatsService characterStatsService;
     private final KeyConfusionService keyConfusionService;
@@ -244,8 +245,9 @@ public class GameRecordServiceImpl implements GameRecordService {
     }
 
     private void syncLeaderboardAndUserSummary(GameRecord record) {
-        UserInfo user = userInfoRepository.findById(record.getUserId()).orElse(null);
+        UserProfileDTO user = userProfileClient.fetchProfile(record.getUserId());
         if (user == null) {
+            log.warn("syncLeaderboardAndUserSummary: user {} not found via user-svc, skip", record.getUserId());
             return;
         }
         Integer score = record.getTotalScore() == null ? 0 : record.getTotalScore();
@@ -277,18 +279,13 @@ public class GameRecordServiceImpl implements GameRecordService {
             leaderboardEntryRepository.save(entry);
         }
 
-        if (user.getBestScore() == null || score > user.getBestScore()) {
-            user.setBestScore(score);
-            user.setBestRound(record.getRoundNum());
-            user.setBestSpeed(record.getPeakSpeed());
-            user.setBestAccuracy(record.getPeakAccuracy());
-        }
-        user.setGameNum((user.getGameNum() == null ? 0 : user.getGameNum()) + 1);
-        user.setAvgSpeed(record.getAvgSpeed());
-        user.setAvgAccuracy(record.getAvgAccuracy());
-        user.setPeakAccuracy(record.getPeakAccuracy());
-        user.setUpdateTime(new Date());
-        userInfoRepository.save(user);
+        userProfileClient.applyGameSummary(record.getUserId(), new UserGameSummaryDTO(
+                score,
+                record.getRoundNum(),
+                record.getAvgSpeed(),
+                record.getAvgAccuracy(),
+                record.getPeakSpeed(),
+                record.getPeakAccuracy()));
     }
 
     @Override

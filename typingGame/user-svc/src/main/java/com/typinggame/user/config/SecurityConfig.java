@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/internal/admin/**").hasRole("ADMIN")
                         // 集群内服务调用；网关已屏蔽含 /internal/ 的外部请求
                         .requestMatchers("/api/v1/internal/friends/**").permitAll()
+                        .requestMatchers("/api/v1/internal/users/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

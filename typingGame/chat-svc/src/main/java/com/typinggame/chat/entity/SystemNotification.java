@@ -1,6 +1,5 @@
 package com.typinggame.chat.entity;
 
-import com.typinggame.entity.user.UserInfo;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;

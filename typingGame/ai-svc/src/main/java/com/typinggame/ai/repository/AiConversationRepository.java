@@ -9,6 +9,6 @@ import java.util.Optional;
 
 @Repository
 public interface AiConversationRepository extends JpaRepository<AiConversation, Integer>, JpaSpecificationExecutor<AiConversation> {
-    Optional<AiConversation> findFirstByUser_UserIdAndAiRobotIdAndConversationTitleOrderByUpdateTimeDesc(
+    Optional<AiConversation> findFirstByUserIdAndAiRobotIdAndConversationTitleOrderByUpdateTimeDesc(
             Integer userId, Integer aiRobotId, String conversationTitle);
 }

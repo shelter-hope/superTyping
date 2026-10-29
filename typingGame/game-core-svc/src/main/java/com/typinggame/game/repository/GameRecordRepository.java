@@ -1,6 +1,5 @@
 package com.typinggame.game.repository;
 
-import com.typinggame.dto.leaderboard.LeaderboardDTO;
 import com.typinggame.game.entity.GameRecord;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,13 +27,6 @@ public interface GameRecordRepository extends JpaRepository<GameRecord, Integer>
     Page<GameRecord> findAllByUserIdAndGameMode(Integer userId, String gameMode, Pageable pageable);
 
     GameRecord findTopByUserIdAndGameModeOrderByTotalScoreDesc(Integer userId, String gameMode);
-
-    @Query("SELECT new com.typinggame.dto.leaderboard.LeaderboardDTO(" +
-           "u.userId, u.nickname, u.avatar, g.totalScore, g.avgSpeed, g.avgAccuracy, g.createTime) " +
-           "FROM GameRecord g, UserInfo u " +
-           "WHERE g.userId = u.userId AND g.gameMode = :gameMode " +
-           "ORDER BY g.totalScore DESC")
-    List<LeaderboardDTO> findLeaderboardByMode(String gameMode, Pageable pageable);
 
     void deleteByUserId(Integer userId);
 

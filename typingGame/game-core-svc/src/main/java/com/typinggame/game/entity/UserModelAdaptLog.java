@@ -1,7 +1,6 @@
 package com.typinggame.game.entity;
 
 import com.typinggame.game.entity.GameRecord;
-import com.typinggame.entity.user.UserInfo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,10 +23,9 @@ public class UserModelAdaptLog {
     @Comment("日志ID")
     private Integer logId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_adapt_logs_user"))
-    @Comment("关联用户ID")
-    private UserInfo user;
+    @Column(name = "user_id", nullable = false)
+    @Comment("用户ID（仅存标量，用户主体归 user-svc）")
+    private Integer userId;
 
     @ManyToOne
     @JoinColumn(name = "game_record_id", nullable = true, foreignKey = @ForeignKey(name = "fk_user_adapt_logs_record"))

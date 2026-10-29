@@ -10,7 +10,6 @@ import com.typinggame.entity.model.ModelInitParams;
 import com.typinggame.game.entity.UserModelAdaptLog;
 import com.typinggame.game.entity.UserModelParams;
 import com.typinggame.entity.user.UserDailyStats;
-import com.typinggame.entity.user.UserInfo;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.GameRoundRepository;
 import com.typinggame.game.repository.GameUserDailyStatsRepository;
@@ -193,12 +192,10 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
         DifficultyRule rule = ruleConfigProvider.activeDifficulty();
         int monsterCount = DifficultyEngine.monsterCount(rule, after == null ? rule.getInitialDifficulty() : after.doubleValue(),
                 Math.max(1, safeInt(record.getRoundNum())));
-        UserInfo user = new UserInfo();
-        user.setUserId(userId);
         GameRecord recordRef = new GameRecord();
         recordRef.setRecordId(record.getRecordId());
         UserModelAdaptLog log = new UserModelAdaptLog();
-        log.setUser(user);
+        log.setUserId(userId);
         log.setGameRecord(recordRef);
         log.setGameMode(record.getGameMode());
         log.setRoundNum(record.getRoundNum());

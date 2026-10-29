@@ -4,14 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typinggame.ai.repository.AiChatMessageRepository;
 import com.typinggame.ai.repository.AiConversationRepository;
-import com.typinggame.ai.repository.UserInfoRepository;
 import com.typinggame.ai.service.AiChatService;
 import com.typinggame.ai.service.AiService;
+import com.typinggame.ai.support.UserProfileClient;
 import com.typinggame.dto.ai.AiChatRequestDTO;
 import com.typinggame.dto.ai.AiChatResponseDTO;
 import com.typinggame.ai.entity.AiChatMessage;
 import com.typinggame.ai.entity.AiConversation;
-import com.typinggame.entity.user.UserInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -39,7 +38,7 @@ public class AiChatServiceImpl implements AiChatService {
     @Autowired
     private AiChatMessageRepository messageRepository;
     @Autowired
-    private UserInfoRepository userInfoRepository;
+    private UserProfileClient userProfileClient;
     @Autowired
     private AiService aiService;
     @Autowired
@@ -66,8 +65,7 @@ public class AiChatServiceImpl implements AiChatService {
                     .conversationId(0)
                     .build();
         }
-        UserInfo user = userInfoRepository.findByUserId(userId).orElse(null);
-        if (user == null) {
+        if (userProfileClient.fetchProfile(userId) == null) {
             return AiChatResponseDTO.builder().reply("用户不存在。").conversationId(0).build();
         }
 
@@ -77,16 +75,16 @@ public class AiChatServiceImpl implements AiChatService {
         AiConversation conv;
         if (request.getConversationId() != null && request.getConversationId() > 0) {
             conv = conversationRepository.findById(request.getConversationId()).orElse(null);
-            if (conv == null || !conv.getUser().getUserId().equals(userId)) {
+            if (conv == null || !conv.getUserId().equals(userId)) {
                 return AiChatResponseDTO.builder().reply("会话不存在或无权访问。").conversationId(0).build();
             }
         } else {
             conv = conversationRepository
-                    .findFirstByUser_UserIdAndAiRobotIdAndConversationTitleOrderByUpdateTimeDesc(userId, robotId, defaultTitle)
+                    .findFirstByUserIdAndAiRobotIdAndConversationTitleOrderByUpdateTimeDesc(userId, robotId, defaultTitle)
                     .orElse(null);
             if (conv == null) {
                 conv = new AiConversation();
-                conv.setUser(user);
+                conv.setUserId(userId);
                 conv.setAiRobotId(robotId);
                 conv.setConversationTitle(defaultTitle);
                 conv.setIsTop(false);
@@ -99,7 +97,7 @@ public class AiChatServiceImpl implements AiChatService {
 
         AiChatMessage userMsg = new AiChatMessage();
         userMsg.setConversation(conv);
-        userMsg.setUser(user);
+        userMsg.setUserId(userId);
         userMsg.setAiRobotId(robotId);
         userMsg.setMessageRole(ROLE_USER);
         userMsg.setMessageType(TYPE_TEXT);
@@ -114,7 +112,7 @@ public class AiChatServiceImpl implements AiChatService {
 
         AiChatMessage assistantMsg = new AiChatMessage();
         assistantMsg.setConversation(conv);
-        assistantMsg.setUser(user);
+        assistantMsg.setUserId(userId);
         assistantMsg.setAiRobotId(robotId);
         assistantMsg.setMessageRole(ROLE_ASSISTANT);
         assistantMsg.setMessageType(TYPE_TEXT);

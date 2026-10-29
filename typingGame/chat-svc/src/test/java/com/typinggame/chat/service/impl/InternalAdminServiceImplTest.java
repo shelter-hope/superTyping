@@ -3,7 +3,7 @@ package com.typinggame.chat.service.impl;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
 import com.typinggame.chat.repository.SystemNotificationRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
-import com.typinggame.chat.repository.UserInfoRepository;
+import com.typinggame.chat.support.UserProfileClient;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.chat.entity.SystemNotification;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,15 +24,15 @@ import static org.mockito.Mockito.when;
 class InternalAdminServiceImplTest {
 
     private SystemNotificationRepository notificationRepository;
-    private UserInfoRepository userInfoRepository;
+    private UserProfileClient userProfileClient;
     private InternalAdminServiceImpl service;
 
     @BeforeEach
     void setUp() {
         notificationRepository = mock(SystemNotificationRepository.class);
-        userInfoRepository = mock(UserInfoRepository.class);
+        userProfileClient = mock(UserProfileClient.class);
         service = new InternalAdminServiceImpl(mock(UserConversationRepository.class),
-                mock(FriendChatMessageRepository.class), notificationRepository, userInfoRepository);
+                mock(FriendChatMessageRepository.class), notificationRepository, userProfileClient);
     }
 
     @SuppressWarnings("unchecked")
@@ -44,7 +44,7 @@ class InternalAdminServiceImplTest {
 
     @Test
     void broadcastCreatesOneUnreadRowPerUser() {
-        when(userInfoRepository.findAllUserIds()).thenReturn(List.of(1, 2, 3));
+        when(userProfileClient.allUserIds()).thenReturn(List.of(1, 2, 3));
 
         int count = service.publishNotification(null, " 维护通知 ", "今晚 22 点维护", null);
 
@@ -60,7 +60,7 @@ class InternalAdminServiceImplTest {
 
     @Test
     void targetedNotificationRequiresExistingUser() {
-        when(userInfoRepository.existsById(42)).thenReturn(false);
+        when(userProfileClient.exists(42)).thenReturn(false);
 
         BusinessException e = assertThrows(BusinessException.class,
                 () -> service.publishNotification(42, "t", "c", 1));

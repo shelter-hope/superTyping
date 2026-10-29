@@ -3,8 +3,8 @@ package com.typinggame.chat.service.impl;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
 import com.typinggame.chat.repository.SystemNotificationRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
-import com.typinggame.chat.repository.UserInfoRepository;
 import com.typinggame.chat.service.InternalAdminService;
+import com.typinggame.chat.support.UserProfileClient;
 import com.typinggame.common.admin.AdminFilter;
 import com.typinggame.common.admin.AdminPageSupport;
 import com.typinggame.common.exception.BusinessException;
@@ -29,16 +29,16 @@ public class InternalAdminServiceImpl implements InternalAdminService {
     private final UserConversationRepository userConversationRepository;
     private final FriendChatMessageRepository friendChatMessageRepository;
     private final SystemNotificationRepository systemNotificationRepository;
-    private final UserInfoRepository userInfoRepository;
+    private final UserProfileClient userProfileClient;
 
     public InternalAdminServiceImpl(UserConversationRepository userConversationRepository,
                                     FriendChatMessageRepository friendChatMessageRepository,
                                     SystemNotificationRepository systemNotificationRepository,
-                                    UserInfoRepository userInfoRepository) {
+                                    UserProfileClient userProfileClient) {
         this.userConversationRepository = userConversationRepository;
         this.friendChatMessageRepository = friendChatMessageRepository;
         this.systemNotificationRepository = systemNotificationRepository;
-        this.userInfoRepository = userInfoRepository;
+        this.userProfileClient = userProfileClient;
     }
 
     @Override
@@ -71,9 +71,9 @@ public class InternalAdminServiceImpl implements InternalAdminService {
         }
         List<Integer> receivers;
         if (userId == null) {
-            receivers = userInfoRepository.findAllUserIds();
+            receivers = userProfileClient.allUserIds();
         } else {
-            if (!userInfoRepository.existsById(userId)) throw BusinessException.notFound("用户不存在: " + userId);
+            if (!userProfileClient.exists(userId)) throw BusinessException.notFound("用户不存在: " + userId);
             receivers = List.of(userId);
         }
         int type = notificationType == null ? TYPE_ANNOUNCEMENT : notificationType;

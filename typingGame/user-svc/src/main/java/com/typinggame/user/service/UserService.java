@@ -2,7 +2,7 @@ package com.typinggame.user.service;
 
 import com.typinggame.dto.user.UserStatsDTO;
 import com.typinggame.dto.user.UserUpdateDTO;
-import com.typinggame.entity.user.UserInfo;
+import com.typinggame.user.entity.UserInfo;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

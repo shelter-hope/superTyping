@@ -1,6 +1,5 @@
 package com.typinggame.chat.entity;
 
-import com.typinggame.entity.user.UserInfo;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -19,11 +18,11 @@ public class UserConversation {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_conversation_user"))
+    @Column(name = "user_id", nullable = false)
     @Comment("当前用户ID")
     private Integer userId;
 
-    @JoinColumn(name = "target_user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_conversation_target"))
+    @Column(name = "target_user_id", nullable = false)
     @Comment("对话的好友用户ID")
     private Integer targetUserId;
 

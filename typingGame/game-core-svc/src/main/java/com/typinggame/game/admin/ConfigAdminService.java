@@ -87,7 +87,7 @@ public class ConfigAdminService {
 
     public Map<String, Object> getUserGameModeConfigs(int page, int pageSize, Integer userId, String modeName) {
         AdminFilter<com.typinggame.game.entity.UserGameModeConfig> f = AdminFilter.of(com.typinggame.game.entity.UserGameModeConfig.class)
-                .eq("user.userId", userId).eq("modeName", modeName);
+                .eq("userId", userId).eq("modeName", modeName);
         return AdminPageSupport.pageMap("items", userGameModeConfigRepository.findAll(f, pageable(page, pageSize, "id")));
     }
 
@@ -230,7 +230,7 @@ public class ConfigAdminService {
 
     private AdminFilter<UserModelAdaptLog> adaptLogFilter(Integer userId, String gameMode, LocalDate start, LocalDate end) {
         return AdminFilter.of(UserModelAdaptLog.class)
-                .eq("user.userId", userId)
+                .eq("userId", userId)
                 .eq("gameMode", gameMode)
                 .between("logTime", start == null ? null : start.atStartOfDay(), end == null ? null : end.plusDays(1).atStartOfDay());
     }
@@ -242,7 +242,7 @@ public class ConfigAdminService {
         }
         return AdminPageSupport.map(
                 "logId", l.getLogId(),
-                "userId", l.getUser() != null ? l.getUser().getUserId() : null,
+                "userId", l.getUserId(),
                 "gameRecordId", l.getGameRecord() != null ? l.getGameRecord().getRecordId() : null,
                 "sessionId", l.getSessionId(),
                 "gameMode", mode,

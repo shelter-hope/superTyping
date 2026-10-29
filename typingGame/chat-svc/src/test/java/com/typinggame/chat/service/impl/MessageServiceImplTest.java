@@ -15,8 +15,8 @@ import com.typinggame.chat.repository.ChatAttachmentRepository;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
 import com.typinggame.chat.repository.SystemNotificationRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
-import com.typinggame.chat.repository.UserInfoRepository;
 import com.typinggame.chat.service.ChatAttachmentService;
+import com.typinggame.chat.support.UserProfileClient;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.dto.message.MessageDTO;
 import com.typinggame.chat.entity.ChatAttachment;
@@ -33,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,7 +53,7 @@ class MessageServiceImplTest {
 
     @Mock private FriendChatMessageRepository friendChatMessageRepository;
     @Mock private UserConversationRepository userConversationRepository;
-    @Mock private UserInfoRepository userInfoRepository;
+    @Mock private UserProfileClient userProfileClient;
     @Mock private UserSvcCanMessageAdapter userSvcCanMessageAdapter;
     @Mock private ImEventBus imEventBus;
     @Mock private SystemNotificationRepository systemNotificationRepository;
@@ -63,7 +64,7 @@ class MessageServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        MessageDtoMapper mapper = new MessageDtoMapper(userInfoRepository, chatAttachmentRepository);
+        MessageDtoMapper mapper = new MessageDtoMapper(userProfileClient, chatAttachmentRepository);
         ConversationSupport conversationSupport = new ConversationSupport(userConversationRepository);
         NotificationQueryService notificationQueryService = new NotificationQueryService(
                 friendChatMessageRepository, systemNotificationRepository, userConversationRepository, mapper);
@@ -74,7 +75,7 @@ class MessageServiceImplTest {
         RecallMessageService recallMessageService = new RecallMessageService(
                 friendChatMessageRepository, userConversationRepository, mapper, imEventBus);
         ConversationQueryService conversationQueryService = new ConversationQueryService(
-                userConversationRepository, friendChatMessageRepository, userInfoRepository, mapper);
+                userConversationRepository, friendChatMessageRepository, userProfileClient, mapper);
         MessageReadService messageReadService = new MessageReadService(
                 friendChatMessageRepository, userConversationRepository, imEventBus);
         service = new MessageServiceImpl(
@@ -130,7 +131,7 @@ class MessageServiceImplTest {
         attachment.setMediaType("image/png");
         attachment.setSizeBytes(12L);
         when(chatAttachmentRepository.findById(4)).thenReturn(Optional.of(attachment));
-        when(userInfoRepository.findById(any())).thenReturn(Optional.empty());
+        when(userProfileClient.fetchProfiles(any())).thenReturn(Map.of());
 
         assertEquals(21, service.sendMessage(3, 5, "hi", "text", "text-1").getId());
         assertEquals("emoji", service.sendMessage(3, 5, "smile", "emoji", "emoji-1").getType());
@@ -177,7 +178,7 @@ class MessageServiceImplTest {
         receiverRow.setClientMsgId("c1");
         when(friendChatMessageRepository.findById(11)).thenReturn(Optional.of(senderRow));
         when(friendChatMessageRepository.findBySenderIdAndClientMsgId(3, "c1")).thenReturn(List.of(senderRow, receiverRow));
-        when(userInfoRepository.findById(any())).thenReturn(Optional.empty());
+        when(userProfileClient.fetchProfiles(any())).thenReturn(Map.of());
         when(userConversationRepository.findByUserIdAndTargetUserId(any(), any())).thenReturn(Optional.empty());
 
         service.recall(3, 11);
@@ -240,7 +241,7 @@ class MessageServiceImplTest {
         when(userConversationRepository.findByUserIdAndTargetUserId(5, 3)).thenReturn(Optional.of(receiver));
         when(friendChatMessageRepository.maxServerSeq(any())).thenReturn(0);
         when(friendChatMessageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(userInfoRepository.findById(any())).thenReturn(Optional.empty());
+        when(userProfileClient.fetchProfiles(any())).thenReturn(Map.of());
         when(userConversationRepository.findByUserId(5)).thenReturn(List.of(receiver));
         when(systemNotificationRepository.countByUserIdAndIsRead(5, false)).thenReturn(0L);
     }

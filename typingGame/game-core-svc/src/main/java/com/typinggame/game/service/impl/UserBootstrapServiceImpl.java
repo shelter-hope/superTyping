@@ -7,16 +7,15 @@ import com.typinggame.game.entity.UserGameModeConfig;
 import com.typinggame.game.entity.UserMonsterConfig;
 import com.typinggame.entity.model.ModelInitParams;
 import com.typinggame.game.entity.UserModelParams;
-import com.typinggame.entity.user.UserInfo;
 import com.typinggame.game.repository.GameCharTypeConfigRepository;
 import com.typinggame.game.repository.GameModeConfigRepository;
-import com.typinggame.game.repository.GameUserInfoRepository;
 import com.typinggame.game.repository.ModelInitParamsRepository;
 import com.typinggame.game.repository.SystemMonsterConfigRepository;
 import com.typinggame.game.repository.UserGameModeConfigRepository;
 import com.typinggame.game.repository.UserModelParamsRepository;
 import com.typinggame.game.repository.UserMonsterConfigRepository;
 import com.typinggame.game.service.UserBootstrapService;
+import com.typinggame.game.support.UserProfileClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -32,7 +31,7 @@ public class UserBootstrapServiceImpl implements UserBootstrapService {
     private static final String DEFAULT_CHAR_TYPES = "lower,upper,number,punct,operator,chinese,special";
     private static final Logger log = LoggerFactory.getLogger(UserBootstrapServiceImpl.class);
 
-    private final GameUserInfoRepository userInfoRepository;
+    private final UserProfileClient userProfileClient;
     private final UserModelParamsRepository userModelParamsRepository;
     private final ModelInitParamsRepository modelInitParamsRepository;
     private final UserGameModeConfigRepository userGameModeConfigRepository;
@@ -41,7 +40,7 @@ public class UserBootstrapServiceImpl implements UserBootstrapService {
     private final SystemMonsterConfigRepository systemMonsterConfigRepository;
     private final GameCharTypeConfigRepository gameCharTypeConfigRepository;
 
-    public UserBootstrapServiceImpl(GameUserInfoRepository userInfoRepository,
+    public UserBootstrapServiceImpl(UserProfileClient userProfileClient,
                                     UserModelParamsRepository userModelParamsRepository,
                                     ModelInitParamsRepository modelInitParamsRepository,
                                     UserGameModeConfigRepository userGameModeConfigRepository,
@@ -49,7 +48,7 @@ public class UserBootstrapServiceImpl implements UserBootstrapService {
                                     UserMonsterConfigRepository userMonsterConfigRepository,
                                     SystemMonsterConfigRepository systemMonsterConfigRepository,
                                     GameCharTypeConfigRepository gameCharTypeConfigRepository) {
-        this.userInfoRepository = userInfoRepository;
+        this.userProfileClient = userProfileClient;
         this.userModelParamsRepository = userModelParamsRepository;
         this.modelInitParamsRepository = modelInitParamsRepository;
         this.userGameModeConfigRepository = userGameModeConfigRepository;
@@ -66,13 +65,12 @@ public class UserBootstrapServiceImpl implements UserBootstrapService {
             log.warn("bootstrapUser: userId is null, skip");
             return;
         }
-        UserInfo user = userInfoRepository.findById(userId).orElse(null);
-        if (user == null) {
+        if (!userProfileClient.exists(userId)) {
             log.warn("bootstrapUser: user {} not found, skip", userId);
             return;
         }
         initUserModelParams(userId);
-        initUserGameModeConfigs(user);
+        initUserGameModeConfigs(userId);
         initUserMonsterConfigs(userId);
         initGameCharTypeConfigs(userId);
     }
@@ -91,15 +89,15 @@ public class UserBootstrapServiceImpl implements UserBootstrapService {
         }
     }
 
-    private void initUserGameModeConfigs(UserInfo user) {
+    private void initUserGameModeConfigs(Integer userId) {
         List<SystemGameModeConfig> systemModes = gameModeConfigRepository.findAll();
         if (systemModes == null || systemModes.isEmpty()) {
-            log.warn("No game_mode_configs found, skip for userId={}", user.getUserId());
+            log.warn("No game_mode_configs found, skip for userId={}", userId);
             return;
         }
         for (SystemGameModeConfig sys : systemModes) {
             UserGameModeConfig cfg = new UserGameModeConfig();
-            cfg.setUser(user);
+            cfg.setUserId(userId);
             cfg.setModeName(sys.getModeName());
             cfg.setMonsterInitNum(sys.getMonster_init_num() != null ? sys.getMonster_init_num() : 3);
             cfg.setMonsterTypePro(sys.getMonster_type_pro() != null
