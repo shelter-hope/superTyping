@@ -3,7 +3,7 @@ package com.typinggame.game.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.game.entity.SystemParam;
-import com.typinggame.entity.game.SystemMonsterConfig;
+import com.typinggame.game.entity.SystemMonsterConfig;
 import com.typinggame.game.service.admin.ConfigAdminService;
 import com.typinggame.game.service.admin.ConfusionAdminService;
 import com.typinggame.game.service.admin.LeaderboardAdminService;

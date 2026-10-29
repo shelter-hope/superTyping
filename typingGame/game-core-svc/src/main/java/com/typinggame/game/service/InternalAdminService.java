@@ -2,7 +2,7 @@ package com.typinggame.game.service;
 
 import com.typinggame.game.entity.GameRecord;
 import com.typinggame.game.entity.ModelConstant;
-import com.typinggame.entity.model.ModelInitParams;
+import com.typinggame.game.entity.ModelInitParams;
 
 import java.util.List;
 import java.util.Map;

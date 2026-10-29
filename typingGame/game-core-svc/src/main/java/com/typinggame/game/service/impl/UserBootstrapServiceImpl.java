@@ -1,11 +1,11 @@
 package com.typinggame.game.service.impl;
 
-import com.typinggame.entity.config.GameCharTypeConfig;
-import com.typinggame.entity.config.SystemGameModeConfig;
-import com.typinggame.entity.game.SystemMonsterConfig;
+import com.typinggame.game.entity.GameCharTypeConfig;
+import com.typinggame.game.entity.SystemGameModeConfig;
+import com.typinggame.game.entity.SystemMonsterConfig;
 import com.typinggame.game.entity.UserGameModeConfig;
 import com.typinggame.game.entity.UserMonsterConfig;
-import com.typinggame.entity.model.ModelInitParams;
+import com.typinggame.game.entity.ModelInitParams;
 import com.typinggame.game.entity.UserModelParams;
 import com.typinggame.game.repository.GameCharTypeConfigRepository;
 import com.typinggame.game.repository.GameModeConfigRepository;

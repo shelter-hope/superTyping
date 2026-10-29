@@ -3,7 +3,7 @@ package com.typinggame.game.service.impl;
 import com.typinggame.dto.game.GameAdjustParam;
 import com.typinggame.game.entity.SystemMonsterCommoConfig;
 import com.typinggame.game.entity.ModelConstant;
-import com.typinggame.entity.model.ModelInitParams;
+import com.typinggame.game.entity.ModelInitParams;
 import com.typinggame.game.entity.UserModelParams;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.ModelConstantRepository;

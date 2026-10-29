@@ -7,7 +7,7 @@ import com.typinggame.game.entity.GameRecord;
 import com.typinggame.game.entity.GameRound;
 import com.typinggame.game.entity.MonsterData;
 import com.typinggame.game.entity.StringParent;
-import com.typinggame.entity.model.ModelInitParams;
+import com.typinggame.game.entity.ModelInitParams;
 import com.typinggame.game.entity.UserModelAdaptLog;
 import com.typinggame.game.entity.UserModelParams;
 import com.typinggame.enums.GameMode;

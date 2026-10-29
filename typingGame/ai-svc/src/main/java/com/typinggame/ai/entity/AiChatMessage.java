@@ -19,7 +19,7 @@ public class AiChatMessage {
     private Integer id;
 
     @ManyToOne
-    @Column(name = "conversation_id", nullable = false)
+    @JoinColumn(name = "conversation_id", nullable = false, foreignKey = @ForeignKey(name = "fk_ai_chat_message_conversation"))
     private AiConversation conversation;
 
     @Column(name = "user_id", nullable = false)

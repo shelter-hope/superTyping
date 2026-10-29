@@ -1,6 +1,6 @@
 package com.typinggame.game.service.admin;
 
-import com.typinggame.entity.user.KeyConfusion;
+import com.typinggame.game.entity.KeyConfusion;
 import com.typinggame.game.repository.KeyConfusionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

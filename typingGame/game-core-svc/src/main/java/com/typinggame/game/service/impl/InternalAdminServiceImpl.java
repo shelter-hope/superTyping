@@ -4,7 +4,7 @@ import com.typinggame.game.entity.SystemMonsterCommoConfig;
 import com.typinggame.game.entity.SystemMonsterTypeConfig;
 import com.typinggame.game.entity.GameRecord;
 import com.typinggame.game.entity.ModelConstant;
-import com.typinggame.entity.model.ModelInitParams;
+import com.typinggame.game.entity.ModelInitParams;
 import com.typinggame.game.service.admin.ConfigAdminService;
 import com.typinggame.game.service.admin.ConfusionAdminService;
 import com.typinggame.game.service.admin.LeaderboardAdminService;

@@ -42,7 +42,7 @@ public class FriendChatMessage {
     @Column(name = "send_time", nullable = false)
     private LocalDateTime sendTime;
 
-    @Column(name = "read_status", nullable = false, columnDefinition = "TINYINT DEFAULT 0")
+    @Column(name = "read_status", nullable = false)
     private Integer readStatus = 0;
 
     @Column(name = "read_time")

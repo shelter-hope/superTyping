@@ -1,6 +1,6 @@
 package com.typinggame.game.service.admin;
 
-import com.typinggame.entity.user.KeyConfusion;
+import com.typinggame.game.entity.KeyConfusion;
 import com.typinggame.game.repository.KeyConfusionRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package com.typinggame.entity.game;
+package com.typinggame.game.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

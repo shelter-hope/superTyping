@@ -411,6 +411,18 @@ CREATE TABLE model_constants (
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型常量表';
 
+DROP TABLE IF EXISTS key_confusion;
+CREATE TABLE key_confusion (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
+    user_id INT NOT NULL COMMENT '关联用户ID',
+    expected_char VARCHAR(10) COLLATE utf8mb4_bin NOT NULL COMMENT '本该输入的字符（区分大小写）',
+    typed_char VARCHAR(10) COLLATE utf8mb4_bin NOT NULL COMMENT '实际打出来的字符（区分大小写）',
+    confusion_count INT NOT NULL DEFAULT 0 COMMENT '累计混淆次数',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '最后更新时间',
+    UNIQUE KEY uk_key_confusion_user_pair (user_id, expected_char, typed_char),
+    KEY idx_key_confusion_user_count (user_id, confusion_count DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='按键混淆档案';
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- 同 schema 外键

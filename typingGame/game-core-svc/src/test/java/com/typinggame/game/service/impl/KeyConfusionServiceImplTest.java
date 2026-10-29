@@ -1,7 +1,7 @@
 package com.typinggame.game.service.impl;
 
 import com.typinggame.dto.stats.KeyConfusionUpdateDTO;
-import com.typinggame.entity.user.KeyConfusion;
+import com.typinggame.game.entity.KeyConfusion;
 import com.typinggame.game.repository.KeyConfusionRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
