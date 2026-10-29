@@ -1,4 +1,4 @@
-package com.typinggame.lab.boids;
+package com.typinggame.lab.service.boids;
 
 import org.junit.jupiter.api.Test;
 

@@ -1,6 +1,6 @@
 package com.typinggame.dict.controller;
 
-import com.typinggame.dict.dictionary.DictionaryFileStore;
+import com.typinggame.dict.support.dictionary.DictionaryFileStore;
 import com.typinggame.dict.service.DictionaryService;
 import com.typinggame.dto.dictionary.DictionaryCreateDTO;
 import com.typinggame.dict.entity.CustomDictionary;

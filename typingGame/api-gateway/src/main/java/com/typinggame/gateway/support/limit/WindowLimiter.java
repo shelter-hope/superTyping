@@ -1,4 +1,4 @@
-package com.typinggame.gateway.limit;
+package com.typinggame.gateway.support.limit;
 
 import java.util.concurrent.ConcurrentHashMap;
 

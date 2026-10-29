@@ -1,6 +1,6 @@
 package com.typinggame.gateway;
 
-import com.typinggame.gateway.limit.WindowLimiter;
+import com.typinggame.gateway.support.limit.WindowLimiter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;

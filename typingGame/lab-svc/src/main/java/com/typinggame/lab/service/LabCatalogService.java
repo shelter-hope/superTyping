@@ -2,7 +2,7 @@ package com.typinggame.lab.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.typinggame.lab.boids.ParamLimits;
+import com.typinggame.lab.service.boids.ParamLimits;
 import com.typinggame.lab.config.LabNotFoundException;
 import com.typinggame.lab.dto.AlgorithmUpdateRequest;
 import com.typinggame.lab.dto.AlgorithmView;

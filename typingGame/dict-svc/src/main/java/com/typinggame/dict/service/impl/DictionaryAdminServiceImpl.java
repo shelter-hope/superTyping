@@ -1,7 +1,7 @@
 package com.typinggame.dict.service.impl;
 
-import com.typinggame.dict.dictionary.DictionaryFileStore;
-import com.typinggame.dict.dictionary.DictionaryTextParser;
+import com.typinggame.dict.support.dictionary.DictionaryFileStore;
+import com.typinggame.dict.support.dictionary.DictionaryTextParser;
 import com.typinggame.dict.repository.CustomDictionaryRepository;
 import com.typinggame.dict.repository.SystemDictionaryRepository;
 import com.typinggame.dict.repository.SystemDictionaryWordRepository;

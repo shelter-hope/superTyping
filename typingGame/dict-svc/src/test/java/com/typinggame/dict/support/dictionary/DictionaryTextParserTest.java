@@ -1,4 +1,4 @@
-package com.typinggame.dict.dictionary;
+package com.typinggame.dict.support.dictionary;
 
 import org.junit.jupiter.api.Test;
 
