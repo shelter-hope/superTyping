@@ -2,7 +2,7 @@ package com.typinggame.game.service.impl;
 
 import com.typinggame.dto.stats.CharacterStatsBatchUpdateDTO;
 import com.typinggame.dto.stats.CharacterStatsUpdateDTO;
-import com.typinggame.entity.user.CharacterStats;
+import com.typinggame.game.entity.CharacterStats;
 import com.typinggame.game.repository.CharacterStatsRepository;
 import com.typinggame.game.service.CharacterStatsService;
 import lombok.RequiredArgsConstructor;

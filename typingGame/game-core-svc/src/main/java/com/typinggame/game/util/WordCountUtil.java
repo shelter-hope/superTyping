@@ -1,6 +1,6 @@
-package com.typinggame.util;
+package com.typinggame.game.util;
 
-import com.typinggame.entity.game.GameRecord;
+import com.typinggame.game.entity.GameRecord;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

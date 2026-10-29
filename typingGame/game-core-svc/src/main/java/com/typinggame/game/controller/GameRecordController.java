@@ -2,7 +2,7 @@ package com.typinggame.game.controller;
 
 import com.typinggame.dto.game.GameRecordUploadDTO;
 import com.typinggame.dto.game.GameRecordUploadResultDTO;
-import com.typinggame.entity.game.GameRecord;
+import com.typinggame.game.entity.GameRecord;
 import com.typinggame.game.service.GameRecordService;
 import com.typinggame.vo.ResultMessage;
 import org.springframework.beans.factory.annotation.Autowired;

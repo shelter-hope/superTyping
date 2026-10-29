@@ -1,7 +1,7 @@
 package com.typinggame.game.controller;
 
 import com.typinggame.dto.stats.CharacterStatsBatchUpdateDTO;
-import com.typinggame.entity.user.CharacterStats;
+import com.typinggame.game.entity.CharacterStats;
 import com.typinggame.game.service.CharacterStatsService;
 import com.typinggame.vo.ResultMessage;
 import jakarta.validation.Valid;

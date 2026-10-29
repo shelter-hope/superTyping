@@ -1,18 +1,15 @@
 package com.typinggame.ai.service.impl;
 
-import com.typinggame.ai.repository.CharacterStatsRepository;
-import com.typinggame.ai.repository.GameRecordRepository;
 import com.typinggame.ai.service.AiService;
+import com.typinggame.ai.support.GameCoreClient;
 import com.typinggame.dto.ai.AiTrainingSummaryDTO;
-import com.typinggame.entity.game.GameRecord;
-import com.typinggame.entity.user.CharacterStats;
-import org.springframework.data.domain.PageRequest;
+import com.typinggame.dto.game.GameRecordSummaryDTO;
+import com.typinggame.dto.stats.WeakCharDTO;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,21 +18,18 @@ public class AiServiceImpl implements AiService {
 
     private static final ZoneId DEFAULT_ZONE = ZoneId.systemDefault();
 
-    private final CharacterStatsRepository characterStatsRepository;
-    private final GameRecordRepository gameRecordRepository;
+    private final GameCoreClient gameCoreClient;
 
-    public AiServiceImpl(CharacterStatsRepository characterStatsRepository, GameRecordRepository gameRecordRepository) {
-        this.characterStatsRepository = characterStatsRepository;
-        this.gameRecordRepository = gameRecordRepository;
+    public AiServiceImpl(GameCoreClient gameCoreClient) {
+        this.gameCoreClient = gameCoreClient;
     }
 
     @Override
     public AiTrainingSummaryDTO getTrainingSummary(Integer userId) {
-        List<CharacterStats> weakChars = characterStatsRepository
-                .findByUserIdOrderByAverageAccuracyAsc(userId, PageRequest.of(0, 10));
-        List<GameRecord> recentRecords = gameRecordRepository.findByUserId(userId, PageRequest.of(0, 20));
+        List<WeakCharDTO> weakChars = gameCoreClient.weakChars(userId, 10);
+        List<GameRecordSummaryDTO> recentRecords = gameCoreClient.recentRecords(userId, 20);
         List<String> focusChars = weakChars.stream()
-                .map(CharacterStats::getCharValue)
+                .map(WeakCharDTO::getCharValue)
                 .filter(s -> s != null && !s.isBlank())
                 .collect(Collectors.toList());
         double recentAccuracy = recentRecords.stream()
@@ -62,9 +56,9 @@ public class AiServiceImpl implements AiService {
         LocalDate now = LocalDate.now(DEFAULT_ZONE);
         LocalDate thisWeekStart = now.minusDays(6);
         LocalDate lastWeekStart = now.minusDays(13);
-        int thisWeek = countErrors(gameRecordRepository.findByUserIdAndCreateTimeBetween(
+        int thisWeek = countErrors(gameCoreClient.recordsBetween(
                 userId, atStartOfDay(thisWeekStart), atEndOfDay(now)));
-        int lastWeek = countErrors(gameRecordRepository.findByUserIdAndCreateTimeBetween(
+        int lastWeek = countErrors(gameCoreClient.recordsBetween(
                 userId, atStartOfDay(lastWeekStart), atStartOfDay(thisWeekStart)));
         int change = thisWeek - lastWeek;
         StringBuilder sb = new StringBuilder();
@@ -94,7 +88,7 @@ public class AiServiceImpl implements AiService {
         return sb.toString().trim();
     }
 
-    private int countErrors(List<GameRecord> records) {
+    private int countErrors(List<GameRecordSummaryDTO> records) {
         if (records == null) return 0;
         return Math.max(0, records.stream()
                 .mapToInt(r -> nullSafe(r.getTotalChars()) - nullSafe(r.getCorrectChars()))

@@ -158,6 +158,7 @@ entity ← 仅 repository / service / config / support
 | 词库 | `com.typinggame.dict.entity.CustomDictionary/SystemDictionary/DictionaryWord/SystemDictionaryWord` | dict-svc 新增内部接口 `POST /api/v1/internal/dictionaries/{ids,words,practice}`；game-core 删除 4 个 `Game*Dictionary*Repository` 与 `JpaWordSource`，改用 `HttpWordSource`（读）与 `DictionaryPracticeClient`（结算写回），`WordSource` 端口语义不变 |
 | 好友关系 | `com.typinggame.user.entity.FriendRelation` | user-svc 新增 `GET /api/v1/internal/friends/ids`；chat-svc 删除 `FriendRelationRepository` 与 `JpaCanMessageAdapter`，改由 `UserSvcCanMessageAdapter`（鉴权）与 `UserSvcFriendsClient`（好友 ID 列表）远程获取，`chat.friends.auth-mode` 固定为 `user-svc` |
 | 对局/配置/模型（仅 game-core 使用） | `com.typinggame.game.entity.` 下的 `GameRound`、`GameSession`、`MonsterAttempt`、`MonsterData`、`MonsterParentRelation`、`StringParent`、`ConfigTemplate`、`GameRuleConfig`、`SystemCharacterTypeConfig`、`SystemMonsterCommoConfig`、`SystemMonsterTypeConfig`、`SystemParam`、`ModelConstant`、`UserModelAdaptLog` | 纯机械迁移（仅 game-core 引用），`@EntityScan` 复用已加的 `com.typinggame.game.entity` |
+| 对局记录 / 字符统计（ai-svc 只读） | `com.typinggame.game.entity.GameRecord`、`com.typinggame.game.entity.CharacterStats` | game-core 新增内部接口 `GET /api/v1/internal/player-data/{game-records,weak-chars}`（返回 kernel 的 `GameRecordSummaryDTO` / `WeakCharDTO`）；ai-svc 删除 `GameRecordRepository` 与 `CharacterStatsRepository`，改由 `GameCoreClient`（RestTemplate，2s/3s 超时，失败空结果 + WARN）读取 |
 
 跨服务读改的统一约定（本轮固化）：
 
@@ -166,7 +167,7 @@ entity ← 仅 repository / service / config / support
 - 读取类调用失败按「空结果 + WARN」降级，结算类写入失败只记录告警，不允许拖垮主流程；
 - 每个切片都在本模块 `mvn -o test` 全绿后再进入下一刀；父 POM 全量 `mvn -o test` 为合并门禁。
 
-剩余（按依赖顺序）：**跨服务共用、需要先做内部 API 的 8 个实体**——`GameRecord`（ai-svc 直接读 game_record 做 AI 建议，需 game-core 提供成绩内部接口）、`SystemMonsterConfig`/`UserMonsterConfig`/`UserGameModeConfig`/`GameCharTypeConfig`/`SystemGameModeConfig`/`ModelInitParams`/`UserModelParams`（user-svc 的后台分页管理仍在直连这些表，目标是把管理端路由改到 game-core 的内部管理接口，并删除 user-svc 里的重复仓库）；之后是 `user_info` 及其 `stats` 子表（先拆 `UserModelAdaptLog.user` 等 `@ManyToOne` 外键桩，再改内部 API）。
+剩余（按依赖顺序）：`SystemMonsterConfig`/`UserMonsterConfig`/`UserGameModeConfig`/`GameCharTypeConfig`/`SystemGameModeConfig`/`ModelInitParams`/`UserModelParams`（user-svc 的后台分页管理仍在直连这些表，目标是把管理端路由改到 game-core 的内部管理接口，并删除 user-svc 里的重复仓库）；之后是 `user_info` 及其 `stats` 子表（先拆 `UserModelAdaptLog.user`、`UserModelParams.user` 等 `@ManyToOne` 外键桩，再改内部 API）。
 
 
 ## 10. 提交与评审检查清单

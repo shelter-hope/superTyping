@@ -2,7 +2,7 @@ package com.typinggame.game.service.impl;
 
 import com.typinggame.dto.dictionary.DictionaryPracticeUpdateDTO;
 import com.typinggame.dto.game.GameRecordUploadDTO;
-import com.typinggame.entity.game.GameRecord;
+import com.typinggame.game.entity.GameRecord;
 import com.typinggame.game.entity.GameRound;
 import com.typinggame.game.entity.MonsterData;
 import com.typinggame.game.entity.StringParent;

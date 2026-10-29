@@ -1,7 +1,7 @@
 package com.typinggame.game.service.impl;
 
 import com.typinggame.common.admin.AdminFilter;
-import com.typinggame.entity.game.GameRecord;
+import com.typinggame.game.entity.GameRecord;
 import org.junit.jupiter.api.Test;
 
 import java.util.Date;

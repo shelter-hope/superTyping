@@ -1,6 +1,6 @@
 package com.typinggame.game.entity;
 
-import com.typinggame.entity.game.GameRecord;
+import com.typinggame.game.entity.GameRecord;
 import com.typinggame.entity.user.UserInfo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

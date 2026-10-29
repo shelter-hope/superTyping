@@ -1,7 +1,7 @@
 package com.typinggame.game.service;
 
 import com.typinggame.dto.game.GameRecordUploadDTO;
-import com.typinggame.entity.game.GameRecord;
+import com.typinggame.game.entity.GameRecord;
 import com.typinggame.game.entity.MonsterData;
 
 import java.math.BigDecimal;

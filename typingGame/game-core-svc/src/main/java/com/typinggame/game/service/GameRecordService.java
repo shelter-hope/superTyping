@@ -2,7 +2,7 @@ package com.typinggame.game.service;
 
 import com.typinggame.dto.game.GameRecordUploadDTO;
 import com.typinggame.dto.game.GameRecordUploadResultDTO;
-import com.typinggame.entity.game.GameRecord;
+import com.typinggame.game.entity.GameRecord;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

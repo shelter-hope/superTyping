@@ -16,7 +16,7 @@ import com.typinggame.entity.config.GameCharTypeConfig;
 import com.typinggame.entity.config.SystemGameModeConfig;
 import com.typinggame.game.entity.SystemMonsterTypeConfig;
 import com.typinggame.game.entity.MonsterAttempt;
-import com.typinggame.entity.user.CharacterStats;
+import com.typinggame.game.entity.CharacterStats;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.GameCharTypeConfigRepository;
 import com.typinggame.game.repository.GameModeConfigRepository;

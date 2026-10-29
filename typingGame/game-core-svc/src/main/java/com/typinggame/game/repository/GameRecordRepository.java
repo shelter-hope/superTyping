@@ -1,7 +1,7 @@
 package com.typinggame.game.repository;
 
 import com.typinggame.dto.leaderboard.LeaderboardDTO;
-import com.typinggame.entity.game.GameRecord;
+import com.typinggame.game.entity.GameRecord;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

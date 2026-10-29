@@ -1,7 +1,7 @@
 package com.typinggame.game.service;
 
 import com.typinggame.dto.stats.CharacterStatsBatchUpdateDTO;
-import com.typinggame.entity.user.CharacterStats;
+import com.typinggame.game.entity.CharacterStats;
 
 import java.util.List;
 

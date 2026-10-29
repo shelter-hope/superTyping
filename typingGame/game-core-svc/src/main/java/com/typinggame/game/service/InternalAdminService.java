@@ -1,6 +1,6 @@
 package com.typinggame.game.service;
 
-import com.typinggame.entity.game.GameRecord;
+import com.typinggame.game.entity.GameRecord;
 import com.typinggame.game.entity.ModelConstant;
 import com.typinggame.entity.model.ModelInitParams;
 
