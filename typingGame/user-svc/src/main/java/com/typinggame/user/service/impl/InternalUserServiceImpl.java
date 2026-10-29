@@ -1,13 +1,19 @@
 package com.typinggame.user.service.impl;
 
+import com.typinggame.dto.user.DailyStatsUpdateDTO;
 import com.typinggame.dto.user.UserGameSummaryDTO;
 import com.typinggame.dto.user.UserProfileDTO;
+import com.typinggame.user.entity.UserDailyStats;
 import com.typinggame.user.entity.UserInfo;
+import com.typinggame.user.repository.UserDailyStatsRepository;
 import com.typinggame.user.repository.UserInfoRepository;
 import com.typinggame.user.service.InternalUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -17,9 +23,12 @@ import java.util.Objects;
 public class InternalUserServiceImpl implements InternalUserService {
 
     private final UserInfoRepository userInfoRepository;
+    private final UserDailyStatsRepository userDailyStatsRepository;
 
-    public InternalUserServiceImpl(UserInfoRepository userInfoRepository) {
+    public InternalUserServiceImpl(UserInfoRepository userInfoRepository,
+                                   UserDailyStatsRepository userDailyStatsRepository) {
         this.userInfoRepository = userInfoRepository;
+        this.userDailyStatsRepository = userDailyStatsRepository;
     }
 
     @Override
@@ -83,8 +92,66 @@ public class InternalUserServiceImpl implements InternalUserService {
         return toProfile(userInfoRepository.save(user));
     }
 
-    private static UserProfileDTO toProfile(UserInfo user) {
-        return UserProfileDTO.builder()
+    @Override
+    @Transactional
+    public void upsertDailyStats(Integer userId, DailyStatsUpdateDTO update) {
+        if (userId == null || update == null) {
+            return;
+        }
+        LocalDate statDate = update.getStatDate() == null ? LocalDate.now() : update.getStatDate();
+        UserDailyStats stats = userDailyStatsRepository
+                .findByUserIdAndStatDate(userId, statDate)
+                .orElseGet(() -> {
+                    UserDailyStats created = new UserDailyStats();
+                    created.setUserId(userId);
+                    created.setStatDate(statDate);
+                    created.setGameCount(0);
+                    created.setTotalScore(0);
+                    created.setTotalChars(0);
+                    created.setCorrectChars(0);
+                    created.setAvgSpeed(BigDecimal.ZERO);
+                    created.setAvgAccuracy(BigDecimal.ZERO);
+                    created.setPeakSpeed(BigDecimal.ZERO);
+                    created.setPeakAccuracy(BigDecimal.ZERO);
+                    created.setCreateTime(new Date());
+                    return created;
+                });
+        int oldCount = safeInt(stats.getGameCount());
+        int newCount = oldCount + 1;
+        stats.setGameCount(newCount);
+        stats.setTotalScore(safeInt(stats.getTotalScore()) + safeInt(update.getTotalScore()));
+        stats.setTotalChars(safeInt(stats.getTotalChars()) + safeInt(update.getTotalChars()));
+        stats.setCorrectChars(safeInt(stats.getCorrectChars()) + safeInt(update.getCorrectChars()));
+        stats.setAvgSpeed(weightedAverage(stats.getAvgSpeed(), oldCount, update.getAvgSpeed(), newCount));
+        stats.setAvgAccuracy(weightedAverage(stats.getAvgAccuracy(), oldCount, update.getAvgAccuracy(), newCount));
+        stats.setPeakSpeed(max(stats.getPeakSpeed(), update.getPeakSpeed()));
+        stats.setPeakAccuracy(max(stats.getPeakAccuracy(), update.getPeakAccuracy()));
+        if (update.getGameMode() != null) {
+            stats.setGameMode(update.getGameMode());
+        }
+        stats.setUpdateTime(new Date());
+        userDailyStatsRepository.save(stats);
+    }
+
+    private static int safeInt(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private static BigDecimal weightedAverage(BigDecimal oldValue, int oldCount, BigDecimal newValue, int newCount) {
+        BigDecimal oldSum = (oldValue == null ? BigDecimal.ZERO : oldValue)
+                .multiply(BigDecimal.valueOf(Math.max(0, oldCount)));
+        BigDecimal incoming = newValue == null ? BigDecimal.ZERO : newValue;
+        return oldSum.add(incoming)
+                .divide(BigDecimal.valueOf(Math.max(1, newCount)), 2, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal max(BigDecimal left, BigDecimal right) {
+        BigDecimal l = left == null ? BigDecimal.ZERO : left;
+        BigDecimal r = right == null ? BigDecimal.ZERO : right;
+        return l.max(r);
+    }
+
+    private static UserProfileDTO toProfile(UserInfo user) {        return UserProfileDTO.builder()
                 .userId(user.getUserId())
                 .username(user.getUsername())
                 .nickname(user.getNickname())

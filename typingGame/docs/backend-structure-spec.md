@@ -161,6 +161,7 @@ entity ← 仅 repository / service / config / support
 | 对局记录 / 字符统计（ai-svc 只读） | `com.typinggame.game.entity.GameRecord`、`com.typinggame.game.entity.CharacterStats` | game-core 新增内部接口 `GET /api/v1/internal/player-data/{game-records,weak-chars}`（返回 kernel 的 `GameRecordSummaryDTO` / `WeakCharDTO`）；ai-svc 删除 `GameRecordRepository` 与 `CharacterStatsRepository`，改由 `GameCoreClient`（RestTemplate，2s/3s 超时，失败空结果 + WARN）读取 |
 | 用户后台配置（user-svc 管理端只读） | `com.typinggame.game.entity.UserGameModeConfig/UserMonsterConfig/UserModelParams` | game-core 新增内部管理接口 `GET /api/v1/internal/admin/{user-game-mode-configs,user-monster-configs,user-model-params}`；`admin-svc` 的 `AdminRoutes` 三处前缀改指 `game-core-svc`；user-svc 删除 3 个对应端点/服务方法与 7 个仓储（3 个在用 + 4 个死代码） |
 | 用户档案（跨服务只读/回写） | `com.typinggame.user.entity.UserInfo` | user-svc 新增内部接口 `GET /api/v1/internal/users/{id}`、`POST /batch`、`GET /ids`、`GET /{id}/exists`、`POST /{id}/game-summary`；game-core/ai/chat 删除 `UserInfoRepository` 与 `GameUserInfoRepository`，改由各服务 `support/UserProfileClient` 读取/回写（失败降级 + WARN）；`UserModelAdaptLog`/`UserGameModeConfig`/`AiChatMessage`/`AiConversation` 的 `@ManyToOne UserInfo` 改为 `user_id` 标量列，排行榜不再 join `user_info` |
+| 每日统计（game-core 写、user-svc 读） | `com.typinggame.user.entity.UserDailyStats` | user-svc 新增内部接口 `POST /api/v1/internal/users/{id}/daily-stats`，场次累加、加权均值、峰值判定与日期归并全部在 user-svc 内完成；game-core 删除 `GameUserDailyStatsRepository`，改为 `UserProfileClient.upsertDailyStats`（失败仅 WARN），`statDate` 字段由 `Date` 收敛为 `LocalDate` |
 
 跨服务读改的统一约定（本轮固化）：
 
@@ -169,7 +170,7 @@ entity ← 仅 repository / service / config / support
 - 读取类调用失败按「空结果 + WARN」降级，结算类写入失败只记录告警，不允许拖垮主流程；
 - 每个切片都在本模块 `mvn -o test` 全绿后再进入下一刀；父 POM 全量 `mvn -o test` 为合并门禁。
 
-剩余：`UserDailyStats` 的归属确认（统计接口由 game-core 写入，建议随统计域一起归位）；`SystemMonsterConfig`/`GameCharTypeConfig`/`SystemGameModeConfig`/`ModelInitParams` 已在 game-core，只有 game-core 引用。表结构基线已合并为 `typingGame/DB/typing_word_game.sql` 单文件（44 张表），旧增量脚本已删除。
+剩余：`libs/kernel` 只剩跨服务共享的 DTO（`com.typinggame.dto.**`）、枚举与工具，已无实体与仓储；`SystemMonsterConfig`/`GameCharTypeConfig`/`SystemGameModeConfig`/`ModelInitParams` 已在 game-core，只有 game-core 引用。**P2 全部切完**，表结构基线已合并为 `typingGame/DB/typing_word_game.sql` 单文件（44 张表），旧增量脚本已删除。
 
 
 ## 10. 提交与评审检查清单

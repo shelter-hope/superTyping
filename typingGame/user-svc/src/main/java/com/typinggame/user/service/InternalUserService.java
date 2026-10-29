@@ -24,4 +24,7 @@ public interface InternalUserService {
 
     /** 一局结束后的汇总回写：最佳成绩判定与总场数累加在 user-svc 内部完成。 */
     UserProfileDTO applyGameSummary(Integer userId, UserGameSummaryDTO summary);
+
+    /** 按日期累加一局的对局统计；统计口径（加权均值、峰值、场次累加）在 user-svc 内部完成。 */
+    void upsertDailyStats(Integer userId, com.typinggame.dto.user.DailyStatsUpdateDTO update);
 }

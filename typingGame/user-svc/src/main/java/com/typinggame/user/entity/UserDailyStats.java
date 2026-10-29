@@ -1,4 +1,4 @@
-package com.typinggame.entity.user;
+package com.typinggame.user.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Date;
 
 /**
@@ -25,7 +26,7 @@ public class UserDailyStats {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id; // 主键ID
     private Integer userId; // 关联用户ID
-    private Date statDate; // 统计日期（yyyy-MM-dd）
+    private LocalDate statDate; // 统计日期（yyyy-MM-dd）
     private Integer gameCount; // 当日游戏场数
     private Integer totalScore; // 当日总积分
     private BigDecimal avgSpeed; // 当日平均速度（字符/分钟）

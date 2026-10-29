@@ -22,7 +22,7 @@ public interface UserService {
 
     void deleteUserGameData(Integer userId);
 
-    java.util.List<com.typinggame.entity.user.UserDailyStats> getDailyStats(Integer userId, java.time.LocalDate date, java.time.LocalDate startDate, java.time.LocalDate endDate);
+    java.util.List<com.typinggame.user.entity.UserDailyStats> getDailyStats(Integer userId, java.time.LocalDate date, java.time.LocalDate startDate, java.time.LocalDate endDate);
 
     java.lang.Object getDailyStatsSummary(Integer userId, java.lang.String period);
 }

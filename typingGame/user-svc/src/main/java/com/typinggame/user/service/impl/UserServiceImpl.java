@@ -3,7 +3,7 @@ package com.typinggame.user.service.impl;
 import com.typinggame.dto.user.UserStatsDTO;
 import com.typinggame.dto.user.UserUpdateDTO;
 import com.typinggame.user.entity.UserInfo;
-import com.typinggame.entity.user.UserDailyStats;
+import com.typinggame.user.entity.UserDailyStats;
 import com.typinggame.user.repository.UserInfoRepository;
 import com.typinggame.user.repository.UserDailyStatsRepository;
 import com.typinggame.user.service.UserService;

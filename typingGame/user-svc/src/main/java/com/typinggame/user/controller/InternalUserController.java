@@ -1,5 +1,6 @@
 package com.typinggame.user.controller;
 
+import com.typinggame.dto.user.DailyStatsUpdateDTO;
 import com.typinggame.dto.user.UserGameSummaryDTO;
 import com.typinggame.dto.user.UserProfileDTO;
 import com.typinggame.dto.user.UserProfilesQueryDTO;
@@ -55,5 +56,12 @@ public class InternalUserController {
                                                            @RequestBody UserGameSummaryDTO summary) {
         UserProfileDTO profile = internalUserService.applyGameSummary(userId, summary);
         return profile == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(profile);
+    }
+
+    @PostMapping("/{userId}/daily-stats")
+    public ResponseEntity<Map<String, Object>> upsertDailyStats(@PathVariable Integer userId,
+                                                                @RequestBody DailyStatsUpdateDTO update) {
+        internalUserService.upsertDailyStats(userId, update);
+        return ResponseEntity.ok(Map.of("updated", true));
     }
 }

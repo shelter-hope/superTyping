@@ -5,7 +5,7 @@ import com.typinggame.common.admin.AdminPageSupport;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.user.entity.UserAppConfig;
 import com.typinggame.user.entity.FriendRelation;
-import com.typinggame.entity.user.UserDailyStats;
+import com.typinggame.user.entity.UserDailyStats;
 import com.typinggame.user.entity.UserInfo;
 import com.typinggame.user.entity.UserInfoSnapshot;
 import com.typinggame.user.repository.FriendRelationRepository;

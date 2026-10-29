@@ -2,6 +2,7 @@ package com.typinggame.game.service.impl;
 
 import com.typinggame.dto.dictionary.DictionaryPracticeUpdateDTO;
 import com.typinggame.dto.game.GameRecordUploadDTO;
+import com.typinggame.dto.user.DailyStatsUpdateDTO;
 import com.typinggame.game.entity.GameRecord;
 import com.typinggame.game.entity.GameRound;
 import com.typinggame.game.entity.MonsterData;
@@ -9,10 +10,8 @@ import com.typinggame.game.entity.StringParent;
 import com.typinggame.entity.model.ModelInitParams;
 import com.typinggame.game.entity.UserModelAdaptLog;
 import com.typinggame.game.entity.UserModelParams;
-import com.typinggame.entity.user.UserDailyStats;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.GameRoundRepository;
-import com.typinggame.game.repository.GameUserDailyStatsRepository;
 import com.typinggame.game.repository.ModelInitParamsRepository;
 import com.typinggame.game.repository.MonsterDataRepository;
 import com.typinggame.game.repository.StringParentRepository;
@@ -23,12 +22,14 @@ import com.typinggame.game.rule.DifficultyRule;
 import com.typinggame.game.rule.GeneticRule;
 import com.typinggame.game.rule.RuleConfigProvider;
 import com.typinggame.game.service.GameRecordPostProcessService;
+import com.typinggame.game.support.UserProfileClient;
 import com.typinggame.game.word.DictionaryPracticeClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ import java.util.stream.Collectors;
 @Service
 public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessService {
 
-    private final GameUserDailyStatsRepository dailyStatsRepository;
+    private final UserProfileClient userProfileClient;
     private final UserModelParamsRepository userModelParamsRepository;
     private final ModelInitParamsRepository modelInitParamsRepository;
     private final UserModelAdaptLogRepository adaptLogRepository;
@@ -53,7 +54,7 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
     private final GameRoundRepository gameRoundRepository;
     private final RuleConfigProvider ruleConfigProvider;
 
-    public GameRecordPostProcessServiceImpl(GameUserDailyStatsRepository dailyStatsRepository,
+    public GameRecordPostProcessServiceImpl(UserProfileClient userProfileClient,
                                              UserModelParamsRepository userModelParamsRepository,
                                              ModelInitParamsRepository modelInitParamsRepository,
                                              UserModelAdaptLogRepository adaptLogRepository,
@@ -62,7 +63,7 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
                                              DictionaryPracticeClient dictionaryPracticeClient,
                                              GameRoundRepository gameRoundRepository,
                                              RuleConfigProvider ruleConfigProvider) {
-        this.dailyStatsRepository = dailyStatsRepository;
+        this.userProfileClient = userProfileClient;
         this.userModelParamsRepository = userModelParamsRepository;
         this.modelInitParamsRepository = modelInitParamsRepository;
         this.adaptLogRepository = adaptLogRepository;
@@ -84,35 +85,19 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
     }
 
     private void upsertDailyStats(Integer userId, GameRecord record) {
-        Date statDate = atStartOfDay(record.getCreateTime() == null ? new Date() : record.getCreateTime());
-        UserDailyStats stats = dailyStatsRepository.findByUserIdAndStatDate(userId, statDate).orElseGet(() -> {
-            UserDailyStats created = new UserDailyStats();
-            created.setUserId(userId);
-            created.setStatDate(statDate);
-            created.setGameCount(0);
-            created.setTotalScore(0);
-            created.setTotalChars(0);
-            created.setCorrectChars(0);
-            created.setAvgSpeed(BigDecimal.ZERO);
-            created.setAvgAccuracy(BigDecimal.ZERO);
-            created.setPeakSpeed(BigDecimal.ZERO);
-            created.setPeakAccuracy(BigDecimal.ZERO);
-            created.setCreateTime(new Date());
-            return created;
-        });
-        int oldCount = safeInt(stats.getGameCount());
-        int newCount = oldCount + 1;
-        stats.setGameCount(newCount);
-        stats.setTotalScore(safeInt(stats.getTotalScore()) + safeInt(record.getTotalScore()));
-        stats.setTotalChars(safeInt(stats.getTotalChars()) + safeInt(record.getTotalChars()));
-        stats.setCorrectChars(safeInt(stats.getCorrectChars()) + safeInt(record.getCorrectChars()));
-        stats.setAvgSpeed(weightedAverage(stats.getAvgSpeed(), oldCount, record.getAvgSpeed(), newCount));
-        stats.setAvgAccuracy(weightedAverage(stats.getAvgAccuracy(), oldCount, record.getAvgAccuracy(), newCount));
-        stats.setPeakSpeed(max(stats.getPeakSpeed(), record.getPeakSpeed()));
-        stats.setPeakAccuracy(max(stats.getPeakAccuracy(), record.getPeakAccuracy()));
-        stats.setGameMode(record.getGameMode());
-        stats.setUpdateTime(new Date());
-        dailyStatsRepository.save(stats);
+        DailyStatsUpdateDTO update = new DailyStatsUpdateDTO();
+        update.setStatDate(record.getCreateTime() == null
+                ? LocalDate.now()
+                : record.getCreateTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+        update.setGameMode(record.getGameMode());
+        update.setTotalScore(safeInt(record.getTotalScore()));
+        update.setTotalChars(safeInt(record.getTotalChars()));
+        update.setCorrectChars(safeInt(record.getCorrectChars()));
+        update.setAvgSpeed(record.getAvgSpeed());
+        update.setAvgAccuracy(record.getAvgAccuracy());
+        update.setPeakSpeed(record.getPeakSpeed());
+        update.setPeakAccuracy(record.getPeakAccuracy());
+        userProfileClient.upsertDailyStats(userId, update);
     }
 
     private BigDecimal updateUserModelAndLog(Integer userId, GameRecord record) {
@@ -270,23 +255,6 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
             items.add(item);
         });
         dictionaryPracticeClient.recordPractice(uploadDTO.getCustomDictIds(), items);
-    }
-
-    private Date atStartOfDay(Date date) {
-        return Date.from(date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().atStartOfDay(ZoneId.systemDefault()).toInstant());
-    }
-
-    private BigDecimal weightedAverage(BigDecimal oldValue, int oldCount, BigDecimal newValue, int newCount) {
-        BigDecimal safeOld = oldValue == null ? BigDecimal.ZERO : oldValue;
-        BigDecimal safeNew = newValue == null ? BigDecimal.ZERO : newValue;
-        return safeOld.multiply(BigDecimal.valueOf(oldCount)).add(safeNew)
-                .divide(BigDecimal.valueOf(Math.max(1, newCount)), 2, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal max(BigDecimal left, BigDecimal right) {
-        if (left == null) return right == null ? BigDecimal.ZERO : right;
-        if (right == null) return left;
-        return left.max(right);
     }
 
     private BigDecimal defaultDecimal(BigDecimal value, String fallback) {

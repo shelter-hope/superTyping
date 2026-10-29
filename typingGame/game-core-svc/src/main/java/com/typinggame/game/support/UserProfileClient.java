@@ -1,5 +1,6 @@
 package com.typinggame.game.support;
 
+import com.typinggame.dto.user.DailyStatsUpdateDTO;
 import com.typinggame.dto.user.UserGameSummaryDTO;
 import com.typinggame.dto.user.UserProfileDTO;
 import org.slf4j.Logger;
@@ -8,6 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Map;
 
 /**
  * 用户数据的集群内访问入口：game-core 不再直连 user_info 表。
@@ -53,6 +56,18 @@ public class UserProfileClient {
             restTemplate.postForEntity(baseUrl + "/" + userId + "/game-summary", summary, UserProfileDTO.class);
         } catch (Exception e) {
             log.warn("applyGameSummary({}) failed: {}", userId, e.getMessage());
+        }
+    }
+
+    /** 累加一局的对局统计（加权均值、峰值与场次累加都在 user-svc 完成）。 */
+    public void upsertDailyStats(Integer userId, DailyStatsUpdateDTO update) {
+        if (userId == null || update == null) {
+            return;
+        }
+        try {
+            restTemplate.postForEntity(baseUrl + "/" + userId + "/daily-stats", update, Map.class);
+        } catch (Exception e) {
+            log.warn("upsertDailyStats({}) failed: {}", userId, e.getMessage());
         }
     }
 }
