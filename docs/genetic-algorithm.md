@@ -60,7 +60,7 @@
 
 > 现状：混淆对已经接通。前端在错键时记录「期待字符 → 实际字符」，结算时以
 > `confusions: [{ expectedChar, typedChar, count }]` 随游戏记录上报；服务端写入
-> `key_confusion` 表（`013-key-confusion.sql`），下一局生成时由
+> `key_confusion` 表（见初始化脚本 `DB/typing_word_game.sql`），下一局生成时由
 > `KeyConfusionService.getConfusionMap(userId, 20, 3)` 取该用户最强的 20 组混淆、
 > 每组最多 3 个替代字符，注入 `GeneticEngine.Request.confusion`。局内遗传
 > （`GameConfigServiceImpl.buildGeneticMonsters`）和跨局遗传
@@ -108,7 +108,7 @@ mutation_rate / mutation_positions / mutation_chars` 这些审计字段的意义
 | `fitnessScoreWeight` 等 | 见类 | 适应度权重（评分口径，见下） |
 
 管理台「遗传规则」表单可直接改这些值；改完先存草稿（`draft`），发布（`publish`）后新的 active 版本才生效。
-`typingGame/DB/012-genetic-v2.sql` 把 v2 的三个新字段写进 active 行，保证新旧环境口径一致。
+初始化脚本 `DB/typing_word_game.sql` 里 active 行已带 v2 的三个新字段。
 
 ## 五、适应度口径
 

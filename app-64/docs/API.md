@@ -339,7 +339,7 @@ Axios 响应体为 `ResultMessage<T>`（`client.ts`）：
 | POST | `/admin/lab/presets` | 新建系统预设 |
 | DELETE | `/admin/lab/presets/{id}` | 删除系统预设 |
 
-迁移脚本：`typingGame/DB/006-lab.sql`。
+表结构：`typingGame/DB/typing_word_game.sql`（lab 三张表已包含）。
 
 ## 13. 微服务路由映射
 

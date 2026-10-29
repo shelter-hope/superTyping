@@ -32,7 +32,7 @@
 | 配置模板：新表 `config_template`，保存 / 列表 / 读取 | 保存后列表能看到，按 id 能读回完整配置 |
 | 游戏模式配置 PATCH：真正更新 `game_mode_configs` | 不存在的 id 返回 400 |
 
-## 阶段 P4：数据库迁移 `004-admin-hardening-20261022.sql`
+## 阶段 P4：数据库迁移（已并入初始化脚本 `typing_word_game.sql`）
 
 | 任务 | 验收标准 |
 |---|---|

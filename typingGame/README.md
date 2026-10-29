@@ -244,7 +244,7 @@ API 网关统一入口：`http://localhost:8080`。对外路径没有 `/typingWo
 - **父本选择**：根据玩家表现选择优秀的字符字符串作为父本
 - **切片重组**：将多个父本字符串切片后重新组合
 - **定向变异**：针对玩家薄弱字符进行强化训练
-- **难度系数 Dₜ**：默认只跟踪准确率相对 85% 的偏差，单轮最多变化 0.05。生效参数来自 `game_rule_config`（`DB/005-game-rule-config.sql` 与 `DB/009-difficulty-regulator.sql`），由 `RuleConfigService` 缓存；缺失时回退代码默认值。模型说明见仓库 `docs/math-model.md`。
+- **难度系数 Dₜ**：默认只跟踪准确率相对 85% 的偏差，单轮最多变化 0.05。生效参数来自 `game_rule_config`（`DB/typing_word_game.sql` 中的种子行），由 `RuleConfigService` 缓存；缺失时回退代码默认值。模型说明见仓库 `docs/math-model.md`。
 - **内部管理**：`GET/PUT /api/v1/internal/admin/game-rules/{key}`、`POST /{key}/publish`、`GET /{key}/versions`、`POST /game-rules/simulate`。`key` 为 `difficulty` 或 `genetic`。结算写入 `difficulty_before/after`，下一轮读取上一轮 `actual_accuracy`。
 
 ### 数据统计与分析模块
@@ -256,7 +256,7 @@ API 网关统一入口：`http://localhost:8080`。对外路径没有 `/typingWo
 ### 词库系统
 
 - **自定义词库上传**：只接受 1MB 以内的 txt/csv，文件保存到 `typing.storage.dir`，通过网关 `/api/v1/dictionaries/files/{name}` 访问。
-- **系统词库**：后台可新建、编辑、启停、删除、导入导出和词条分页维护。种子数据见 `DB/007-system-dictionary-seed.sql`。
+- **系统词库**：后台可新建、编辑、启停、删除、导入导出和词条分页维护。种子数据见 `DB/typing_word_game.sql`。
 - **取词**：词源模式只使用启用中的系统词库，并按难度加权随机抽取。
 - **单词熟练度**：记录单词练习情况，调整熟练度。
 
@@ -265,7 +265,7 @@ API 网关统一入口：`http://localhost:8080`。对外路径没有 `/typingWo
 - **好友管理**：申请可带附言，同意和拒绝只能由被申请人操作。拉黑把关系标为 `2` 并记下 `blocked_by`，只有拉黑方能解除。删除会去掉这一条关系。好友列表的在线状态读取 `im:online:{userId}`。
 - **好友聊天**：REST 负责历史、断线补发和回退发送。发送使用 JSON body，带 `clientMsgId` 幂等和服务端序号。实时只有 `/ws/im?token=`：文本、表情、图片、文件、正在输入、已读、撤回和在线都走这条连接。下行先发到 Redis `im.events`，再由各实例交给本机连接。连接断开时前端回退轮询。图片限 5MB（jpeg、png、gif、webp），普通文件限 10MB（pdf、txt、zip），文件放在 `data/chat-files`，不进入公开上传目录。
 - **消息中心**：系统消息、好友消息和带附言的好友申请。
-- 已有库执行 `DB/010-im-chat.sql`。
+- 表结构统一由 `DB/typing_word_game.sql` 创建（历史增量已合并）。
 
 ### AI 服务模块
 
@@ -350,13 +350,7 @@ docker-compose up -d
 
 等待 Nacos、Redis、MySQL 等服务启动完成。
 
-MySQL 首次初始化会执行 `DB/typing_word_game.sql`（已含 `004` 后台加固）。游戏会话和遗传相关表还要按顺序手动导入：
-
-```bash
-mysql -h127.0.0.1 -uroot -p123456 typing_word_game < DB/001-game-session-round-plan-20261006-2200.sql
-mysql -h127.0.0.1 -uroot -p123456 typing_word_game < DB/002-monster-attempt-genetics-20261006-2310.sql
-mysql -h127.0.0.1 -uroot -p123456 typing_word_game < DB/003-fix-round-payload-and-leaderboard-20261007.sql
-```
+MySQL 首次初始化会执行 `DB/typing_word_game.sql`——它是唯一建库脚本，44 张表与种子数据都在里面，历史增量 `001`–`014` 已合并并删除，无需再手动导入。
 
 本地默认连接：MySQL `root` / `123456`，库 `typing_word_game`；Redis 密码 `123456`。种子账号见仓库根目录 README。Compose 打开了 Nacos 鉴权，而服务配置只写了地址；注册出现 403 时，关闭鉴权或在 discovery 中补上 `nacos` / `nacos`。
 

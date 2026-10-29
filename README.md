@@ -193,16 +193,7 @@ Compose 会创建网络和数据卷，并映射这些端口：
 
 首次创建 MySQL 数据卷时，入口脚本会执行 `DB/typing_word_game.sql`（已包含 `004` 的后台加固）。数据卷已经存在时不会再次导入。
 
-增量脚本 `001`、`002`、`003` **没有**并进这份初始化 SQL，游戏会话、轮次和怪物遗传表需要单独执行。在库可用后按顺序导入：
-
-```bash
-cd typingGame
-mysql -h127.0.0.1 -uroot -p123456 typing_word_game < DB/001-game-session-round-plan-20261006-2200.sql
-mysql -h127.0.0.1 -uroot -p123456 typing_word_game < DB/002-monster-attempt-genetics-20261006-2310.sql
-mysql -h127.0.0.1 -uroot -p123456 typing_word_game < DB/003-fix-round-payload-and-leaderboard-20261007.sql
-```
-
-`004-admin-hardening-20261022.sql` 已合并进初始化脚本，并且本身可重复执行。如果初始化日志在 `SET GLOBAL` 处中断，补跑一次 `004`。
+初始化脚本 `DB/typing_word_game.sql` 是**唯一的建库来源**：历史增量 `001`–`014` 已全部合并进来（44 张表、种子数据、索引与外键一次建好），重建库时只执行这一份。脚本自带 `DROP TABLE IF EXISTS`，可反复执行；旧增量脚本已删除。
 
 服务配置默认连接 `root` / `123456`，与 Compose 的 root 密码一致。改密码时同时改 `MYSQL_PASSWORD`，或改各服务 `application-local.yml`。
 
@@ -360,7 +351,7 @@ Compose 里的 Nacos 开启了鉴权，服务配置只写了地址、没有用�
 - 私聊只走 `ws://<网关>/ws/im?token=`。打开时发送、正在输入和回执都在这条连接上，关闭时发送回退 `POST /api/v1/messages`，历史每 3 秒轮询一次
 - 消息类型：文本、内置表情、图片和普通文件。图片和文件先上传到 `POST /api/v1/messages/attachments`，正文只存附件 id，下载要带登录令牌。发送方可以在 2 分钟内撤回，双方会话行一起标记
 - 好友申请可以带 200 字附言。拉黑后不能再发消息，只有拉黑方能解除。在线状态看 Redis `im:online:{userId}`
-- 已有数据库执行 `typingGame/DB/010-im-chat.sql`
+- 表结构统一由初始化脚本 `typingGame/DB/typing_word_game.sql` 创建，不再区分历史增量
 - AI 对话读取真实对局和字符统计。未配置 `AI_LLM_API_KEY` 时只返回配置提示
 - `/admin` 覆盖用户、记录、词库、排行榜、统计、模型参数和日志趋势。领域查询在各服务的内部管理接口中完成
 

@@ -9,7 +9,7 @@
 | `mvn test`（typingGame 全部 8 个模块） | 通过，40 个测试 0 失败（本次新增 25 个） |
 | 前端 `tsc --noEmit -p tsconfig.app.json` | 本次改动的文件 0 错误；仍有 24 个历史错误（Footer、GameCanvas、map、video、game/* 等，均为改动前已存在） |
 | 前端 `vite build` | 成功 |
-| 迁移 `DB/004-admin-hardening-20261022.sql` | 本地 MySQL 连续执行两次均成功，第二次全部跳过；`typing_word_game.sql` 已同步 |
+| 迁移 `DB/004-admin-hardening-20261022.sql` | 已并入 `DB/typing_word_game.sql`（历史记录，旧脚本已删除） |
 | 启动服务后的端到端点击测试 | **未做**（本次未启动整套服务），重启后建议按文末清单手动点一遍 |
 
 ## 各阶段结果
@@ -67,7 +67,7 @@
 
 ## 重启步骤
 
-1. 已执行的本地库无需再跑迁移；其他环境执行 `DB/004-admin-hardening-20261022.sql`（可重复执行）。
+1. 新环境直接执行合并后的 `DB/typing_word_game.sql`；历史增量脚本已删除。
 2. `cd typingGame && mvn -q install -DskipTests`（common 改过，必须先安装）。
 3. 依次重启：user-svc → game-core-svc → chat-svc → ai-svc → admin-svc → api-gateway。
 4. 重启前端 `app-64`（`npm run dev`）。

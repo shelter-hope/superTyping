@@ -158,5 +158,5 @@ v1 用 `weightComposure` 兼任「易错字符增益」，语义被复用；v2 �
 - `GameRoundServiceImpl.completeRound`：唯一的轮内积分，管理端「重新调整」会走同一条 `nextDifficulty`
 - `GameConfigServiceImpl.getNextRound`：只投影已结算难度
 - `GameRecordPostProcessServiceImpl`：优先沿用最后一轮的 `difficulty_after`
-- 已有库执行 `typingGame/DB/011-difficulty-v2.sql` 把 v2 字段写入当前 active 难度规则（可重复执行）；新库的种子在 `DB/005-game-rule-config.sql`，缺字段时引擎用 `DifficultyRule` 的 Java 默认值
+- 初始化脚本 `typingGame/DB/typing_word_game.sql` 里 `game_rule_config` 的种子行已包含 v2 字段；缺字段时引擎用 `DifficultyRule` 的 Java 默认值
 - 管理端「准确率、速度偏差、峰值偏差」三项之和必须为 1。易错强化系数 `weakExposureGain` 单独取值，不参与这个和。
