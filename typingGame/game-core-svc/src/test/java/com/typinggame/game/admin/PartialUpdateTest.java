@@ -1,6 +1,6 @@
 package com.typinggame.game.admin;
 
-import com.typinggame.entity.model.ModelConstant;
+import com.typinggame.game.entity.ModelConstant;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

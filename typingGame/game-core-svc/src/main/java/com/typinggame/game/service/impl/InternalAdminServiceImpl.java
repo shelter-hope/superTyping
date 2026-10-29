@@ -1,9 +1,9 @@
 package com.typinggame.game.service.impl;
 
-import com.typinggame.entity.config.SystemMonsterCommoConfig;
-import com.typinggame.entity.config.SystemMonsterTypeConfig;
+import com.typinggame.game.entity.SystemMonsterCommoConfig;
+import com.typinggame.game.entity.SystemMonsterTypeConfig;
 import com.typinggame.entity.game.GameRecord;
-import com.typinggame.entity.model.ModelConstant;
+import com.typinggame.game.entity.ModelConstant;
 import com.typinggame.entity.model.ModelInitParams;
 import com.typinggame.game.admin.ConfigAdminService;
 import com.typinggame.game.admin.ConfusionAdminService;

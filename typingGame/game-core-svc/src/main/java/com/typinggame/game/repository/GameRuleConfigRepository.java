@@ -1,6 +1,6 @@
 package com.typinggame.game.repository;
 
-import com.typinggame.entity.config.GameRuleConfig;
+import com.typinggame.game.entity.GameRuleConfig;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

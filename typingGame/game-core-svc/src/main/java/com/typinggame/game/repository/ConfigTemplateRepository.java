@@ -1,6 +1,6 @@
 package com.typinggame.game.repository;
 
-import com.typinggame.entity.config.ConfigTemplate;
+import com.typinggame.game.entity.ConfigTemplate;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

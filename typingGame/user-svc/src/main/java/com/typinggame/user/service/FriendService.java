@@ -8,6 +8,9 @@ import java.util.List;
 public interface FriendService {
     List<FriendResponseDTO> getFriendList(Integer userId);
 
+    /** 好友 ID 列表（仅接受状态），供 chat-svc 等内部服务调用。 */
+    List<Integer> findFriendIds(Integer userId);
+
     List<FriendResponseDTO> searchUsers(Integer userId, String keyword);
 
     FriendRequestDTO sendFriendRequest(Integer senderId, Integer receiverId, String applyMessage);

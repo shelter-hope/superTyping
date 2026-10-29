@@ -1,6 +1,6 @@
 package com.typinggame.game.repository;
 
-import com.typinggame.entity.game.GameSession;
+import com.typinggame.game.entity.GameSession;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

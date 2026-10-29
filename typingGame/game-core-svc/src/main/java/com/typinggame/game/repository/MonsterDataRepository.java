@@ -1,6 +1,6 @@
 package com.typinggame.game.repository;
 
-import com.typinggame.entity.game.MonsterData;
+import com.typinggame.game.entity.MonsterData;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

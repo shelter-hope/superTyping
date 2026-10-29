@@ -1,4 +1,4 @@
-package com.typinggame.entity.model;
+package com.typinggame.game.entity;
 
 import com.typinggame.entity.game.GameRecord;
 import com.typinggame.entity.user.UserInfo;

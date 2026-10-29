@@ -1,26 +1,30 @@
 package com.typinggame.chat.friends;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
  * 好友鉴权门面。
- * mode=local：仅本地 FriendRelation；
- * mode=user-svc：仅调 user 内部接口；
- * mode=dual：先调 user，失败回退本地（默认，渐进切换）。
+ *
+ * <p>好友关系表已迁回 user-svc，chat-svc 不再直连 friend_relation，只保留 user-svc 内部接口一种实现。
+ * {@code chat.friends.auth-mode} 配置键保留兼容，但 local/dual 回退已移除；
+ * user-svc 调用失败时按“非好友”拒绝并告警，绝不静默放行。
  */
 @Component
 public class CanMessageGuard {
-    private final JpaCanMessageAdapter local;
-    private final UserSvcCanMessageAdapter remote;
-    private final String mode;
+    private static final Logger log = LoggerFactory.getLogger(CanMessageGuard.class);
 
-    public CanMessageGuard(JpaCanMessageAdapter local,
-                           UserSvcCanMessageAdapter remote,
-                           @Value("${chat.friends.auth-mode:dual}") String mode) {
-        this.local = local;
+    private final UserSvcCanMessageAdapter remote;
+
+    public CanMessageGuard(UserSvcCanMessageAdapter remote,
+                           @Value("${chat.friends.auth-mode:user-svc}") String authMode) {
         this.remote = remote;
-        this.mode = mode == null ? "dual" : mode.trim().toLowerCase();
+        String mode = authMode == null ? "user-svc" : authMode.trim().toLowerCase();
+        if (!"user-svc".equals(mode)) {
+            log.info("chat.friends.auth-mode={} 已废弃，好友鉴权统一走 user-svc 内部接口", mode);
+        }
     }
 
     public void assertCanMessage(Integer senderId, Integer receiverId) {
@@ -30,10 +34,11 @@ public class CanMessageGuard {
     }
 
     public boolean canMessage(Integer senderId, Integer receiverId) {
-        return switch (mode) {
-            case "user-svc" -> remote.canMessage(senderId, receiverId);
-            case "local" -> local.canMessage(senderId, receiverId);
-            default -> remote.canMessageOrFallback(senderId, receiverId, local);
-        };
+        try {
+            return remote.canMessage(senderId, receiverId);
+        } catch (Exception exception) {
+            log.warn("user-svc 好友鉴权失败，按非好友拒绝: {}", exception.getMessage());
+            return false;
+        }
     }
 }

@@ -6,7 +6,7 @@ import com.typinggame.common.exception.BusinessException;
 import com.typinggame.user.entity.UserAppConfig;
 import com.typinggame.entity.game.UserGameModeConfig;
 import com.typinggame.entity.game.UserMonsterConfig;
-import com.typinggame.entity.message.FriendRelation;
+import com.typinggame.user.entity.FriendRelation;
 import com.typinggame.entity.model.UserModelParams;
 import com.typinggame.entity.user.UserDailyStats;
 import com.typinggame.entity.user.UserInfo;

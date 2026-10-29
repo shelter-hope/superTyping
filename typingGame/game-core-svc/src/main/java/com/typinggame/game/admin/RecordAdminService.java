@@ -3,7 +3,7 @@ package com.typinggame.game.admin;
 import com.typinggame.common.admin.AdminFilter;
 import com.typinggame.common.admin.AdminPageSupport;
 import com.typinggame.entity.game.GameRecord;
-import com.typinggame.entity.game.StringParent;
+import com.typinggame.game.entity.StringParent;
 import com.typinggame.entity.user.CharacterStats;
 import com.typinggame.game.repository.CharacterStatsRepository;
 import com.typinggame.game.repository.GameRecordRepository;

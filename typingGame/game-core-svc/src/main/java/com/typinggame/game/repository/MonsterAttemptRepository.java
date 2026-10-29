@@ -1,6 +1,6 @@
 package com.typinggame.game.repository;
 
-import com.typinggame.entity.game.MonsterAttempt;
+import com.typinggame.game.entity.MonsterAttempt;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

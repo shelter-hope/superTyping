@@ -8,13 +8,11 @@ import com.typinggame.chat.application.NotificationQueryService;
 import com.typinggame.chat.application.RecallMessageService;
 import com.typinggame.chat.application.SendMessageService;
 import com.typinggame.chat.friends.CanMessageGuard;
-import com.typinggame.chat.friends.JpaCanMessageAdapter;
 import com.typinggame.chat.friends.UserSvcCanMessageAdapter;
 import com.typinggame.chat.im.ImEventBus;
 import com.typinggame.chat.im.MessagePolicy;
 import com.typinggame.chat.repository.ChatAttachmentRepository;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
-import com.typinggame.chat.repository.FriendRelationRepository;
 import com.typinggame.chat.repository.SystemNotificationRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
 import com.typinggame.chat.repository.UserInfoRepository;
@@ -23,7 +21,6 @@ import com.typinggame.common.exception.BusinessException;
 import com.typinggame.dto.message.MessageDTO;
 import com.typinggame.chat.entity.ChatAttachment;
 import com.typinggame.chat.entity.FriendChatMessage;
-import com.typinggame.entity.message.FriendRelation;
 import com.typinggame.chat.entity.SystemNotification;
 import com.typinggame.chat.entity.UserConversation;
 import com.typinggame.enums.ReadStatus;
@@ -45,7 +42,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -57,7 +53,7 @@ class MessageServiceImplTest {
     @Mock private FriendChatMessageRepository friendChatMessageRepository;
     @Mock private UserConversationRepository userConversationRepository;
     @Mock private UserInfoRepository userInfoRepository;
-    @Mock private FriendRelationRepository friendRelationRepository;
+    @Mock private UserSvcCanMessageAdapter userSvcCanMessageAdapter;
     @Mock private ImEventBus imEventBus;
     @Mock private SystemNotificationRepository systemNotificationRepository;
     @Mock private ChatAttachmentService chatAttachmentService;
@@ -71,10 +67,7 @@ class MessageServiceImplTest {
         ConversationSupport conversationSupport = new ConversationSupport(userConversationRepository);
         NotificationQueryService notificationQueryService = new NotificationQueryService(
                 friendChatMessageRepository, systemNotificationRepository, userConversationRepository, mapper);
-        CanMessageGuard canMessageGuard = new CanMessageGuard(
-                new JpaCanMessageAdapter(friendRelationRepository),
-                mock(UserSvcCanMessageAdapter.class),
-                "local");
+        CanMessageGuard canMessageGuard = new CanMessageGuard(userSvcCanMessageAdapter, "user-svc");
         SendMessageService sendMessageService = new SendMessageService(
                 friendChatMessageRepository, canMessageGuard, chatAttachmentService,
                 conversationSupport, mapper, imEventBus);
@@ -151,7 +144,7 @@ class MessageServiceImplTest {
     @Test
     void nonFriendAndBlockedCannotSend() {
         when(friendChatMessageRepository.findFirstBySenderIdAndClientMsgId(3, "c")).thenReturn(Optional.empty());
-        when(friendRelationRepository.findAccepted(3, 5)).thenReturn(Optional.empty());
+        when(userSvcCanMessageAdapter.canMessage(3, 5)).thenReturn(false);
 
         assertThrows(IllegalArgumentException.class, () -> service.sendMessage(3, 5, "hi", "text", "c"));
     }
@@ -242,7 +235,7 @@ class MessageServiceImplTest {
         receiver.setUserId(5);
         receiver.setTargetUserId(3);
         when(friendChatMessageRepository.findFirstBySenderIdAndClientMsgId(eq(3), any())).thenReturn(Optional.empty());
-        when(friendRelationRepository.findAccepted(3, 5)).thenReturn(Optional.of(new FriendRelation()));
+        when(userSvcCanMessageAdapter.canMessage(3, 5)).thenReturn(true);
         when(userConversationRepository.findByUserIdAndTargetUserId(3, 5)).thenReturn(Optional.of(sender));
         when(userConversationRepository.findByUserIdAndTargetUserId(5, 3)).thenReturn(Optional.of(receiver));
         when(friendChatMessageRepository.maxServerSeq(any())).thenReturn(0);

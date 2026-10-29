@@ -2,7 +2,7 @@ package com.typinggame.chat.im;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.typinggame.chat.repository.FriendRelationRepository;
+import com.typinggame.chat.friends.UserSvcFriendsClient;
 import com.typinggame.chat.repository.UserInfoRepository;
 import com.typinggame.chat.service.MessageService;
 import com.typinggame.common.im.ImContracts;
@@ -29,7 +29,7 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
     private final ImSessionRegistry sessionRegistry;
     private final MessageService messageService;
     private final UserInfoRepository userInfoRepository;
-    private final FriendRelationRepository friendRelationRepository;
+    private final UserSvcFriendsClient userSvcFriendsClient;
     private final ImEventBus imEventBus;
     private final PresenceStore presenceStore;
     private final ObjectMapper objectMapper;
@@ -38,14 +38,14 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
     public OvernightImWebSocketHandler(ImSessionRegistry sessionRegistry,
                                        MessageService messageService,
                                        UserInfoRepository userInfoRepository,
-                                       FriendRelationRepository friendRelationRepository,
+                                       UserSvcFriendsClient userSvcFriendsClient,
                                        ImEventBus imEventBus,
                                        PresenceStore presenceStore,
                                        ObjectMapper objectMapper) {
         this.sessionRegistry = sessionRegistry;
         this.messageService = messageService;
         this.userInfoRepository = userInfoRepository;
-        this.friendRelationRepository = friendRelationRepository;
+        this.userSvcFriendsClient = userSvcFriendsClient;
         this.imEventBus = imEventBus;
         this.presenceStore = presenceStore;
         this.objectMapper = objectMapper;
@@ -164,7 +164,7 @@ public class OvernightImWebSocketHandler extends TextWebSocketHandler {
         payload.put("type", ImContracts.TYPE_PRESENCE);
         payload.put("userId", userId);
         payload.put("online", online);
-        imEventBus.publish(friendRelationRepository.findFriendIds(userId), payload);
+        imEventBus.publish(userSvcFriendsClient.findFriendIds(userId), payload);
     }
 
     private boolean allowed(Integer userId) {

@@ -1,7 +1,7 @@
 package com.typinggame.game.service;
 
 import com.typinggame.entity.game.GameRecord;
-import com.typinggame.entity.model.ModelConstant;
+import com.typinggame.game.entity.ModelConstant;
 import com.typinggame.entity.model.ModelInitParams;
 
 import java.util.List;
@@ -28,8 +28,8 @@ public interface InternalAdminService {
     List<ModelInitParams> getModelInitParamsByMode(String gameMode);
     boolean updateModelConstant(Integer id, ModelConstant body);
     boolean updateModelInitParam(Integer id, ModelInitParams body);
-    boolean updateMonsterTypeConfig(Integer id, com.typinggame.entity.config.SystemMonsterTypeConfig body);
-    boolean updateMonsterCommonConfig(Integer id, com.typinggame.entity.config.SystemMonsterCommoConfig body);
+    boolean updateMonsterTypeConfig(Integer id, com.typinggame.game.entity.SystemMonsterTypeConfig body);
+    boolean updateMonsterCommonConfig(Integer id, com.typinggame.game.entity.SystemMonsterCommoConfig body);
     Map<String, Object> getGameModeConfigs(int page, int pageSize);
     void updateGameModeConfig(Integer id, Map<String, Object> updates);
     Map<String, Object> getAdaptLogs(int page, int pageSize, Integer userId, String gameMode, String startDate, String endDate);

@@ -1,17 +1,14 @@
 package com.typinggame.chat.friends;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
+/** user-svc 内部好友鉴权接口客户端；失败由 {@link CanMessageGuard} 按拒绝处理。 */
 @Component
-public class UserSvcCanMessageAdapter {
-    private static final Logger log = LoggerFactory.getLogger(UserSvcCanMessageAdapter.class);
-
+public class UserSvcCanMessageAdapter implements CanMessagePort {
     private final RestTemplate restTemplate;
     private final String baseUrl;
 
@@ -21,6 +18,7 @@ public class UserSvcCanMessageAdapter {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
+    @Override
     public boolean canMessage(Integer senderId, Integer receiverId) {
         String url = baseUrl + "/api/v1/internal/friends/can-message?senderId={senderId}&receiverId={receiverId}";
         @SuppressWarnings("unchecked")
@@ -29,14 +27,5 @@ public class UserSvcCanMessageAdapter {
             throw new IllegalStateException("user-svc 好友鉴权无响应");
         }
         return Boolean.TRUE.equals(body.get("allowed"));
-    }
-
-    public boolean canMessageOrFallback(Integer senderId, Integer receiverId, CanMessagePort fallback) {
-        try {
-            return canMessage(senderId, receiverId);
-        } catch (Exception exception) {
-            log.warn("user-svc 好友鉴权失败，回退本地查询: {}", exception.getMessage());
-            return fallback.canMessage(senderId, receiverId);
-        }
     }
 }

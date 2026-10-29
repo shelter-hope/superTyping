@@ -1,6 +1,6 @@
 package com.typinggame.user.service.impl;
 
-import com.typinggame.entity.message.FriendRelation;
+import com.typinggame.user.entity.FriendRelation;
 import com.typinggame.enums.FriendRelationStatus;
 import com.typinggame.user.repository.FriendRelationRepository;
 import com.typinggame.user.service.FriendMessagingGuard;

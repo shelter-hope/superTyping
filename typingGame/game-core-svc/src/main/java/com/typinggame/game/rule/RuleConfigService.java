@@ -3,7 +3,7 @@ package com.typinggame.game.rule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.typinggame.entity.config.GameRuleConfig;
+import com.typinggame.game.entity.GameRuleConfig;
 import com.typinggame.game.repository.GameRuleConfigRepository;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;

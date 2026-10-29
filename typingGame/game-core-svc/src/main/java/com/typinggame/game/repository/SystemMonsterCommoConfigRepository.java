@@ -1,6 +1,6 @@
 package com.typinggame.game.repository;
 
-import com.typinggame.entity.config.SystemMonsterCommoConfig;
+import com.typinggame.game.entity.SystemMonsterCommoConfig;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
