@@ -14,7 +14,7 @@
 typingGame/
 ├── pom.xml                     # 聚合父 POM（packaging=pom）
 ├── libs/                       # 只放库，不放可启动服务（P1 已落地）
-│   ├── kernel/                 # DTO、枚举、工具、VO、ResultMessage/BusinessException、全局异常、Admin 过滤器、IM 契约，以及 5 个仍被多服务共读的共享实体（GameCharTypeConfig、SystemGameModeConfig、SystemMonsterConfig、ModelInitParams、KeyConfusion）
+│   ├── kernel/                 # DTO、枚举、工具、VO、ResultMessage/BusinessException、全局异常、Admin 过滤器、IM 契约；kernel 不含任何 JPA 实体，实体一律归属具体服务
 │   ├── security/               # JwtTokenProvider、JwtAuthenticationFilter、TokenRevocation
 │   └── testing/                # 测试基类（可选）
 ├── services/                   # 8 个可启动服务（P2 迁移完成后使用；当前仍在根目录）
@@ -171,7 +171,7 @@ entity ← 仅 repository / service / config / support
 | --- | --- | --- |
 | leaderboard | `com.typinggame.game.entity.LeaderboardEntry` | game-core 的 `@EntityScan` 增加自有实体包 |
 | AI 消息 | `com.typinggame.ai.entity.AiChatMessage/AiConversation` | ai-svc 同上；其余服务已无旧 FQN 引用 |
-| 聊天消息 | `com.typinggame.chat.entity.FriendChatMessage/UserConversation/ChatAttachment/SystemNotification` | chat-svc 同上；`FriendRelation` 因 user-svc 共用暂留 kernel |
+| 聊天消息 | `com.typinggame.chat.entity.FriendChatMessage/UserConversation/ChatAttachment/SystemNotification` | chat-svc 同上；`FriendRelation` 已迁入 user-svc |
 | 用户配置/快照 | `com.typinggame.user.entity.UserAppConfig/UserInfoSnapshot` | user-svc 同上 |
 | 词库 | `com.typinggame.dict.entity.CustomDictionary/SystemDictionary/DictionaryWord/SystemDictionaryWord` | dict-svc 新增内部接口 `POST /api/v1/internal/dictionaries/{ids,words,practice}`；game-core 删除 4 个 `Game*Dictionary*Repository` 与 `JpaWordSource`，改用 `HttpWordSource`（读）与 `DictionaryPracticeClient`（结算写回），`WordSource` 端口语义不变 |
 | 好友关系 | `com.typinggame.user.entity.FriendRelation` | user-svc 新增 `GET /api/v1/internal/friends/ids`；chat-svc 删除 `FriendRelationRepository` 与 `JpaCanMessageAdapter`，改由 `UserSvcCanMessageAdapter`（鉴权）与 `UserSvcFriendsClient`（好友 ID 列表）远程获取，`chat.friends.auth-mode` 固定为 `user-svc` |
