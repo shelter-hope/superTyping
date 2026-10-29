@@ -4,6 +4,12 @@
 > 审计时间：2026-10-30
 > 结论先行：**后端不是“有的不是微服务”，而是“8 个服务共用 1 个库、1 套全量实体、1 个上帝公共库”；部署上是 8 个进程，数据与代码边界上接近单体。**
 
+> **执行状态（2026-10-30 更新）**
+> - ✅ **P0 已完成**（提交 `8d5347e`）：规范文件、8 个服务的 ArchUnit 护栏、lab-svc 配置拆分、网关单份路由、`deploy/` 与 Dockerfile、compose 样板。
+> - ✅ **P1 已完成**：`common` 拆为 `libs/kernel` + `libs/security`（包名不变），7 个服务改为双库依赖，删除死代码 `TraceIdFilter` 与未使用的 `SecurityConfigBase`。
+> - ⏭ 下一步 **P2**：把 `libs/kernel` 里的实体 / DTO / repository 按表归属迁回各服务。
+> - 下文“一、现状盘点”记录的是 **P0 前的原始状态**，用于说明改造理由，不再代表当前代码。
+
 ---
 
 ## 一、现状盘点
@@ -254,8 +260,8 @@ com.typinggame.<svc>/
 | 阶段 | 内容 | 验收 | 风险 |
 |---|---|---|---|
 | **P0 规范化基线（1–2 天）** | 写 `docs/backend-structure-spec.md`；引入 ArchUnit（先只禁用“跨服务 import”）；统一配置写法（先改 `lab-svc` 内联 → application-local.yml）；修根 `Dockerfile` 与 compose（至少能构建一个服务）；网关路由表合并为单份 | `mvn -q -DskipTests compile` 全绿；每个服务本地 `GET /actuator/health` 200；`docker build` 可产出 1 个服务镜像 | 低 |
-| **P1 拆分 common（2–3 天）** | 建 `libs/kernel`、`libs/security`；`common` 中的 security/exception/admin/im/observability/enums/util/vo 迁过去；`common` 临时保留实体/DTO | 全量编译 + 31 个测试类通过；服务启动无 Bean 报错 | 低 |
-| **P2 实体/DTO 归位（1–2 周）** | 按 3.4 表归属把 entity/dto/repository 迁到各服务；跨域读先改 API（带缓存与降级）；删除 `common` 剩余内容 | 全量编译 + 测试通过；`common` 目录删除；ArchUnit 的“禁止跨服务 entity import”规则打开后通过；每个服务启动只加载自己 schema 的表 | **中高**（数据边界改动，建议按域逐个提交可回滚） |
+| **P1 拆分 common（2–3 天）——已完成** | 建 `libs/kernel`、`libs/security`；`common` 全部内容按职责迁入（kernel：entity/dto/enums/util/vo/exception/admin/im；security：security），删除 `observability` 死代码与未使用的 `SecurityConfigBase`；7 个服务改为依赖 `typing-game-kernel` + `typing-game-security`；**Java 包名保持不变**，零 import 改动 | `mvn -o test` 全绿（11 模块、39 个测试）；8 个 ArchUnit 护栏通过 | 低 |
+| **P2 实体/DTO 归位（1–2 周）** | 按 3.4 表归属把 `libs/kernel` 里的 entity/dto/repository 迁到各服务；跨域读先改 API（带缓存与降级）；kernel 只留真正的横切类型 | 全量编译 + 测试通过；kernel 内不再包含业务实体；ArchUnit 的“禁止跨服务 entity import”规则打开后通过；每个服务启动只加载自己 schema 的表 | **中高**（数据边界改动，建议按域逐个提交可回滚） |
 | **P3 统一内部结构（3–5 天）** | 每个服务按 3.2 模板重排包；统一 interface+impl 规则；清理领域包（`chat/application`、`game/rule` 等归入 `service`/`support`） | ArchUnit 全规则通过；`mvn verify` 全绿 | 中（机械移动，但文件多） |
 | **P4 数据与部署（1–2 周）** | 分 schema + Flyway baseline；`ddl-auto=validate`；网关路由仓库化；每服务 Dockerfile + compose 全链路 | `docker compose up` 起全套；冒烟脚本跑通 171 个端点的核心路径；Flyway 在空库可完整迁移 | **高**（需要停机窗口/双写方案） |
 | **P5 契约与文档（2–3 天）** | springdoc + 网关文档；重写 `docs/backend-architecture.md`、`项目公共约束.md §2.1/2.2`；README 更新 | 文档与代码一致；新同学能按 spec 一次放对文件 | 低 |

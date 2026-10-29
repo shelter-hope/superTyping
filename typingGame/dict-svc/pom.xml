@@ -17,7 +17,12 @@
     <dependencies>
         <dependency>
             <groupId>com.typinggame</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>typing-game-kernel</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typinggame</groupId>
+            <artifactId>typing-game-security</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

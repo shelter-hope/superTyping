@@ -6,16 +6,16 @@
 
 ## 1. 适用范围
 
-`typingGame/` 下所有 Maven 模块：1 个父 POM、8 个可启动服务（api-gateway、user-svc、game-core-svc、ai-svc、chat-svc、dict-svc、lab-svc、admin-svc），以及后续从 `common` 拆出的 `libs/*`。
+`typingGame/` 下所有 Maven 模块：1 个父 POM、2 个公共库（`libs/kernel`、`libs/security`）、8 个可启动服务（api-gateway、user-svc、game-core-svc、ai-svc、chat-svc、dict-svc、lab-svc、admin-svc）。
 
 ## 2. 目录布局（目标态）
 
 ```
 typingGame/
 ├── pom.xml                     # 聚合父 POM（packaging=pom）
-├── libs/                       # 只放库，不放可启动服务
-│   ├── kernel/                 # ResultMessage、ErrorCode、BusinessException、全局异常、TraceId、工具
-│   ├── security/               # JwtTokenProvider、JwtAuthenticationFilter、SecurityConfigBase、TokenRevocation
+├── libs/                       # 只放库，不放可启动服务（P1 已落地）
+│   ├── kernel/                 # 实体、DTO、枚举、工具、VO、ResultMessage/BusinessException、全局异常、Admin 过滤器、IM 契约
+│   ├── security/               # JwtTokenProvider、JwtAuthenticationFilter、TokenRevocation
 │   └── testing/                # 测试基类（可选）
 ├── services/                   # 8 个可启动服务（P2 迁移完成后使用；当前仍在根目录）
 ├── deploy/
@@ -139,7 +139,7 @@ entity ← 仅 repository / service / config / support
 
 后续：
 
-- **P1**：`common` 拆为 `libs/kernel` + `libs/security`，删除 `common/observability` 死代码；
+- ~~**P1**：`common` 拆为 `libs/kernel` + `libs/security`~~（**已完成**：包名保持 `com.typinggame.*` 不变，7 个服务改为同时依赖 `typing-game-kernel` 与 `typing-game-security`；删除 `common/observability` 死代码与未被使用的 `SecurityConfigBase`）；
 - **P2**：实体/DTO/repository 按表归属迁回各服务；`controller` 不得依赖 `entity` 归零；跨服务读改 API；
 - **P3**：按第 3 节统一包结构，移动 `chat/application`、`game/rule`、`dict/dictionary` 等领域包到 `service`/`support`；
 - **P4**：分 schema + Flyway + 每服务 Dockerfile + compose 全栈；

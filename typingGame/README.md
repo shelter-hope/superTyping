@@ -113,18 +113,22 @@
 ```
 typingGame/
 ├── pom.xml                          # 聚合父项目，管理依赖版本
-├── common/                          # 公共模块（共享代码）
-│   ├── src/main/java/com/typinggame/
-│   │   ├── common/                  # 公共组件
-│   │   │   ├── config/              # 安全配置基类
-│   │   │   ├── exception/           # 全局异常处理
-│   │   │   └── security/            # 统一JWT安全组件
-│   │   ├── dto/                     # 共享DTO（按功能分组）
-│   │   ├── entity/                  # 共享实体（按功能分组）
-│   │   ├── enums/                   # 共享枚举
-│   │   ├── util/                    # 共享工具类
-│   │   └── vo/                      # 共享视图对象
-│   └── pom.xml
+├── libs/                            # 公共库（不启动、无业务入口）
+│   ├── kernel/                      # typing-game-kernel：实体 / DTO / 枚举 / 工具 / VO / 全局异常
+│   │   ├── src/main/java/com/typinggame/
+│   │   │   ├── common/              # 跨服务契约与横切组件
+│   │   │   │   ├── admin/           # 管理端过滤器与分页支持
+│   │   │   │   ├── exception/       # 全局异常处理
+│   │   │   │   └── im/              # IM 契约常量与在线状态键
+│   │   │   ├── dto/                 # 共享DTO（按功能分组）
+│   │   │   ├── entity/              # 共享实体（按功能分组）
+│   │   │   ├── enums/               # 共享枚举
+│   │   │   ├── util/                # 共享工具类
+│   │   │   └── vo/                  # 共享视图对象
+│   │   └── pom.xml
+│   └── security/                    # typing-game-security：JWT 签发校验、认证过滤器、令牌吊销
+│       ├── src/main/java/com/typinggame/common/security/
+│       └── pom.xml
 ├── api-gateway/                     # API网关
 │   ├── src/main/java/com/typinggame/gateway/
 │   │   └── GatewayApplication.java

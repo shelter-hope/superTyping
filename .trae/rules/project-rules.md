@@ -46,7 +46,9 @@
 
 - `app-64/`：前端 React + Vite 项目。
 - `typingGame/`：后端 Spring Boot 微服务父工程。
-- `typingGame/common/`：公共实体、DTO、工具与跨服务共享代码。
+- `typingGame/libs/kernel/`：共享内核库（实体、DTO、枚举、工具、VO、全局异常）；只放跨服务复用且无业务归属的代码。
+- `typingGame/libs/security/`：认证授权库（JWT 签发校验、认证过滤器、令牌吊销）。
+- `typingGame/libs/`：只放库，不放可启动服务；`typingGame/common/` 已在 P1 删除，不得恢复。
 - `typingGame/api-gateway/`：统一网关入口。
 - `typingGame/user-svc/`：用户、登录、配置、好友关系等用户域能力。
 - `typingGame/game-core-svc/`：游戏记录、统计、自适应、怪物、模型配置、排行榜等游戏核心能力。

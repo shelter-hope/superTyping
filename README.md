@@ -142,7 +142,8 @@ superTyping/
 │
 ├── typingGame/                      # 后端聚合工程
 │   ├── pom.xml
-│   ├── common/                      # 实体、DTO、JWT、全局异常
+│   ├── libs/kernel/                 # 共享内核库：实体、DTO、枚举、工具、全局异常
+│   ├── libs/security/               # 认证授权库：JWT、认证过滤器、令牌吊销
 │   ├── api-gateway/                 # 8080
 │   ├── user-svc/                    # 8081 认证、资料、好友
 │   ├── game-core-svc/               # 8082 对局、统计、自适应、排行榜

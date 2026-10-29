@@ -11,7 +11,9 @@
     <description>打字进化游戏 - 微服务聚合项目</description>
     
     <modules>
-        <module>common</module>
+        <!-- 公共库：kernel = 实体/DTO/异常等共享内核，security = JWT 认证授权 -->
+        <module>libs/kernel</module>
+        <module>libs/security</module>
         <module>api-gateway</module>
         <module>user-svc</module>
         <module>game-core-svc</module>
