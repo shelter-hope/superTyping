@@ -7,7 +7,7 @@ spring:
       discovery:
         server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
   datasource:
-    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/typing_word_game?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    url: ${MYSQL_URL:jdbc:mysql://127.0.0.1:3306/typing_game_game?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${MYSQL_USER:root}
     password: ${MYSQL_PASSWORD:123456}
   data:

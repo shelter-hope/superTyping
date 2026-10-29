@@ -302,3 +302,38 @@ com.typinggame.<svc>/
 5. 网关路由表合并为单份 `application.yml`。
 
 P0 完成后再决定 P1/P2 的节奏。
+
+---
+
+## 八、剩余任务清单（执行顺序，逐项提交不停顿）
+
+> 生成时间：2026-10-30。P0–P3 已完成，以下为 P4 起直到全部收尾的完整清单，按顺序执行，每项完成即提交并推送 gitee。
+
+### P4 数据与部署（进行中）
+
+- [ ] **P4-1 分 schema Flyway 脚本**：以 `DB/typing_word_game.sql` 为唯一源，按实体归属切成 7 份 `V1__init.sql`（`typing_game_user / _game / _ai / _chat / _admin / _lab / _dict`），跨 schema 外键降级为逻辑引用并在文档登记。
+- [ ] **P4-2 Flyway 接入**：7 个服务加 `flyway-core` + `flyway-mysql` 依赖；`spring.flyway.locations=classpath:db/migration`、`baseline-on-migrate=true`；数据源默认库名改为各自 schema；`ddl-auto=validate`。
+- [ ] **P4-3 部署全栈**：`deploy/docker/Dockerfile` 适配 8 个服务；`docker-compose.yml` 补齐 mysql 初始化（建 7 个 schema 的空库）+ nacos/redis + 8 个服务；新增 `deploy/smoke.sh`（或 `.ps1`）跑核心端点冒烟。
+- [ ] **P4-4 空库验证**：本地 MySQL 8.0.30 建 7 个空 schema → 逐份导入 `V1__init.sql` 验证 0 ERROR；`mvn -o test` 全量门禁；文档（spec §2 目录树、审计计划状态）同步。
+- [ ] **P4-5 网关路由仓库化**：路由表从「手写 yml + 服务 context-path 手工配对」改为按服务名自动推导（或至少集中成一份带注释的路由表并在测试里断言），去掉双份配置隐患。
+
+### P5 契约与文档
+
+- [ ] **P5-1 springdoc/OpenAPI**：每个服务引入 `springdoc-openapi-starter-webmvc-ui`，网关聚合或文档站列出 8 个服务的 spec；`/v3/api-docs` 可访问；内部接口 `/api/v1/internal/**` 在文档中显式标注。
+- [ ] **P5-2 文档重写**：重写 `docs/backend-architecture.md`（6 服务/旧 context-path 已过时）、`项目公共约束.md §2.1/2.2`、`README.md`（typingGame 与仓库根）、`typingGame/docs/backend-structure-spec.md §2` 目录树（补 `db/`、Flyway 位置、schema 清单）。
+- [ ] **P5-3 新同学检查单**：按 spec 新建一个"占位服务"模板分支验证一次（只动 pom + 目录 + 配置），确认 spec 可照抄。
+
+### 遗留与工程化
+
+- [ ] **L1 真机联调冒烟**：待 8080–8087 空闲时启动 8 个服务 + MySQL + Redis + Nacos，跑 `/api/v1/auth/login`、`/api/v1/game/round`、`/api/v1/internal/**` 等核心路径；记录一份 `docs/smoke-report.md`。
+- [ ] **L2 前端小收口**：`tabs.tsx` 旧样式、`Header` 未读徽章旧样式、`ChatPage` 高度写死 `calc(100vh-60px)`、趋势页「最近采样」改为逐局口径。
+- [ ] **L3 ai-svc 测试补齐**：controller + service 基础用例（当前只有 4 个 ArchUnit 用例）。
+- [ ] **L4 github 补推**：网络恢复后 `git push github master`，保持与 gitee 一致。
+- [ ] **L5 CI（可选）**：Gitee/GitHub Actions 跑 `mvn -o test` + 前端 `npm run build`；未拍板前不做。
+
+### 判定标准
+
+- 所有阶段以「本模块测试 + 全量 `mvn -o test` + 工作区干净 + gitee 已推送」为完成条件；
+- 每完成一项在本文档勾选并写明提交号；
+- 跨服务行为以 `/api/v1/internal/**` 为唯一通道，网关对 `/internal/` 一律 404。
+

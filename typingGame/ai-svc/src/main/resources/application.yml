@@ -8,6 +8,11 @@ spring:
     name: ai-svc
   profiles:
     default: local
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
   config:
     import:
       - optional:classpath:config/config.properties
