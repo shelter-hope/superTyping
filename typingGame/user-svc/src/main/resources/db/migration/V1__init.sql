@@ -35,11 +35,17 @@ CREATE TABLE user_info (
     KEY idx_user_info_create_time (create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户信息表';
 
+-- 默认账号：admin/admin123（管理员）、test/test123（普通用户），密码为 bcrypt 哈希
+INSERT INTO user_info (username, password, nickname, role) VALUES
+('admin', '$2a$10$ErIkTsllHveFnbk9lyrjsuzfvEJX0SpFtIfDp/BEJgCgDxKxsfP/u', '管理员', 'admin'),
+('test', '$2a$10$WhFNEMcnX8WkaxtDFrJICuEXesfhIj8WKAKhf0XU5wnz1r4Hzr9xS', '测试用户', 'user')
+AS new ON DUPLICATE KEY UPDATE nickname = new.nickname, role = new.role;
+
 DROP TABLE IF EXISTS user_daily_stats;
 CREATE TABLE user_daily_stats (
     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     user_id INT NOT NULL COMMENT '关联用户ID',
-    stat_date DATETIME NOT NULL COMMENT '统计日期（取当天 00:00:00）',
+    stat_date DATE NOT NULL COMMENT '统计日期',
     game_count INT DEFAULT 0 COMMENT '当日游戏场数',
     total_score INT DEFAULT 0 COMMENT '当日总积分',
     avg_speed DECIMAL(5,2) DEFAULT 0.00 COMMENT '当日平均速度（字符/分钟）',
@@ -69,18 +75,6 @@ CREATE TABLE user_info_snapshot (
     game_num INT DEFAULT 0 COMMENT '快照时的游戏总场数',
     KEY idx_user_info_snapshot_user_time (user_id, snapshot_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家历史快照表';
-
-DROP TABLE IF EXISTS key_confusion;
-CREATE TABLE key_confusion (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
-    user_id INT NOT NULL COMMENT '关联用户ID',
-    expected_char VARCHAR(10) COLLATE utf8mb4_bin NOT NULL COMMENT '本该输入的字符（区分大小写）',
-    typed_char VARCHAR(10) COLLATE utf8mb4_bin NOT NULL COMMENT '实际打出来的字符（区分大小写）',
-    confusion_count INT NOT NULL DEFAULT 0 COMMENT '累计混淆次数',
-    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    UNIQUE KEY uk_key_confusion_user_pair (user_id, expected_char, typed_char),
-    KEY idx_key_confusion_user_count (user_id, confusion_count DESC)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='按键混淆档案';
 
 DROP TABLE IF EXISTS friend_relation;
 CREATE TABLE friend_relation (

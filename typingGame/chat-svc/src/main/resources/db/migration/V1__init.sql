@@ -36,7 +36,7 @@ CREATE TABLE friend_chat_message (
     client_msg_id VARCHAR(64) NULL COMMENT '客户端幂等键',
     server_seq INT NULL COMMENT '服务端序号',
     send_time DATETIME NOT NULL COMMENT '消息发送时间',
-    read_status TINYINT NOT NULL DEFAULT 0 COMMENT '阅读状态 0-未读 1-已读',
+    read_status INT NOT NULL DEFAULT 0 COMMENT '阅读状态 0-未读 1-已读',
     read_time DATETIME NULL COMMENT '阅读时间，状态为1时必填',
     is_recall TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否撤回 0-否 1-是',
     recall_time DATETIME NULL COMMENT '撤回时间，状态为1时必填',

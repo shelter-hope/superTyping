@@ -11,12 +11,30 @@ param(
 $ErrorActionPreference = 'Continue'
 $script:failures = 0
 
-function Check([string]$name, [string]$url, [string]$expectedPattern = '') {
+function Check([string]$name, [string]$url, [string]$expectedPattern = '', [hashtable]$headers = $null) {
     try {
-        $resp = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 10
+        $args = @{ Uri = $url; UseBasicParsing = $true; TimeoutSec = 10 }
+        if ($headers) { $args.Headers = $headers }
+        $resp = Invoke-WebRequest @args
         $body = $resp.Content
         if ($expectedPattern -and $body -notmatch $expectedPattern) {
             Write-Host ("[FAIL] {0} -> {1} (body: {2})" -f $name, $resp.StatusCode, $body.Substring(0, [Math]::Min(160, $body.Length))) -ForegroundColor Red
+            $script:failures++
+        } else {
+            Write-Host ("[ OK ] {0} -> {1}" -f $name, $resp.StatusCode) -ForegroundColor Green
+        }
+    } catch {
+        Write-Host ("[FAIL] {0} -> {1}" -f $name, $_.Exception.Message) -ForegroundColor Red
+        $script:failures++
+    }
+}
+
+function CheckPost([string]$name, [string]$url, [string]$body, [string]$expectedPattern = '') {
+    try {
+        $resp = Invoke-WebRequest -Uri $url -Method Post -ContentType 'application/json' -Body $body -UseBasicParsing -TimeoutSec 10
+        $content = $resp.Content
+        if ($expectedPattern -and $content -notmatch $expectedPattern) {
+            Write-Host ("[FAIL] {0} -> {1} (body: {2})" -f $name, $resp.StatusCode, $content.Substring(0, [Math]::Min(160, $content.Length))) -ForegroundColor Red
             $script:failures++
         } else {
             Write-Host ("[ OK ] {0} -> {1}" -f $name, $resp.StatusCode) -ForegroundColor Green
@@ -61,21 +79,21 @@ foreach ($svc in $services) {
 }
 
 Write-Host "`n== 2/3 业务链路（经网关）==" -ForegroundColor Cyan
-Check '登录 test/test123' "$BaseUrl/api/v1/auth/login" 'token'
+CheckPost '登录 test/test123' "$BaseUrl/api/v1/auth/login" '{"username":"test","password":"test123"}' '"accessToken"'
 
 $token = ''
 try {
     $login = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/login" -Method Post -ContentType 'application/json' `
         -Body '{"username":"test","password":"test123"}' -TimeoutSec 10
-    if ($login.data.token) { $token = $login.data.token }
+    if ($login.data.accessToken) { $token = $login.data.accessToken } elseif ($login.data.token) { $token = $login.data.token }
 } catch { }
 
 if ($token) {
     $headers = @{ Authorization = "Bearer $token" }
-    Check '当前用户 /api/v1/user/me'    "$BaseUrl/api/v1/user/me" 'username'
+    Check '当前用户配置 /api/v1/user/config' "$BaseUrl/api/v1/user/config" '"userId"' $headers
     Check '排行榜 /api/v1/leaderboard'  "$BaseUrl/api/v1/leaderboard?gameMode=endless&limit=5"
-    Check '词库列表 /api/v1/dictionary' "$BaseUrl/api/v1/dictionary"
-    Check '游戏规则 /api/v1/game/rules' "$BaseUrl/api/v1/game/rules"
+    Check '词库列表 /api/v1/dictionary' "$BaseUrl/api/v1/dictionaries/system" '' $headers
+    Check '游戏规则 /api/v1/game/config/char-types' "$BaseUrl/api/v1/game/config/char-types" '' $headers
 
     # 内部接口必须对网关不可见（安全断言）
     try {
