@@ -1,10 +1,10 @@
 package com.typinggame.chat.service.impl;
 
-import com.typinggame.chat.application.ConversationQueryService;
-import com.typinggame.chat.application.MessageReadService;
-import com.typinggame.chat.application.NotificationQueryService;
-import com.typinggame.chat.application.RecallMessageService;
-import com.typinggame.chat.application.SendMessageService;
+import com.typinggame.chat.service.application.ConversationQueryService;
+import com.typinggame.chat.service.application.MessageReadService;
+import com.typinggame.chat.service.application.NotificationQueryService;
+import com.typinggame.chat.service.application.RecallMessageService;
+import com.typinggame.chat.service.application.SendMessageService;
 import com.typinggame.chat.service.MessageService;
 import com.typinggame.dto.message.MessageDTO;
 import org.springframework.stereotype.Service;

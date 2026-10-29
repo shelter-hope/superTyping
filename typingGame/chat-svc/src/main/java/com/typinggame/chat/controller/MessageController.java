@@ -1,7 +1,7 @@
 package com.typinggame.chat.controller;
 
-import com.typinggame.chat.im.MessagePolicy;
-import com.typinggame.chat.im.WsTicketService;
+import com.typinggame.chat.support.im.MessagePolicy;
+import com.typinggame.chat.support.im.WsTicketService;
 import com.typinggame.chat.service.ChatAttachmentService;
 import com.typinggame.chat.service.MessageService;
 import com.typinggame.dto.message.ChatAttachmentDTO;

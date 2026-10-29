@@ -1,9 +1,9 @@
 package com.typinggame.chat.service;
 
-import com.typinggame.chat.im.MessagePolicy;
+import com.typinggame.chat.support.im.MessagePolicy;
 import com.typinggame.chat.repository.ChatAttachmentRepository;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
-import com.typinggame.chat.storage.ChatFileStore;
+import com.typinggame.chat.support.storage.ChatFileStore;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.dto.message.ChatAttachmentDTO;
 import com.typinggame.chat.entity.ChatAttachment;

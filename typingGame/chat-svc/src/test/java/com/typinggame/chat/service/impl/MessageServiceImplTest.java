@@ -1,16 +1,16 @@
 package com.typinggame.chat.service.impl;
 
-import com.typinggame.chat.application.ConversationQueryService;
-import com.typinggame.chat.application.ConversationSupport;
-import com.typinggame.chat.application.MessageDtoMapper;
-import com.typinggame.chat.application.MessageReadService;
-import com.typinggame.chat.application.NotificationQueryService;
-import com.typinggame.chat.application.RecallMessageService;
-import com.typinggame.chat.application.SendMessageService;
-import com.typinggame.chat.friends.CanMessageGuard;
-import com.typinggame.chat.friends.UserSvcCanMessageAdapter;
-import com.typinggame.chat.im.ImEventBus;
-import com.typinggame.chat.im.MessagePolicy;
+import com.typinggame.chat.service.application.ConversationQueryService;
+import com.typinggame.chat.service.application.ConversationSupport;
+import com.typinggame.chat.service.application.MessageDtoMapper;
+import com.typinggame.chat.service.application.MessageReadService;
+import com.typinggame.chat.service.application.NotificationQueryService;
+import com.typinggame.chat.service.application.RecallMessageService;
+import com.typinggame.chat.service.application.SendMessageService;
+import com.typinggame.chat.service.friends.CanMessageGuard;
+import com.typinggame.chat.support.client.UserSvcCanMessageAdapter;
+import com.typinggame.chat.support.im.ImEventBus;
+import com.typinggame.chat.support.im.MessagePolicy;
 import com.typinggame.chat.repository.ChatAttachmentRepository;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
 import com.typinggame.chat.repository.SystemNotificationRepository;
