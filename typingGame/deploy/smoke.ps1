@@ -1,4 +1,4 @@
-# typing-game 冒烟脚本（P4-3）
+﻿# typing-game 冒烟脚本（P4-3）
 # 用途：compose 起栈后确认 8 个服务健康 + 关键业务链路可用
 # 用法：
 #   pwsh ./deploy/smoke.ps1                # 默认 127.0.0.1

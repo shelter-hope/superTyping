@@ -313,9 +313,9 @@ P0 完成后再决定 P1/P2 的节奏。
 
 - [x] **P4-1 分 schema Flyway 脚本**（`f9544fa`）：以 `DB/typing_word_game.sql` 为唯一源，切成 7 份 `V1__init.sql`（44 表 / 21 条同 schema 外键），跨 schema 21 条外键降级并登记 `DB/cross-schema-foreign-keys.md`；本地 MySQL 8.0.30 逐份导入 0 ERROR。
 - [x] **P4-2 Flyway 接入**（`f9544fa`）：7 个服务加 `flyway-core` + `flyway-mysql`；`spring.flyway.*` 开启、`baseline-on-migrate`；数据源默认库改为各自 schema；`ddl-auto` 默认 `validate`。
-- [x] **P4-3 部署全栈**：`deploy/docker/Dockerfile` 通用构建 + `docker-compose.yml` 补齐 nacos/redis/mysql + 8 个服务（各自 schema、健康检查、依赖顺序）+ `deploy/smoke.ps1`（8 个健康检查 + 登录/核心接口 + 内部接口经网关必须 404 断言）。
-- [ ] **P4-4 空库验证**：本地 MySQL 建 7 个空 schema → 逐份导入 `V1__init.sql` 验证 0 ERROR **（已手动验证，待纳入脚本门禁）**；`mvn -o test` 全量门禁；文档同步。
-- [ ] **P4-5 网关路由仓库化**：路由表从「手写 yml + 服务 context-path 手工配对」改为按服务名自动推导（或至少集中成一份带注释的路由表并在测试里断言），去掉双份配置隐患。
+- [x] **P4-3 部署全栈**（`bc3f466`）：`deploy/docker/Dockerfile` 通用构建 + `docker-compose.yml` 补齐 nacos/redis/mysql + 8 个服务（各自 schema、健康检查、依赖顺序）+ `deploy/smoke.ps1`（8 个健康检查 + 登录/核心接口 + 内部接口经网关必须 404 断言）。
+- [x] **P4-4 空库验证**：新增 `deploy/verify-migrations.ps1` 作为门禁——7 个服务各建临时 schema、执行自己的 `V1__init.sql`、用 `information_schema` 比对表数与脚本声明、断言无跨 schema 外键，实测 7/7 PASS（44 表 / 21 外键），随后删除临时 schema；`mvn -o test` 全量门禁同步。
+- [x] **P4-5 网关路由仓库化**：新增 `api-gateway/.../config/GatewayRouteConsistencyTest`——解析网关路由表，断言每个 `lb://<svc>` 的 `PrefixPath` 必为 `/<svc>`、路由 id 不重复，并在能读到兄弟模块源码时比对服务 `application.yml` 的 `context-path`，把「改一边忘另一边就 404」变成编译期可发现的测试失败。
 
 ### P5 契约与文档
 
