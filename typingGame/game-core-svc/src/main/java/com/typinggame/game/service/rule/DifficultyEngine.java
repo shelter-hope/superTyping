@@ -1,4 +1,4 @@
-package com.typinggame.game.rule;
+package com.typinggame.game.service.rule;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -3,11 +3,11 @@ package com.typinggame.game.service.word;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.MonsterDataRepository;
 import com.typinggame.game.repository.StringParentRepository;
-import com.typinggame.game.rule.DifficultyEngine;
-import com.typinggame.game.rule.DifficultyRule;
-import com.typinggame.game.rule.GeneticEngine;
-import com.typinggame.game.rule.GeneticRule;
-import com.typinggame.game.rule.RuleConfigProvider;
+import com.typinggame.game.service.rule.DifficultyEngine;
+import com.typinggame.game.service.rule.DifficultyRule;
+import com.typinggame.game.service.rule.GeneticEngine;
+import com.typinggame.game.service.rule.GeneticRule;
+import com.typinggame.game.service.rule.RuleConfigProvider;
 import com.typinggame.game.service.KeyConfusionService;
 import org.springframework.stereotype.Component;
 

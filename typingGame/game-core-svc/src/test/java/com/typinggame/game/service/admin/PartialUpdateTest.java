@@ -1,4 +1,4 @@
-package com.typinggame.game.admin;
+package com.typinggame.game.service.admin;
 
 import com.typinggame.game.entity.ModelConstant;
 import org.junit.jupiter.api.Test;

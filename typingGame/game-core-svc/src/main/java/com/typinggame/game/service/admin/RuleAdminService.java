@@ -1,4 +1,4 @@
-package com.typinggame.game.admin;
+package com.typinggame.game.service.admin;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;

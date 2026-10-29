@@ -1,4 +1,4 @@
-package com.typinggame.game.util;
+package com.typinggame.game.support.util;
 
 import com.typinggame.game.entity.GameRecord;
 

@@ -10,9 +10,9 @@ import com.typinggame.game.repository.ModelConstantRepository;
 import com.typinggame.game.repository.ModelInitParamsRepository;
 import com.typinggame.game.repository.SystemMonsterCommoConfigRepository;
 import com.typinggame.game.repository.UserModelParamsRepository;
-import com.typinggame.game.rule.DifficultyEngine;
-import com.typinggame.game.rule.DifficultyRule;
-import com.typinggame.game.rule.RuleConfigProvider;
+import com.typinggame.game.service.rule.DifficultyEngine;
+import com.typinggame.game.service.rule.DifficultyRule;
+import com.typinggame.game.service.rule.RuleConfigProvider;
 import com.typinggame.game.service.DifficultyModelService;
 import org.springframework.stereotype.Service;
 

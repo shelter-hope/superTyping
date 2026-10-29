@@ -1,4 +1,4 @@
-package com.typinggame.game.rule;
+package com.typinggame.game.service.rule;
 
 public interface RuleConfigProvider {
     DifficultyRule activeDifficulty();

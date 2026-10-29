@@ -1,4 +1,4 @@
-package com.typinggame.game.word;
+package com.typinggame.game.service.word;
 
 import java.util.ArrayList;
 import java.util.Collection;

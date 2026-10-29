@@ -1,9 +1,9 @@
 package com.typinggame.game.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.typinggame.game.rule.DifficultyRule;
-import com.typinggame.game.rule.RuleConfigService;
-import com.typinggame.game.rule.RuleValidator;
+import com.typinggame.game.service.rule.DifficultyRule;
+import com.typinggame.game.service.rule.RuleConfigService;
+import com.typinggame.game.service.rule.RuleValidator;
 import com.typinggame.vo.ResultMessage;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -5,11 +5,11 @@ import com.typinggame.game.entity.SystemMonsterTypeConfig;
 import com.typinggame.game.entity.GameRecord;
 import com.typinggame.game.entity.ModelConstant;
 import com.typinggame.entity.model.ModelInitParams;
-import com.typinggame.game.admin.ConfigAdminService;
-import com.typinggame.game.admin.ConfusionAdminService;
-import com.typinggame.game.admin.LeaderboardAdminService;
-import com.typinggame.game.admin.RecordAdminService;
-import com.typinggame.game.admin.RuleAdminService;
+import com.typinggame.game.service.admin.ConfigAdminService;
+import com.typinggame.game.service.admin.ConfusionAdminService;
+import com.typinggame.game.service.admin.LeaderboardAdminService;
+import com.typinggame.game.service.admin.RecordAdminService;
+import com.typinggame.game.service.admin.RuleAdminService;
 import com.typinggame.game.service.InternalAdminService;
 import org.springframework.stereotype.Service;
 

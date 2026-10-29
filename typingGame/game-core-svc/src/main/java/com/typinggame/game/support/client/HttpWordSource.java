@@ -1,6 +1,7 @@
-package com.typinggame.game.word;
+package com.typinggame.game.support.client;
 
 import com.typinggame.dto.dictionary.DictionaryIdsQueryDTO;
+import com.typinggame.game.service.word.WordSource;
 import com.typinggame.dto.dictionary.DictionaryWordItemDTO;
 import com.typinggame.dto.dictionary.DictionaryWordsQueryDTO;
 import org.slf4j.Logger;

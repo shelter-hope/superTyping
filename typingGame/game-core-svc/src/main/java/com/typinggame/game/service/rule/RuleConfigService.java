@@ -1,4 +1,4 @@
-package com.typinggame.game.rule;
+package com.typinggame.game.service.rule;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;

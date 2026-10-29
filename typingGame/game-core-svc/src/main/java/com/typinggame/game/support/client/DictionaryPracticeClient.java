@@ -1,4 +1,4 @@
-package com.typinggame.game.word;
+package com.typinggame.game.support.client;
 
 import com.typinggame.dto.dictionary.DictionaryPracticeUpdateDTO;
 import org.slf4j.Logger;

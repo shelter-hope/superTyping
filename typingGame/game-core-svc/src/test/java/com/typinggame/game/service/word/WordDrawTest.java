@@ -1,4 +1,4 @@
-package com.typinggame.game.word;
+package com.typinggame.game.service.word;
 
 import org.junit.jupiter.api.Test;
 

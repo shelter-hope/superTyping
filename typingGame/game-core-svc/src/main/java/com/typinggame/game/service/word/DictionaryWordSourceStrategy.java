@@ -1,10 +1,10 @@
 package com.typinggame.game.service.word;
 
 import com.typinggame.enums.GameMode;
-import com.typinggame.game.rule.DifficultyEngine;
-import com.typinggame.game.rule.RuleConfigProvider;
-import com.typinggame.game.word.WordDraw;
-import com.typinggame.game.word.WordSource;
+import com.typinggame.game.service.rule.DifficultyEngine;
+import com.typinggame.game.service.rule.RuleConfigProvider;
+import com.typinggame.game.service.word.WordDraw;
+import com.typinggame.game.service.word.WordSource;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;

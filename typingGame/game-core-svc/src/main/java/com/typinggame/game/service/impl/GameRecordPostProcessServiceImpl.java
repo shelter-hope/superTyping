@@ -17,13 +17,13 @@ import com.typinggame.game.repository.MonsterDataRepository;
 import com.typinggame.game.repository.StringParentRepository;
 import com.typinggame.game.repository.UserModelAdaptLogRepository;
 import com.typinggame.game.repository.UserModelParamsRepository;
-import com.typinggame.game.rule.DifficultyEngine;
-import com.typinggame.game.rule.DifficultyRule;
-import com.typinggame.game.rule.GeneticRule;
-import com.typinggame.game.rule.RuleConfigProvider;
+import com.typinggame.game.service.rule.DifficultyEngine;
+import com.typinggame.game.service.rule.DifficultyRule;
+import com.typinggame.game.service.rule.GeneticRule;
+import com.typinggame.game.service.rule.RuleConfigProvider;
 import com.typinggame.game.service.GameRecordPostProcessService;
 import com.typinggame.game.support.UserProfileClient;
-import com.typinggame.game.word.DictionaryPracticeClient;
+import com.typinggame.game.support.client.DictionaryPracticeClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,4 +1,4 @@
-package com.typinggame.game.admin;
+package com.typinggame.game.service.admin;
 
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;

@@ -1,4 +1,4 @@
-package com.typinggame.game.admin;
+package com.typinggame.game.service.admin;
 
 import com.typinggame.entity.user.KeyConfusion;
 import com.typinggame.game.repository.KeyConfusionRepository;

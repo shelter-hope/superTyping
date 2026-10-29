@@ -1,4 +1,4 @@
-package com.typinggame.game.rule;
+package com.typinggame.game.service.rule;
 
 public final class RuleValidator {
     private RuleValidator() {

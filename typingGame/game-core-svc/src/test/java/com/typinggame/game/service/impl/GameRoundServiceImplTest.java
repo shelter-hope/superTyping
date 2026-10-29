@@ -13,7 +13,7 @@ import com.typinggame.game.repository.GameSessionRepository;
 import com.typinggame.game.repository.MonsterAttemptRepository;
 import com.typinggame.game.repository.MonsterParentRelationRepository;
 import com.typinggame.game.repository.UserModelAdaptLogRepository;
-import com.typinggame.game.rule.RuleConfigProvider;
+import com.typinggame.game.service.rule.RuleConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
