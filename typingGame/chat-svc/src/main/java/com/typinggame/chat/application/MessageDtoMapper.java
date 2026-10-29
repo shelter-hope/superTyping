@@ -4,9 +4,9 @@ import com.typinggame.chat.im.MessagePolicy;
 import com.typinggame.chat.repository.ChatAttachmentRepository;
 import com.typinggame.chat.repository.UserInfoRepository;
 import com.typinggame.dto.message.MessageDTO;
-import com.typinggame.entity.message.ChatAttachment;
-import com.typinggame.entity.message.FriendChatMessage;
-import com.typinggame.entity.message.SystemNotification;
+import com.typinggame.chat.entity.ChatAttachment;
+import com.typinggame.chat.entity.FriendChatMessage;
+import com.typinggame.chat.entity.SystemNotification;
 import com.typinggame.enums.ReadStatus;
 import org.springframework.stereotype.Component;
 

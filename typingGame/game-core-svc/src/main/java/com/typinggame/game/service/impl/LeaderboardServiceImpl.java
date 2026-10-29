@@ -3,7 +3,7 @@ package com.typinggame.game.service.impl;
 import com.typinggame.game.repository.GameLeaderboardEntryRepository;
 import com.typinggame.game.service.LeaderboardService;
 import com.typinggame.dto.leaderboard.LeaderboardDTO;
-import com.typinggame.entity.leaderboard.LeaderboardEntry;
+import com.typinggame.game.entity.LeaderboardEntry;
 import com.typinggame.enums.GameMode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;

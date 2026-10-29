@@ -1,6 +1,6 @@
 package com.typinggame.user.controller;
 
-import com.typinggame.entity.config.UserAppConfig;
+import com.typinggame.user.entity.UserAppConfig;
 import com.typinggame.user.service.UserConfigService;
 import com.typinggame.vo.ResultMessage;
 import org.springframework.http.ResponseEntity;

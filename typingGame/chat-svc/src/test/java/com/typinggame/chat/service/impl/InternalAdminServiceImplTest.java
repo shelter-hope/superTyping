@@ -5,7 +5,7 @@ import com.typinggame.chat.repository.SystemNotificationRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
 import com.typinggame.chat.repository.UserInfoRepository;
 import com.typinggame.common.exception.BusinessException;
-import com.typinggame.entity.message.SystemNotification;
+import com.typinggame.chat.entity.SystemNotification;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

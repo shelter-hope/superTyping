@@ -7,7 +7,7 @@ import com.typinggame.dto.game.MonsterDataDTO;
 import com.typinggame.dto.stats.CharacterStatsBatchUpdateDTO;
 import com.typinggame.entity.game.GameRecord;
 import com.typinggame.entity.game.MonsterData;
-import com.typinggame.entity.leaderboard.LeaderboardEntry;
+import com.typinggame.game.entity.LeaderboardEntry;
 import com.typinggame.entity.user.UserInfo;
 import com.typinggame.enums.GameMode;
 import com.typinggame.game.repository.GameLeaderboardEntryRepository;

@@ -7,7 +7,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = {"com.typinggame.ai", "com.typinggame.common"})
-@EntityScan(basePackages = "com.typinggame.entity")
+@EntityScan(basePackages = {"com.typinggame.entity", "com.typinggame.ai.entity"})
 @EnableJpaRepositories(basePackages = "com.typinggame.ai.repository")
 @EnableDiscoveryClient
 public class AiServiceApplication {

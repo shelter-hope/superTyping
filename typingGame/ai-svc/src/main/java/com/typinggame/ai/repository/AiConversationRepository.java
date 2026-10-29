@@ -1,6 +1,6 @@
 package com.typinggame.ai.repository;
 
-import com.typinggame.entity.message.AiConversation;
+import com.typinggame.ai.entity.AiConversation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;

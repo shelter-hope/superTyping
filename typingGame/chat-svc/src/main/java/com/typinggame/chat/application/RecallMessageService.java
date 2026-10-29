@@ -6,8 +6,8 @@ import com.typinggame.chat.repository.FriendChatMessageRepository;
 import com.typinggame.chat.repository.UserConversationRepository;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.dto.message.MessageDTO;
-import com.typinggame.entity.message.FriendChatMessage;
-import com.typinggame.entity.message.UserConversation;
+import com.typinggame.chat.entity.FriendChatMessage;
+import com.typinggame.chat.entity.UserConversation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

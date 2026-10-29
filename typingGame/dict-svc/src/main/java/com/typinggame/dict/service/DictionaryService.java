@@ -1,8 +1,8 @@
 package com.typinggame.dict.service;
 
 import com.typinggame.dto.dictionary.DictionaryCreateDTO;
-import com.typinggame.entity.dictionaries.CustomDictionary;
-import com.typinggame.entity.dictionaries.SystemDictionary;
+import com.typinggame.dict.entity.CustomDictionary;
+import com.typinggame.dict.entity.SystemDictionary;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;

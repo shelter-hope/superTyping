@@ -1,4 +1,4 @@
-package com.typinggame.entity.message;
+package com.typinggame.chat.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

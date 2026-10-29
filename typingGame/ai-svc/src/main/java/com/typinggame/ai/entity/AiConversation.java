@@ -1,4 +1,4 @@
-package com.typinggame.entity.message;
+package com.typinggame.ai.entity;
 
 import com.typinggame.entity.user.UserInfo;
 import jakarta.persistence.*;

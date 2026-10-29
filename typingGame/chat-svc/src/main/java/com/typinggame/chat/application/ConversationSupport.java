@@ -1,8 +1,8 @@
 package com.typinggame.chat.application;
 
 import com.typinggame.chat.repository.UserConversationRepository;
-import com.typinggame.entity.message.FriendChatMessage;
-import com.typinggame.entity.message.UserConversation;
+import com.typinggame.chat.entity.FriendChatMessage;
+import com.typinggame.chat.entity.UserConversation;
 import org.springframework.stereotype.Component;
 
 @Component

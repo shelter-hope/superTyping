@@ -1,4 +1,4 @@
-package com.typinggame.entity.user;
+package com.typinggame.user.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

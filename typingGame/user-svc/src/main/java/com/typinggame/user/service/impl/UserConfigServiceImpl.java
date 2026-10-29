@@ -1,6 +1,6 @@
 package com.typinggame.user.service.impl;
 
-import com.typinggame.entity.config.UserAppConfig;
+import com.typinggame.user.entity.UserAppConfig;
 import com.typinggame.user.repository.UserAppConfigRepository;
 import com.typinggame.user.service.UserConfigService;
 import org.springframework.stereotype.Service;

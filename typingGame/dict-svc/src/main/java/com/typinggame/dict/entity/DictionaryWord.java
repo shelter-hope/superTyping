@@ -1,4 +1,4 @@
-package com.typinggame.entity.dictionaries;
+package com.typinggame.dict.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

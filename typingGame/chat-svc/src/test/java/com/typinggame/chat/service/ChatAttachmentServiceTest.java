@@ -5,7 +5,7 @@ import com.typinggame.chat.repository.ChatAttachmentRepository;
 import com.typinggame.chat.repository.FriendChatMessageRepository;
 import com.typinggame.chat.storage.ChatFileStore;
 import com.typinggame.common.exception.BusinessException;
-import com.typinggame.entity.message.ChatAttachment;
+import com.typinggame.chat.entity.ChatAttachment;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;

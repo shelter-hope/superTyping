@@ -1,4 +1,4 @@
-package com.typinggame.entity.config;
+package com.typinggame.user.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

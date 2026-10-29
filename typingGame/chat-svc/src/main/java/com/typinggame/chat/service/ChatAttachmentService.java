@@ -6,7 +6,7 @@ import com.typinggame.chat.repository.FriendChatMessageRepository;
 import com.typinggame.chat.storage.ChatFileStore;
 import com.typinggame.common.exception.BusinessException;
 import com.typinggame.dto.message.ChatAttachmentDTO;
-import com.typinggame.entity.message.ChatAttachment;
+import com.typinggame.chat.entity.ChatAttachment;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 

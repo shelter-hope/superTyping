@@ -1,6 +1,6 @@
 package com.typinggame.user.service;
 
-import com.typinggame.entity.config.UserAppConfig;
+import com.typinggame.user.entity.UserAppConfig;
 
 import java.util.Map;
 

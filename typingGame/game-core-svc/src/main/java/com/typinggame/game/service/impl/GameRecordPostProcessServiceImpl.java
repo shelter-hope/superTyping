@@ -1,7 +1,7 @@
 package com.typinggame.game.service.impl;
 
+import com.typinggame.dto.dictionary.DictionaryPracticeUpdateDTO;
 import com.typinggame.dto.game.GameRecordUploadDTO;
-import com.typinggame.entity.dictionaries.DictionaryWord;
 import com.typinggame.entity.game.GameRecord;
 import com.typinggame.entity.game.GameRound;
 import com.typinggame.entity.game.MonsterData;
@@ -12,7 +12,6 @@ import com.typinggame.entity.model.UserModelParams;
 import com.typinggame.entity.user.UserDailyStats;
 import com.typinggame.entity.user.UserInfo;
 import com.typinggame.enums.GameMode;
-import com.typinggame.game.repository.GameDictionaryWordRepository;
 import com.typinggame.game.repository.GameRoundRepository;
 import com.typinggame.game.repository.GameUserDailyStatsRepository;
 import com.typinggame.game.repository.ModelInitParamsRepository;
@@ -25,6 +24,7 @@ import com.typinggame.game.rule.DifficultyRule;
 import com.typinggame.game.rule.GeneticRule;
 import com.typinggame.game.rule.RuleConfigProvider;
 import com.typinggame.game.service.GameRecordPostProcessService;
+import com.typinggame.game.word.DictionaryPracticeClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,7 +50,7 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
     private final UserModelAdaptLogRepository adaptLogRepository;
     private final StringParentRepository stringParentRepository;
     private final MonsterDataRepository monsterDataRepository;
-    private final GameDictionaryWordRepository dictionaryWordRepository;
+    private final DictionaryPracticeClient dictionaryPracticeClient;
     private final GameRoundRepository gameRoundRepository;
     private final RuleConfigProvider ruleConfigProvider;
 
@@ -60,7 +60,7 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
                                              UserModelAdaptLogRepository adaptLogRepository,
                                              StringParentRepository stringParentRepository,
                                              MonsterDataRepository monsterDataRepository,
-                                             GameDictionaryWordRepository dictionaryWordRepository,
+                                             DictionaryPracticeClient dictionaryPracticeClient,
                                              GameRoundRepository gameRoundRepository,
                                              RuleConfigProvider ruleConfigProvider) {
         this.dailyStatsRepository = dailyStatsRepository;
@@ -69,7 +69,7 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
         this.adaptLogRepository = adaptLogRepository;
         this.stringParentRepository = stringParentRepository;
         this.monsterDataRepository = monsterDataRepository;
-        this.dictionaryWordRepository = dictionaryWordRepository;
+        this.dictionaryPracticeClient = dictionaryPracticeClient;
         this.gameRoundRepository = gameRoundRepository;
         this.ruleConfigProvider = ruleConfigProvider;
     }
@@ -258,48 +258,21 @@ public class GameRecordPostProcessServiceImpl implements GameRecordPostProcessSe
         if (uploadDTO == null || uploadDTO.getCustomDictIds() == null || uploadDTO.getCustomDictIds().isEmpty() || monsters == null || monsters.isEmpty()) {
             return;
         }
-        Set<String> targetWords = monsters.stream()
-                .map(MonsterData::getTargetStr)
-                .filter(s -> s != null && !s.isBlank())
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        if (targetWords.isEmpty()) return;
         Map<String, List<MonsterData>> monstersByWord = monsters.stream()
-                .filter(m -> m.getTargetStr() != null && !m.getTargetStr().isBlank())
+                .filter(monster -> monster.getTargetStr() != null && !monster.getTargetStr().isBlank())
                 .collect(Collectors.groupingBy(MonsterData::getTargetStr));
-        List<DictionaryWord> words = dictionaryWordRepository.findByDictIdInAndWordIn(uploadDTO.getCustomDictIds(), targetWords);
-        for (DictionaryWord word : words) {
-            List<MonsterData> matchedMonsters = monstersByWord.get(word.getWord());
-            if (matchedMonsters == null || matchedMonsters.isEmpty()) continue;
-            int practiceCount = matchedMonsters.size();
-            int currentErrors = matchedMonsters.stream().mapToInt(m -> safeInt(m.getInputErrorCount())).sum();
-            int total = safeInt(word.getTotalPracticeCount()) + practiceCount;
-            int errors = safeInt(word.getErrorPracticeCount()) + currentErrors;
-            word.setTotalPracticeCount(total);
-            word.setErrorPracticeCount(errors);
-            word.setUserErrorRate(BigDecimal.valueOf(errors * 100.0 / Math.max(1, total)).setScale(2, RoundingMode.HALF_UP));
-            word.setUserContinuousCorrect(currentErrors == 0 ? safeInt(word.getUserContinuousCorrect()) + practiceCount : 0);
-            word.setProficiencyLevel(resolveProficiency(word));
-            word.setDifficultyLevel(resolveDifficulty(word));
-            word.setLastPracticeTime(new Date());
+        if (monstersByWord.isEmpty()) {
+            return;
         }
-        dictionaryWordRepository.saveAll(words);
-    }
-
-    private Integer resolveProficiency(DictionaryWord word) {
-        int streak = safeInt(word.getUserContinuousCorrect());
-        double errorRate = word.getUserErrorRate() == null ? 0 : word.getUserErrorRate().doubleValue();
-        if (streak >= 10 && errorRate <= 5) return 5;
-        if (streak >= 6 && errorRate <= 10) return 4;
-        if (streak >= 3 && errorRate <= 20) return 3;
-        return errorRate >= 40 ? 1 : 2;
-    }
-
-    private Integer resolveDifficulty(DictionaryWord word) {
-        double errorRate = word.getUserErrorRate() == null ? 0 : word.getUserErrorRate().doubleValue();
-        if (errorRate >= 60) return 5;
-        if (errorRate >= 40) return 4;
-        if (errorRate >= 20) return 3;
-        return 2;
+        List<DictionaryPracticeUpdateDTO.PracticeItem> items = new ArrayList<>(monstersByWord.size());
+        monstersByWord.forEach((word, matched) -> {
+            DictionaryPracticeUpdateDTO.PracticeItem item = new DictionaryPracticeUpdateDTO.PracticeItem();
+            item.setWord(word);
+            item.setPracticeCount(matched.size());
+            item.setErrorCount(matched.stream().mapToInt(monster -> safeInt(monster.getInputErrorCount())).sum());
+            items.add(item);
+        });
+        dictionaryPracticeClient.recordPractice(uploadDTO.getCustomDictIds(), items);
     }
 
     private Date atStartOfDay(Date date) {

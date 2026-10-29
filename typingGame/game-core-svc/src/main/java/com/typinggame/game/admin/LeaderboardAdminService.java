@@ -2,7 +2,7 @@ package com.typinggame.game.admin;
 
 import com.typinggame.common.admin.AdminFilter;
 import com.typinggame.common.admin.AdminPageSupport;
-import com.typinggame.entity.leaderboard.LeaderboardEntry;
+import com.typinggame.game.entity.LeaderboardEntry;
 import com.typinggame.game.repository.GameLeaderboardEntryRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;

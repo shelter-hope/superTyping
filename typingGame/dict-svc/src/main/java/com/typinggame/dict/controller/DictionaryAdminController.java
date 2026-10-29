@@ -1,9 +1,9 @@
 package com.typinggame.dict.controller;
 
 import com.typinggame.dict.service.DictionaryAdminService;
-import com.typinggame.entity.dictionaries.CustomDictionary;
-import com.typinggame.entity.dictionaries.SystemDictionary;
-import com.typinggame.entity.dictionaries.SystemDictionaryWord;
+import com.typinggame.dict.entity.CustomDictionary;
+import com.typinggame.dict.entity.SystemDictionary;
+import com.typinggame.dict.entity.SystemDictionaryWord;
 import com.typinggame.vo.ResultMessage;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;

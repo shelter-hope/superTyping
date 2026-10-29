@@ -145,6 +145,28 @@ entity ← 仅 repository / service / config / support
 - **P4**：分 schema + Flyway + 每服务 Dockerfile + compose 全栈；
 - **P5**：springdoc + 重写 `docs/backend-architecture.md`。
 
+### 9.1 P2 进度（按域分刀，每刀一次提交）
+
+已完成（实体归属 + 跨服务读写改走内部 api + 本模块编译/测试全绿）：
+
+| 切片 | 迁到 | 服务侧配套改动 |
+| --- | --- | --- |
+| leaderboard | `com.typinggame.game.entity.LeaderboardEntry` | game-core 的 `@EntityScan` 增加自有实体包 |
+| AI 消息 | `com.typinggame.ai.entity.AiChatMessage/AiConversation` | ai-svc 同上；其余服务已无旧 FQN 引用 |
+| 聊天消息 | `com.typinggame.chat.entity.FriendChatMessage/UserConversation/ChatAttachment/SystemNotification` | chat-svc 同上；`FriendRelation` 因 user-svc 共用暂留 kernel |
+| 用户配置/快照 | `com.typinggame.user.entity.UserAppConfig/UserInfoSnapshot` | user-svc 同上 |
+| 词库 | `com.typinggame.dict.entity.CustomDictionary/SystemDictionary/DictionaryWord/SystemDictionaryWord` | dict-svc 新增内部接口 `POST /api/v1/internal/dictionaries/{ids,words,practice}`；game-core 删除 4 个 `Game*Dictionary*Repository` 与 `JpaWordSource`，改用 `HttpWordSource`（读）与 `DictionaryPracticeClient`（结算写回），`WordSource` 端口语义不变 |
+
+跨服务读改的统一约定（本轮固化）：
+
+- 内部接口路径固定 `/api/v1/internal/**`，由目标服务 `SecurityConfig` 显式放行，网关侧对 `/internal/` 路径一律 404（`GatewayGuardFilter`），只允许服务间直连；
+- game-core 的直连地址取 `@Value("${game.dict.base-url:http://dict-svc/dict-svc/api/v1/internal/dictionaries}")`，生产可通过环境变量覆盖；
+- 读取类调用失败按「空结果 + WARN」降级，结算类写入失败只记录告警，不允许拖垮主流程；
+- 每个切片都在本模块 `mvn -o test` 全绿后再进入下一刀；父 POM 全量 `mvn -o test` 为合并门禁。
+
+剩余（按依赖顺序）：`game`/`config`/`model` 域（game-core 内部仍互相引用，需先拆 DTO/Service 边界）→ `message.FriendRelation`（user-svc 与 chat-svc 共用，需先定义好友关系归属服务）→ `user_info` 及其 `stats` 子表（先拆 `UserModelAdaptLog.user` 等 `@ManyToOne` 外键桩，再改内部 API）。
+
+
 ## 10. 提交与评审检查清单
 
 - [ ] 新类放在 7 个包的正确位置，没有新增第 8 个包；

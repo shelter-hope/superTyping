@@ -1,6 +1,6 @@
 package com.typinggame.chat.repository;
 
-import com.typinggame.entity.message.SystemNotification;
+import com.typinggame.chat.entity.SystemNotification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;

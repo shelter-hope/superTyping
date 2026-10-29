@@ -6,9 +6,9 @@ import com.typinggame.dict.repository.CustomDictionaryRepository;
 import com.typinggame.dict.repository.SystemDictionaryRepository;
 import com.typinggame.dict.repository.SystemDictionaryWordRepository;
 import com.typinggame.dict.service.DictionaryAdminService;
-import com.typinggame.entity.dictionaries.CustomDictionary;
-import com.typinggame.entity.dictionaries.SystemDictionary;
-import com.typinggame.entity.dictionaries.SystemDictionaryWord;
+import com.typinggame.dict.entity.CustomDictionary;
+import com.typinggame.dict.entity.SystemDictionary;
+import com.typinggame.dict.entity.SystemDictionaryWord;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

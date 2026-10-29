@@ -1,6 +1,6 @@
 package com.typinggame.chat.repository;
 
-import com.typinggame.entity.message.FriendChatMessage;
+import com.typinggame.chat.entity.FriendChatMessage;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;

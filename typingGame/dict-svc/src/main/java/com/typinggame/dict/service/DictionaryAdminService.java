@@ -1,8 +1,8 @@
 package com.typinggame.dict.service;
 
-import com.typinggame.entity.dictionaries.CustomDictionary;
-import com.typinggame.entity.dictionaries.SystemDictionary;
-import com.typinggame.entity.dictionaries.SystemDictionaryWord;
+import com.typinggame.dict.entity.CustomDictionary;
+import com.typinggame.dict.entity.SystemDictionary;
+import com.typinggame.dict.entity.SystemDictionaryWord;
 
 import java.util.Map;
 

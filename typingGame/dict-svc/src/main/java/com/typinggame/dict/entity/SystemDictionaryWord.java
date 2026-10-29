@@ -1,4 +1,4 @@
-package com.typinggame.entity.dictionaries;
+package com.typinggame.dict.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

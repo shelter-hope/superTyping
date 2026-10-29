@@ -7,7 +7,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = {"com.typinggame.dict", "com.typinggame.common"})
-@EntityScan(basePackages = "com.typinggame.entity")
+@EntityScan(basePackages = {"com.typinggame.entity", "com.typinggame.dict.entity"})
 @EnableJpaRepositories(basePackages = "com.typinggame.dict.repository")
 @EnableDiscoveryClient
 public class DictServiceApplication {

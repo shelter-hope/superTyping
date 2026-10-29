@@ -1,6 +1,6 @@
 package com.typinggame.user.repository;
 
-import com.typinggame.entity.user.UserInfoSnapshot;
+import com.typinggame.user.entity.UserInfoSnapshot;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
