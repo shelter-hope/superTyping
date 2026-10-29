@@ -7,8 +7,9 @@
 > **执行状态（2026-10-30 更新）**
 > - ✅ **P0 已完成**（提交 `8d5347e`）：规范文件、8 个服务的 ArchUnit 护栏、lab-svc 配置拆分、网关单份路由、`deploy/` 与 Dockerfile、compose 样板。
 > - ✅ **P1 已完成**：`common` 拆为 `libs/kernel` + `libs/security`（包名不变），7 个服务改为双库依赖，删除死代码 `TraceIdFilter` 与未使用的 `SecurityConfigBase`。
-> - ⏭ P2 已完成（2026-10-30）：十一刀全部落地，实体已全部归位到各自服务，`libs/kernel` 只剩跨服务共享的 DTO / 枚举 / 工具；跨服务读取统一走 `/api/v1/internal/**`，`admin-svc` 对应路由已改指 game-core。逐刀明细见 `typingGame/docs/backend-structure-spec.md §9.1`。
-> - ⏭ 下一步 **P3**：统一 7 包模板（controller / service(+impl) / repository / entity / dto / config / support），把 `admin`、`rule`、`word`、`application`、`friends`、`im`、`storage`、`boids`、`dictionary`、`limit` 等领域包收口到 `service` / `support`。
+> - ✅ **P2 已完成**（2026-10-30）：十一刀全部落地，实体已全部归位到各自服务，`libs/kernel` 只剩跨服务共享的 DTO / 枚举 / 工具；跨服务读取统一走 `/api/v1/internal/**`，`admin-svc` 对应路由已改指 game-core。逐刀明细见 `typingGame/docs/backend-structure-spec.md §9.1`。
+> - ✅ **P3 已完成**（2026-10-30）：8 个模块全部收敛到 7 包模板（`controller / service(+impl) / repository / entity / dto / config / support`），实现类与测试同步归位，明细见 `typingGame/docs/backend-structure-spec.md §9.2`。
+> - ⏭ 下一步 **P4**：分 schema + Flyway + 每服务 Dockerfile + compose 全栈。
 > - 表结构基线已合并为单文件 `DB/typing_word_game.sql`（44 张表 / 42 外键 / 64 行种子），旧 001–014 增量脚本已删除。
 > - 下文“一、现状盘点”记录的是 **P0 前的原始状态**，用于说明改造理由，不再代表当前代码。
 

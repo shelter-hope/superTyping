@@ -125,7 +125,7 @@ entity ← 仅 repository / service / config / support
 - 新增/修改接口必须带对应 service 单测或 controller 测试；
 - 本地验收：`mvn -q -DskipTests compile` 全绿 + 改动模块 `mvn test` 通过 + 前端 `npm run build`。
 
-## 9. 迁移状态（P0 完成项）
+## 9. 迁移状态（P0–P3 已完成）
 
 已完成：
 
@@ -140,8 +140,8 @@ entity ← 仅 repository / service / config / support
 后续：
 
 - ~~**P1**：`common` 拆为 `libs/kernel` + `libs/security`~~（**已完成**：包名保持 `com.typinggame.*` 不变，7 个服务改为同时依赖 `typing-game-kernel` 与 `typing-game-security`；删除 `common/observability` 死代码与未被使用的 `SecurityConfigBase`）；
-- **P2**：实体/DTO/repository 按表归属迁回各服务；`controller` 不得依赖 `entity` 归零；跨服务读改 API；
-- **P3**：按第 3 节统一包结构，移动 `chat/application`、`game/rule`、`dict/dictionary` 等领域包到 `service`/`support`；
+- ~~**P2**：实体/DTO/repository 按表归属迁回各服务~~（**已完成**，见 §9.1：11 刀切片，kernel 只剩 DTO/枚举/工具，跨服务一律走 `/api/v1/internal/**`）；
+- ~~**P3**：按第 3 节统一包结构~~（**已完成**，见 §9.2：8 个模块全部收敛到 7 包模板）；
 - **P4**：分 schema + Flyway + 每服务 Dockerfile + compose 全栈；
 - **P5**：springdoc + 重写 `docs/backend-architecture.md`。
 
@@ -171,6 +171,22 @@ entity ← 仅 repository / service / config / support
 - 每个切片都在本模块 `mvn -o test` 全绿后再进入下一刀；父 POM 全量 `mvn -o test` 为合并门禁。
 
 剩余：`libs/kernel` 只剩跨服务共享的 DTO（`com.typinggame.dto.**`）、枚举与工具，已无实体与仓储；`SystemMonsterConfig`/`GameCharTypeConfig`/`SystemGameModeConfig`/`ModelInitParams` 已在 game-core，只有 game-core 引用。**P2 全部切完**，表结构基线已合并为 `typingGame/DB/typing_word_game.sql` 单文件（44 张表），旧增量脚本已删除。
+
+### 9.2 P3 进度（7 包模板收口，每个服务一次提交）
+
+| 服务 | 收口动作 | 验证 |
+| --- | --- | --- |
+| user-svc | `im` → `support.im`（`FriendEventPublisher`）；`security` → `service.security`（`UserDetailsServiceImpl`）；实现类统一进 `service.impl` | `mvn -o test -pl user-svc` 27 例 |
+| game-core-svc | `admin` → `service.admin`；`rule` → `service.rule`；`util` → `support.util`；`word` 拆为 `service.word`（`WordSource` 端口、绘制）与 `support.client`（`HttpWordSource`、`DictionaryPracticeClient`）；12 个 `*Impl` → `service.impl` | `mvn -o test -pl game-core-svc` 50 例 |
+| ai-svc | P2 时已对齐 7 包，本轮无搬迁 | 4 例 |
+| chat-svc | `application` → `service.application`；`im` → `support.im`；`storage` → `support.storage`；`friends` 拆为 `service.friends`（`CanMessageGuard`/`CanMessagePort`）与 `support.client`（`UserSvcCanMessageAdapter`/`UserSvcFriendsClient`）；`*Impl` → `service.impl` | 35 例 |
+| dict-svc | `dictionary` → `support.dictionary`；4 个 `*Impl` → `service.impl` | 7 例 |
+| lab-svc | `boids` → `service.boids` | 13 例 |
+| admin-svc | P2 时已对齐 7 包，本轮无搬迁 | 9 例 |
+| api-gateway | `limit` → `support.limit`（`GatewayGuardFilter` 同步改引用） | 4 例 |
+
+测试类随主代码同步迁移（`service.impl`、`support.*` 下的测试目录一一对应），所有模块 `mvn -o test` 全绿。
+
 
 
 ## 10. 提交与评审检查清单
