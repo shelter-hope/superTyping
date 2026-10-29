@@ -216,7 +216,7 @@ export default function TrendsPage() {
                 <span className="label-mono text-[9px]">TIMELINE</span>
               </div>
               <span className="label-mono text-[9px]">
-                {currentRange.label} · {chartData.length} 个采样点
+                {currentRange.label} · {chartData.length} 个聚合点
               </span>
             </div>
 
@@ -246,7 +246,7 @@ export default function TrendsPage() {
                     <section className="border-t border-border pt-6">
                       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 pb-3">
                         <div className="flex flex-wrap items-baseline gap-x-3">
-                          <h2 className="font-serif text-xl leading-none">最近采样</h2>
+                          <h2 className="font-serif text-xl leading-none">时间聚合</h2>
                           <span className="label-mono text-[9px]">RECENT</span>
                         </div>
                         <span className="label-mono text-[9px]">按时间聚合 · 非单局记录</span>

@@ -104,7 +104,7 @@ export default function Header() {
             >
               消息
               {unread > 0 && (
-                <span className="mono-num flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-accent px-1 text-[10px] leading-none text-accent-foreground">
+                <span className="mono-num flex h-[17px] min-w-[17px] items-center justify-center rounded-none bg-accent px-1 text-[10px] leading-none text-accent-foreground">
                   {unread}
                 </span>
               )}

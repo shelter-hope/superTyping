@@ -117,7 +117,7 @@ export default function ChatPage() {
   }
 
   return (
-    <PageBody className="flex h-[calc(100vh-60px)] flex-col">
+    <PageBody className="flex h-[calc(100dvh-3.75rem)] min-h-[420px] flex-col">
       <PageHeader
         eyebrow="对话 · THREAD"
         title={friend.username}

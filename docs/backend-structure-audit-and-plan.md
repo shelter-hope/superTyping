@@ -326,7 +326,7 @@ P0 完成后再决定 P1/P2 的节奏。
 ### 遗留与工程化
 
 - [ ] **L1 真机联调冒烟**：待 8080–8087 空闲时启动 8 个服务 + MySQL + Redis + Nacos，跑 `/api/v1/auth/login`、`/api/v1/game/round`、`/api/v1/internal/**` 等核心路径；记录一份 `docs/smoke-report.md`。
-- [ ] **L2 前端小收口**：`tabs.tsx` 旧样式、`Header` 未读徽章旧样式、`ChatPage` 高度写死 `calc(100vh-60px)`、趋势页「最近采样」改为逐局口径。
+- [x] **L2 前端小收口**：`tabs.tsx` 改为纸面直角分段控件（激活即墨底反白）、`Header` 未读徽章改直角、`ChatPage` 高度改 `calc(100dvh-3.75rem)` 并加 `min-h-[420px]`、趋势页「最近采样」改「时间聚合」（口径文案与之对齐；逐局序列需后端新增逐局接口，另立待办）。验证：前端 52 例测试、`npm run build` 8.56s、tsgo 仍为 17 处既有错误（未新增）。
 - [x] **L3 ai-svc 测试补齐**：新增 `AiServiceImplTest`（2 例：弱项字符+近况聚合、空数据降级）、`AiChatServiceImplTest`（2 例：空消息与空请求直接拒绝且不触库）、`InternalAdminServiceImplTest`（2 例：分页夹取与排序），ai-svc 测试从 4 个 ArchUnit 增至 10 个。
 - [ ] **L4 github 补推**：网络恢复后 `git push github master`，保持与 gitee 一致。
 - [ ] **L5 CI（可选）**：Gitee/GitHub Actions 跑 `mvn -o test` + 前端 `npm run build`；未拍板前不做。
