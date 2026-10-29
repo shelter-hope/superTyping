@@ -18,8 +18,9 @@
 
 ### 1.2 可检查标准
 
-- 前端至少通过 `pnpm run build`。
-- 后端至少通过 `mvn compile`。
+- 前端至少通过 `pnpm run build`，并跑 `pnpm test`。
+- 后端至少通过 `mvn -o test`（含各服务的 ArchitectureTest 分层护栏）。
+- 动了数据库或部署配置时，再跑 `typingGame/deploy/verify-migrations.ps1`（空库迁移门禁）；涉及服务启动的改动跑 `typingGame/deploy/smoke.ps1`。
 - 涉及接口变更时，必须同步更新接口文档或 README 中对应说明。
 - 涉及数据库结构变更时，必须提供迁移 SQL、回滚说明和兼容性说明。
 - 涉及安全、权限、认证、敏感数据时，必须在评审中重点说明。
@@ -53,7 +54,7 @@
 - `typingGame/user-svc/`：用户、登录、配置、好友关系等用户域能力。
 - `typingGame/game-core-svc/`：游戏记录、统计、自适应、怪物、模型配置、排行榜等游戏核心能力。
 - `typingGame/chat-svc/`：好友消息、通知、即时通讯。
-- `typingGame/dict-svc/`：系统词库、自定义词库、词条与词库文件。对局抽词仍由 game-core-svc 直接读同一张词库表。
+- `typingGame/dict-svc/`：系统词库、自定义词库、词条与词库文件。对局抽词与练习回写通过 dict-svc 的内部接口（`/api/v1/internal/dictionaries/*`）完成，game-core 不再直连词库表。
 - `typingGame/ai-svc/`：AI 会话、训练摘要、AI 消息等能力。
 - `typingGame/admin-svc/`：管理后台聚合服务，只做聚合/代理，不承载领域规则。
 
@@ -126,7 +127,7 @@
 ### 4.6 前端接口调用规范
 
 - 所有接口调用必须走统一 API 客户端。
-- 默认后端入口为 `http://localhost:8080/typingWord/api/v1`。
+- 前端统一入口为网关 `http://localhost:8080`，业务路径形如 `/api/v1/...`；网关按服务名 `PrefixPath=/<svc>` 与服务自身 `context-path` 配对，二者一致性由 `GatewayRouteConsistencyTest` 守护。
 - 请求必须携带必要认证信息，禁止在业务组件中硬编码 token。
 - 统一处理 401、403、500、网络失败、超时等错误场景。
 - 分页参数统一使用 `page`、`pageSize`，页码从 1 开始，除非接口文档明确说明。
@@ -150,6 +151,8 @@
 - 新功能必须放在对应领域服务中，不允许为了方便全部堆到 `game-core-svc` 或 `admin-svc`。
 - `admin-svc` 只做管理后台聚合/代理，领域规则必须下沉到所属服务。
 - 内部管理接口使用 `/api/v1/internal/admin/**`，外部管理入口使用 `/api/v1/admin/**`。
+- 跨服务内部读接口统一放在 `/api/v1/internal/**` 下，网关对含 `/internal/` 的路径一律返回 404；读失败降级为空结果、写失败只告警，不得让结算/登录主流程因旁路失败而中断。
+- 实体只归属一个服务：跨服务读走内部接口，禁止在别的服务里建同表仓储；每张表只能有一个服务写入。
 - 网关路由变更必须同步更新 `api-gateway` 配置和后端 README。
 - 跨服务调用应明确超时、失败处理和降级策略。
 - 服务端口、context-path、服务名必须与文档一致。
@@ -441,12 +444,8 @@
 
 ### 19.2 提交信息建议
 
-- `feat:` 新功能。
-- `fix:` 缺陷修复。
-- `refactor:` 重构，不改变外部行为。
-- `docs:` 文档变更。
-- `chore:` 构建、依赖、脚手架等非业务变更。
-- `test:` 测试相关变更。
+- 统一用中文主题，如 `功能：…`、`修复：…`、`重构：…`、`文档：…`、`测试：…`、`部署：…`、`数据库：…`。
+- 正文说明动机、影响范围与验证命令；一次提交只做一件事。
 
 ### 19.3 分支与合并
 

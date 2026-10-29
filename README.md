@@ -120,7 +120,7 @@
 | 对象映射 | MapStruct | 1.5.5 | DTO / Entity |
 | 数值 | Commons Math3 | 3.6.1 | 难度与统计计算 |
 
-`typingGame/docker-compose.yml` 还会拉起 Zipkin 和 RocketMQ 5.3。当前 Java 模块没有接入这两项，本地玩游戏不依赖它们。
+`typingGame/docker-compose.yml` 只拉起 Nacos、Redis、MySQL 与 8 个服务；Zipkin 与 RocketMQ 已在 P4 清理中移除，代码里也没有接入它们。
 
 ---
 
@@ -221,7 +221,7 @@ java -jar api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar
 mvn -pl user-svc -am spring-boot:run
 ```
 
-仓库根下的 `typingGame/Dockerfile` 复制的是 `target/typingGame-0.0.1-SNAPSHOT.jar`。当前父工程是多模块，`mvn package` 不会产出这个包，本地请按上面的方式启动各服务。
+镜像构建用 `typingGame/deploy/docker/Dockerfile`（`--build-arg SERVICE=<模块名>`，需先 `mvn -pl <模块> -am package`）；`typingGame/docker-compose.yml` 已把 8 个服务和 Nacos/Redis/MySQL 编在一起，起栈后跑 `typingGame/deploy/smoke.ps1` 可做冒烟。表结构由各服务启动时的 Flyway 脚本建立，不再需要手工导入 SQL。
 
 ### 3. 启动前端
 
@@ -351,7 +351,7 @@ Compose 里的 Nacos 开启了鉴权，服务配置只写了地址、没有用�
 - 私聊只走 `ws://<网关>/ws/im?token=`。打开时发送、正在输入和回执都在这条连接上，关闭时发送回退 `POST /api/v1/messages`，历史每 3 秒轮询一次
 - 消息类型：文本、内置表情、图片和普通文件。图片和文件先上传到 `POST /api/v1/messages/attachments`，正文只存附件 id，下载要带登录令牌。发送方可以在 2 分钟内撤回，双方会话行一起标记
 - 好友申请可以带 200 字附言。拉黑后不能再发消息，只有拉黑方能解除。在线状态看 Redis `im:online:{userId}`
-- 表结构统一由初始化脚本 `typingGame/DB/typing_word_game.sql` 创建，不再区分历史增量
+- 表结构由各服务的 Flyway 迁移（`typingGame/<svc>/src/main/resources/db/migration/V1__init.sql`）在启动时建立，库按域分成 `typing_game_user` 等 7 个；`typingGame/DB/typing_word_game.sql` 是全库单文件基线，仅供查阅和应急建库
 - AI 对话读取真实对局和字符统计。未配置 `AI_LLM_API_KEY` 时只返回配置提示
 - `/admin` 覆盖用户、记录、词库、排行榜、统计、模型参数和日志趋势。领域查询在各服务的内部管理接口中完成
 

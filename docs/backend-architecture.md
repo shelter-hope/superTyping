@@ -1,3 +1,7 @@
+> **状态：历史存档（2026-10）。** 本文描述的是单体时代 / 6 服务、/typingWord 前缀的旧结构，其中模块划分、端口、目录都已过时。
+>
+> 今天的结构与规范见 `typingGame/docs/backend-structure-spec.md`，改造过程见 `docs/backend-structure-audit-and-plan.md`。
+
 # 后端架构文档
 
 ## 一、系统概述

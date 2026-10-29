@@ -14,7 +14,7 @@
 typingGame/
 ├── pom.xml                     # 聚合父 POM（packaging=pom）
 ├── libs/                       # 只放库，不放可启动服务（P1 已落地）
-│   ├── kernel/                 # 实体、DTO、枚举、工具、VO、ResultMessage/BusinessException、全局异常、Admin 过滤器、IM 契约
+│   ├── kernel/                 # DTO、枚举、工具、VO、ResultMessage/BusinessException、全局异常、Admin 过滤器、IM 契约，以及 5 个仍被多服务共读的共享实体（GameCharTypeConfig、SystemGameModeConfig、SystemMonsterConfig、ModelInitParams、KeyConfusion）
 │   ├── security/               # JwtTokenProvider、JwtAuthenticationFilter、TokenRevocation
 │   └── testing/                # 测试基类（可选）
 ├── services/                   # 8 个可启动服务（P2 迁移完成后使用；当前仍在根目录）
@@ -27,7 +27,7 @@ typingGame/
 └── DB/                         # 历史手工 SQL（P4 后归档只读）
 ```
 
-**过渡态说明**：P0–P1 期间服务仍直接位于 `typingGame/` 根下（与现在一致），P2 完成后再整体移动到 `services/`。任何新模块都必须先决定自己属于 `libs/` 还是 `services/`。
+**过渡态说明**：P2/P3 已完成实体与包结构收口，但服务目录仍在 `typingGame/` 根下（未迁入 `services/`）。目录迁移属可选项：动它要同步父 POM `<modules>`、各服务相对路径与 IDEA 模块，收益低、风险中，暂不强制。任何新模块都必须先决定自己属于 `libs/` 还是服务。
 
 **schema 现状（P4）**：7 个 schema，每个服务只连自己的库，`ddl-auto=validate`，表结构变更只能通过各自 `db/migration` 下的 Flyway 脚本。原 `DB/typing_word_game.sql` 保留为全库单文件基线（人工查阅/应急建库用，不再由服务执行）；`DB/00-create-schemas.sql` 建 7 个空 schema；跨 schema 外键 21 条已降级为逻辑引用，清单见 `DB/cross-schema-foreign-keys.md`。
 
